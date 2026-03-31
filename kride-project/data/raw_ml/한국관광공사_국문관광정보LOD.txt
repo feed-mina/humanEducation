@@ -1,0 +1,1966 @@
+<rdf:RDF
+    xmlns:vtovoid="http://data.visitkorea.or.kr/void/"
+    xmlns:ktop="http://data.visitkorea.or.kr/property/"
+    xmlns:schema="https://schema.org/"
+    xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+    xmlns:radion="http://www.w3.org/ns/radion#"
+    xmlns:event="http://purl.org/NET/c4dm/event.owl#"
+    xmlns:protege="http://protege.stanford.edu/plugins/owl/protege#"
+    xmlns:xsp="http://www.owl-ontologies.com/2005/08/07/xsp.owl#"
+    xmlns:timeline="http://purl.org/NET/c4dm/timeline.owl#"
+    xmlns:org="http://www.w3.org/ns/org#"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:voaf="http://purl.org/vocommons/voaf#"
+    xmlns:void="http://rdfs.org/ns/void#"
+    xmlns:swrlb="http://www.w3.org/2003/11/swrlb#"
+    xmlns:vann="http://purl.org/vocab/vann/"
+    xmlns:vcard="http://www.w3.org/2006/vcard/ns#"
+    xmlns:geo="http://www.opengis.net/ont/geosparql#"
+    xmlns:id="http://data.visitkorea.or.kr/resource/"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:foaf="http://xmlns.com/foaf/0.1/"
+    xmlns:cc="http://creativecommons.org/ns#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:dcterms="http://purl.org/dc/terms/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:swrl="http://www.w3.org/2003/11/swrl#"
+    xmlns="http://data.visitkorea.or.kr/ontology/"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:wgs84="http://www.w3.org/2003/01/geo/wgs84_pos#">
+  <owl:Ontology rdf:about="http://data.visitkorea.or.kr/">
+    <dc:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >2015-11-27</dc:modified>
+    <dc:description xml:lang="ko">관광 데이터 모델(Tourism Data Model)은 관광정보에 대한 정의, 수집, 연결/연계에 대한 기본 모델로써, 지자체/기업에서 관광정보 정의시 사용되는 참조모델임.</dc:description>
+    <radion:versionNotes xml:lang="ko">2015-10-17 
+- version1.3 개념과 속성에 대한 설명 추가
+- LeisureAndSport 레저와 스포츠는 사람의 활동(activity)와 관련된 것으로 장소와 관계성을 가지도록 수정해야함. 만약 레저와 스포츠가 행해지는 장소를 명시할 경우는 클래스의 명칭 변경
+- Address 주소체계를 SKOS 모델로 정의
+2015-11-02 
+- Place, Event 재 정의
+2015-11-12
+-property URI 정의 &lt;http://data.visitkorea.or.kr/property&gt;
+2015-11-27
+-장소에 대한 profile, service, facility 속성 정의</radion:versionNotes>
+    <skos:definition xml:lang="ko">관광 데이터 모델(Tourism Data Model)은 관광정보에 대한 정의, 수집, 연결/연계에 대한 기본 모델로써, 지자체/기업에서 관광정보 정의시 사용되는 참조모델임.</skos:definition>
+    <vann:changes xml:lang="ko">2015-10-26 관광온톨로지 정의</vann:changes>
+    <dcterms:issued rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >2015-10-01</dcterms:issued>
+    <voaf:toDoList xml:lang="ko">2015-10-27 
+- 엔티티별 속성정의
+2015-11-02
+- 엔티티별 속성 상세정의
+2015-11-12
+-엔티티별 속성 상세정의 추가(Accommodation, Attraction, Gastro, TerminalInfrastructure, Event)</voaf:toDoList>
+    <owl:versionInfo rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >1.6</owl:versionInfo>
+    <rdfs:comment xml:lang="ko">관광 데이터 모델(Tourism Data Model)은 관광정보에 대한 정의, 수집, 연결/연계에 대한 기본 모델로써, 지자체/기업에서 관광정보 정의시 사용되는 참조모델임.</rdfs:comment>
+    <dc:title xml:lang="ko">관광 데이터 모델; Tourism Data Model(TDM)</dc:title>
+  </owl:Ontology>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Statue">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">동상</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/OldHouse">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">고택</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ChemicalAndMetallurgy">
+    <rdfs:label xml:lang="ko">화학/금속</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FloatingHotel">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Hotel"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">수상관광호텔</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SouvenirShop">
+    <rdfs:label xml:lang="ko">관광기념품점</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility">
+    <rdfs:label xml:lang="ko">레저와스포츠</rdfs:label>
+    <rdfs:label xml:lang="en">leisures and sport facilities</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    </rdfs:subClassOf>
+    <rdfs:comment xml:lang="ko">레저와 스포츠가 행해지는 장소</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BicycleHiking">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">자전거하이킹</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ProvincialPark">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">도립공원</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/WindSurfingAndJetSkiing">
+    <rdfs:label xml:lang="ko">윈드서핑/제트스키</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/GuestHouse">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">게스트하우스</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Bridge">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">다리및대교</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalResource">
+    <rdfs:label xml:lang="ko">자연자원</rdfs:label>
+    <rdfs:label xml:lang="en">natural resources</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SecurityAndPeaceSite">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">안보관광</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Tunnel">
+    <rdfs:label xml:lang="ko">터널</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SpecialtyShop">
+    <rdfs:label xml:lang="ko">특산물판매점</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BicycleRacing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">경륜장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Sledding">
+    <rdfs:label xml:lang="ko">썰매장</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ChineseRestaurant">
+    <rdfs:label xml:lang="ko">중식</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BotanicalGarden">
+    <rdfs:label xml:lang="ko">수목원</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalTrainingCenter">
+    <rdfs:label xml:lang="ko">문화전수시설</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MountainBiking">
+    <rdfs:label xml:lang="ko">산악자전거</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Jjimjilbang">
+    <rdfs:label xml:lang="ko">이색찜질방</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TourismCode">
+    <rdfs:comment xml:lang="ko">관광여행정보 서비스 분류체계(v3.0)로 관광지, 문화시설, 스포츠/레저, 축제/공연, 숙박, 이벤트, 음식 등에 대한 관광객의 관광이나 활동과 관련된 분류입니다.</rdfs:comment>
+    <rdfs:label xml:lang="ko">관광여행정보 서비스분류코드</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#Concept"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ArtMuseumsAndGalleries">
+    <rdfs:label xml:lang="ko">미술관/화랑</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MineralSpring">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">약수터</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/River">
+    <rdfs:label xml:lang="ko">강</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShopAndMarket">
+    <rdfs:label xml:lang="ko">가게와시장</rdfs:label>
+    <rdfs:label xml:lang="en">shops and markets</rdfs:label>
+    <rdfs:comment xml:lang="ko">상품등을 판매하는 곳</rdfs:comment>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/WesternRestaurant">
+    <rdfs:label xml:lang="ko">서양식</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/PowerPlant">
+    <rdfs:label xml:lang="ko">발전소</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Shops_Boutiques_OutletMall">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:label xml:lang="ko">전문상가</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Library">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">도서관</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RarePlant">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalResource"/>
+    <rdfs:label xml:lang="ko">식물</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CruiseAndSubmarine">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">유람선/잠수함관광</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://xmlns.com/foaf/0.1/Person">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://xmlns.com/foaf/0.1/Agent"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/UltralightFlying">
+    <rdfs:label xml:lang="ko">초경량비행</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TraditionalExperience">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ExperienceAttraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">전통체험</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MovieTheater">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">영화관</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalCenter">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    </rdfs:subClassOf>
+    <rdfs:comment xml:lang="ko">한국문화원, 해외국가별 문화원을 정의함</rdfs:comment>
+    <rdfs:label xml:lang="ko">문화원</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Exhibition">
+    <rdfs:label xml:lang="ko">전시회</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/AsianRestaurant">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">아시아식</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/IndustrialAttraction">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">산업관광</rdfs:label>
+    <rdfs:label xml:lang="en">industrial attraction</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HollySite">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">종교성지</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/DrySaunas">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">이색찜질방</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricSite">
+    <rdfs:label xml:lang="ko">유적지/사적지</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BungeeJumping">
+    <rdfs:label xml:lang="ko">번지점프</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FerryTerminal">
+    <rdfs:label xml:lang="ko">여객선터미널</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Class">
+    <rdfs:comment xml:lang="ko">관광여행정보 서비스를 구성하는 도메인 정보입니다.</rdfs:comment>
+    <rdfs:label xml:lang="ko">관광여행정보 도메인</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Place"/>
+    </rdfs:subClassOf>
+    <rdfs:comment xml:lang="ko">도시기반시설로써, 두개의 장소(Destination, 도시/국가 등)를 연결하는 곳
+만약, 교통을 위한 장소의 특성(속성, 관계정보)을 세분화할 경우는 TerminalInfrastructure클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+    <rdfs:label xml:lang="en">terminal infrastructure</rdfs:label>
+    <rdfs:label xml:lang="ko">터미널</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Automobile">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:seeAlso>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+    <rdfs:label xml:lang="ko">자동차</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://rdfs.org/ns/void#Dataset"/>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/void/Dataset">
+    <rdfs:subClassOf rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+    <rdfs:label xml:lang="ko">데이터셋</rdfs:label>
+    <rdfs:comment xml:lang="ko">링크드 데이터셋(linked datasets)에 대한 설명은 http://rdfs.org/ns/void#에서 정의된 용어를 사용함.
+관광모델에서의 데이터셋 설명을 위한 Named graph는 http://data.visitkorea.or.kr/void/를 사용한다.</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Building">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">빌딩</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HangGlidingAndParagliding">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">헹글라이딩/패러글라이딩</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="https://schema.org/Place"/>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Motel">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">모텔</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility">
+    <rdfs:label xml:lang="ko">문화시설</rdfs:label>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CountryPark">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">군립공원</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ThemePark">
+    <rdfs:label xml:lang="ko">테마공원</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SportsCenter">
+    <rdfs:label xml:lang="ko">스포츠센터</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShipbuildingYard">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+    <rdfs:label xml:lang="ko">조선소</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HuntingGround">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">수렵장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/GoKarting">
+    <rdfs:label xml:lang="ko">카트</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/LanguageInstitute">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    <rdfs:label xml:lang="ko">어학당</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Cruise">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CruiseAndSubmarine"/>
+    <rdfs:label xml:lang="ko">유람선</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/LightHouse">
+    <rdfs:label xml:lang="ko">등대</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro">
+    <rdfs:label xml:lang="en">gastro</rdfs:label>
+    <rdfs:label xml:lang="ko">먹는곳</rdfs:label>
+    <rdfs:comment xml:lang="ko">음식과 음료 등을 제공하는 장소(먹는곳)
+만약, 먹기위한 장소의 특성(속성, 관계정보)을 세분화할 경우는 Gastro클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Place"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FamilyRestaurant">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:label xml:lang="ko">패밀리레스토랑</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Exposition">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">박람회</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BirthPlace">
+    <rdfs:label xml:lang="ko">생가</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TrainStation">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+    <rdfs:label xml:lang="ko">기차역</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/IndustrialComplex">
+    <rdfs:label xml:lang="ko">공단</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Museum">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    <rdfs:label xml:lang="ko">박물관</rdfs:label>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShootingRange">
+    <rdfs:label xml:lang="ko">사격장</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CoastalAttraction">
+    <rdfs:label xml:lang="ko">해안절경</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FolkVillage">
+    <rdfs:label xml:lang="ko">민속마을</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Place">
+    <rdfs:comment xml:lang="ko">관광지, 문화시설, 운동시설, 먹는 곳, 잠자는 곳, 교통 등 장소와 관련된 것들을 정의함. schema:Place와 동일한 의미임.
+만약, 장소의 특성(속성, 관계정보)을 세분화할 경우는 Place클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+    <rdfs:label xml:lang="en">place</rdfs:label>
+    <rdfs:label xml:lang="ko">장소</rdfs:label>
+    <owl:equivalentClass rdf:resource="https://schema.org/Place"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Beach">
+    <rdfs:label xml:lang="ko">해수욕장</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction">
+    <rdfs:label xml:lang="en">attraction</rdfs:label>
+    <rdfs:label xml:lang="ko">명소</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Place"/>
+    <rdfs:comment xml:lang="ko">문화, 체험, 산업, 자연, 레크레이션 등 참여하거나 경험, 볼 수 있는 장소들로써 사람들이 관심있어 하는 곳을 정의함
+만약, 관광을 위한 장소의 특성(속성, 관계정보)을 세분화할 경우는 Attraction클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Club">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:label xml:lang="ko">클럽</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SnorkelingAndScubaDiving">
+    <rdfs:label xml:lang="ko">스노쿨링/스킨스쿠버다이빙</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/InlineSkating">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">인라인스케이팅</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TraditionalMarket">
+    <rdfs:label xml:lang="ko">상설시장</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/JapaneseRestaurant">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:label xml:lang="ko">일식</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ClassicalMusicConcert">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">클래식음악회</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Observatory">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MonumentAndObservatory"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">전망대</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ExhibitionHall">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    <rdfs:label xml:lang="ko">전시관</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/YouthHostel">
+    <rdfs:label xml:lang="ko">유스호스텔</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Resort">
+    <rdfs:label xml:lang="ko">유원지</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HotAirBallooning">
+    <rdfs:label xml:lang="ko">열기구</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/PopularMusicConcert">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">대중콘서트</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Play">
+    <rdfs:label xml:lang="ko">연극</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Movie">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">영화</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FreshwaterFishing">
+    <rdfs:label xml:lang="ko">민물낚시</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Stadium">
+    <rdfs:label xml:lang="ko">경기장</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/PortAndHarbor">
+    <rdfs:label xml:lang="ko">항구/포구</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Rafting">
+    <rdfs:label xml:lang="ko">래프팅</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HotSpringAndSpa">
+    <rdfs:label xml:lang="ko">온천/욕장/스파</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Fountain">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">분수</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalAttraction">
+    <rdfs:label xml:lang="ko">레크레이션관광</rdfs:label>
+    <rdfs:label xml:lang="en">recreational attraction</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ExperienceAttraction">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:label xml:lang="ko">체험및학습관광</rdfs:label>
+    <rdfs:label xml:lang="en">experience attraction</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NaturalAttraction">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:label xml:lang="ko">자연관광</rdfs:label>
+    <rdfs:label xml:lang="en">natural attraction</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Pension">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">펜션</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Rock">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalResource"/>
+    <rdfs:label xml:lang="ko">기암괴석</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SkiAndSnowboardRental">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">스키(보드) 렌탈샵</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Cave">
+    <rdfs:label xml:lang="ko">동굴</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HomeStay">
+    <rdfs:label xml:lang="ko">홈스테이</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Bookstore">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    <rdfs:label xml:lang="ko">대형서점</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Golfing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">골프장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MonumentAndObservatory">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure"/>
+    </rdfs:subClassOf>
+    <rdfs:comment xml:lang="ko">Monument와 Observatory을 의미함.</rdfs:comment>
+    <rdfs:label xml:lang="ko">기념탑/기념비/전망대</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/DepartmentStore">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:label xml:lang="ko">백화점</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion">
+    <rdfs:comment xml:lang="ko">매년/매월과 같이 주기적으로 일어나는 이벤트에 대한 버전을 관리</rdfs:comment>
+    <rdfs:label xml:lang="ko">이벤트버전</rdfs:label>
+    <rdfs:label xml:lang="en">event version</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CraftWorkshop">
+    <rdfs:label xml:lang="ko">공예/공방가게</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/UniqueRestaurant">
+    <rdfs:label xml:lang="ko">이색음식점</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Condominium">
+    <rdfs:label xml:lang="ko">콘도미니엄</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ConventionCenter">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    <rdfs:label xml:lang="ko">컨벤션센터</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Monument">
+    <rdfs:label xml:lang="ko">기념비</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/MonumentAndObservatory"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/DiscountShop">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:label xml:lang="ko">할인매장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Waterfall">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    <rdfs:label xml:lang="ko">폭포</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ModenHotel">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <rdfs:label xml:lang="ko">관광호텔</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Hotel"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ElectronicAndSemiconductor">
+    <rdfs:label xml:lang="ko">전자/반도체</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/KoreanRestaurant">
+    <rdfs:label xml:lang="ko">한식</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Palace">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">고궁</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Park">
+    <rdfs:label xml:lang="ko">공원</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EcoTourismSite">
+    <rdfs:label xml:lang="ko">자연생태관광지</rdfs:label>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/AutoRacing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">자동차경주</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/PrivateRoom">
+    <rdfs:label xml:lang="ko">민박</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SkiingAndSnowboarding">
+    <rdfs:label xml:lang="ko">스키/스노보드</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/PerformanceHall">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+    <rdfs:label xml:lang="ko">공연장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Casino">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">카지노게임장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Mine">
+    <rdfs:label xml:lang="ko">광산</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SportEvent">
+    <rdfs:label xml:lang="ko">스포츠경기</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/DutyFreeShop">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:label xml:lang="ko">면세점</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/IceClimbing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">빙벽등반</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Opera">
+    <rdfs:label xml:lang="ko">오페라</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SteelMill">
+    <rdfs:label xml:lang="ko">제철소</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/VegetarianRestaurant">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:label xml:lang="ko">채식전문점</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/University">
+    <rdfs:label xml:lang="ko">학교</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TraditionalHotel">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Hotel"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">전통호텔</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SpecialFestival">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">문화관광축제</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/KayakingAndCanoeing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">카약/카누</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FishingVillage">
+    <rdfs:label xml:lang="ko">어촌</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FiveDayMarket">
+    <rdfs:label xml:lang="ko">5일장</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gate">
+    <rdfs:label xml:lang="ko">문</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/OffRoadVehicle">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">오프로드</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MedicalTourismSite">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    <rdfs:label xml:lang="ko">헬스투어</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://xmlns.com/foaf/0.1/Image">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://xmlns.com/foaf/0.1/Document"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/VillageExperience">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ExperienceAttraction"/>
+    <rdfs:label xml:lang="ko">농/산/어촌 체험</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Camping">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">야영장/오토캠핑장</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event">
+    <rdfs:label xml:lang="en">event</rdfs:label>
+    <rdfs:label xml:lang="ko">이벤트</rdfs:label>
+    <rdfs:comment xml:lang="ko">이벤트는 행사활동, 행사장소, 행사 상품 등을 가지며, 특정 장소와 연결됨. event:Event와 동일한 의미임.
+만약, 이벤트를 위한 장소의 특성(속성, 관계정보)을 세분화할 경우는 Event클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+    <owl:equivalentClass>
+      <owl:Class rdf:about="http://purl.org/NET/c4dm/event.owl#Event"/>
+    </owl:equivalentClass>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalAttraction">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:label xml:lang="ko">문화장소</rdfs:label>
+    <rdfs:label xml:lang="en">cultural attraction</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RockClimbing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">암벽등반</rdfs:label>
+  </owl:Class>
+  <owl:Class>
+    <owl:unionOf rdf:parseType="Collection">
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Place"/>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ProductAndService"/>
+      <owl:Class rdf:about="https://schema.org/Place"/>
+    </owl:unionOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalDistricts">
+    <rdfs:label xml:lang="ko">이색거리</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ExperienceAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ProductAndService">
+    <rdfs:label xml:lang="en">product and service</rdfs:label>
+    <rdfs:label xml:lang="ko">상품및서비스</rdfs:label>
+    <rdfs:comment xml:lang="ko">여행코드 등 관광지나 이벤트 행사에 대한 여행상품이나 서비스 정의, 상품 및 서비스는 일반적으로 장소와 관련됨.
+만약, 상품및서비스(여행코스, 테마여행상품 등)를 위한 특성(속성, 관계정보)을 세분화할 경우는 ProductAndService클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Temple">
+    <rdfs:label xml:lang="ko">사찰</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://xmlns.com/foaf/0.1/Organization">
+    <rdfs:subClassOf rdf:resource="http://xmlns.com/foaf/0.1/Agent"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Valley">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    <rdfs:label xml:lang="ko">계곡</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HorseRacing">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">경마장소</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/AddressCode">
+    <rdfs:comment xml:lang="ko">대한민국의 주소코드체계을 정의, 시/군/구/동/면/리로 정의할 수 있음</rdfs:comment>
+    <rdfs:label xml:lang="ko">주소코드체계</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TrainingFacility">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">수련시설</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RareAnimal">
+    <rdfs:label xml:lang="ko">희귀동물</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalResource"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Convention">
+    <rdfs:label xml:lang="ko">컨벤션</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HorseRiding">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">승마</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SkyDiving">
+    <rdfs:label xml:lang="ko">스카이다이빙</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation">
+    <rdfs:label xml:lang="en">accommodation</rdfs:label>
+    <rdfs:label xml:lang="ko">숙박시설</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Place"/>
+    <rdfs:comment xml:lang="ko">잠을 잘 수 있는 곳으로 호텔, 모델, 게스트하우스, 펜션, 야영 등을 구분함. 
+만약, 숙박을 위한 장소의 특성(속성, 관계정보)을 세분화할 경우는 Accommodation클래스의 하위클래스로 확장하여 정의한다.</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Airport">
+    <rdfs:label xml:lang="ko">공항</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Inn">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="ko">여관</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TempleStay">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ExperienceAttraction"/>
+    <rdfs:label xml:lang="ko">산사체험</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HistoricalPlace">
+    <rdfs:label xml:lang="ko">역사적인 장소</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FamilyHotel">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Hotel"/>
+    </rdfs:subClassOf>
+    <rdfs:label xml:lang="ko">가족호텔</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://purl.org/NET/c4dm/event.owl#Event">
+    <owl:equivalentClass rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >An arbitrary classification of a space/time region, by a cognitive agent. 
+    An event may have actively participating agents, passive factors, 
+    products, and a location in space/time.</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FarmingExperience">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ExperienceAttraction"/>
+    <rdfs:label xml:lang="ko">관광농원</rdfs:label>
+  </owl:Class>
+  <owl:Class>
+    <owl:unionOf rdf:parseType="Collection">
+      <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#Concept"/>
+      <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    </owl:unionOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Mountain">
+    <rdfs:label xml:lang="ko">산</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RegularFestival">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+    <rdfs:label xml:lang="ko">일반축제</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/UniqueExperience">
+    <rdfs:label xml:lang="ko">이색체험</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/ExperienceAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Submarine">
+    <rdfs:label xml:lang="ko">잠수함관광</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CruiseAndSubmarine"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/MemorialHall">
+    <rdfs:label xml:lang="ko">기념관</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Fortress">
+    <rdfs:label xml:lang="ko">성</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/HistoricalPlace"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BusTerminal">
+    <rdfs:label xml:lang="ko">버스터미널</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/AllTerrainVehicle">
+    <rdfs:label xml:lang="ko">전지형차장</rdfs:label>
+    <rdfs:comment xml:lang="ko">전지형차를 탈 수 있는 장소</rdfs:comment>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/RecreationalForest">
+    <rdfs:label xml:lang="ko">자연휴양림</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/HighwayRestArea">
+    <rdfs:label xml:lang="ko">고속도로휴게소</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Musical">
+    <rdfs:label xml:lang="ko">뮤지컬</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SurvivalGame">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">서바이벌게임</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/DanceEvent">
+    <rdfs:label xml:lang="ko">무용</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Trekking">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+    <rdfs:label xml:lang="ko">트래킹</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Island">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    <rdfs:label xml:lang="ko">섬</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Hotel">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="ko">호텔</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/IceSkating">
+    <rdfs:label xml:lang="ko">스케이트</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BarAndCafe">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:label xml:lang="ko">바/까페</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/SeaFishing">
+    <rdfs:label xml:lang="ko">바다낚시</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Yachting">
+    <rdfs:label xml:lang="ko">요트</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TraditionalPerformance">
+    <rdfs:label xml:lang="ko">전통공연</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ServicedResidence">
+    <rdfs:label xml:lang="ko">서비스드레지던스</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/NationalPark">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    <rdfs:label xml:lang="ko">국립공원</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TouristComplex">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/RecreationalAttraction"/>
+    <rdfs:label xml:lang="ko">관광단지</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/FoodAndBeverage">
+    <rdfs:label xml:lang="ko">식음료</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/IndustrialAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/BuildingAndStructure">
+    <rdfs:comment xml:lang="ko">인공적인 빌딩이나 구조물, 예를들어 다리, 빌딩, 기념물, 터널, 전망대 등이 있음</rdfs:comment>
+    <rdfs:label xml:lang="ko">빌딩과구조물</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalAttraction"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Lake">
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/NaturalAttraction"/>
+    <rdfs:label xml:lang="ko">호수</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Swimming">
+    <rdfs:label xml:lang="ko">수영</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+  </owl:Class>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#narrower">
+    <owl:inverseOf>
+      <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#broader"/>
+    </owl:inverseOf>
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdfs:subPropertyOf>
+      <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#narrowerTransitive"/>
+    </rdfs:subPropertyOf>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://xmlns.com/foaf/0.1/thumbnail">
+    <rdfs:comment xml:lang="ko">이미지의 썸네일</rdfs:comment>
+    <rdfs:range rdf:resource="http://xmlns.com/foaf/0.1/Image"/>
+    <rdfs:domain rdf:resource="http://xmlns.com/foaf/0.1/Image"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://data.visitkorea.or.kr/property/location">
+    <rdfs:comment xml:lang="ko">장소, 이벤트 등의 주소</rdfs:comment>
+    <rdfs:range rdf:resource="http://data.visitkorea.or.kr/ontology/AddressCode"/>
+    <rdfs:label xml:lang="ko">위치</rdfs:label>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#inScheme">
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://purl.org/dc/terms/isVersionOf">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+    <owl:inverseOf>
+      <owl:ObjectProperty rdf:about="http://purl.org/dc/terms/hasVersion"/>
+    </owl:inverseOf>
+    <rdfs:range rdf:resource="http://purl.org/NET/c4dm/event.owl#Event"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#broaderTransitive">
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <owl:inverseOf>
+      <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#narrowerTransitive"/>
+    </owl:inverseOf>
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#TransitiveProperty"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://xmlns.com/foaf/0.1/depicts">
+    <rdfs:comment xml:lang="ko">특정 대상(Thing)을 묘사(설명)하는 이미지</rdfs:comment>
+    <rdfs:domain rdf:resource="http://xmlns.com/foaf/0.1/Image"/>
+    <owl:inverseOf>
+      <owl:ObjectProperty rdf:about="http://xmlns.com/foaf/0.1/depiction"/>
+    </owl:inverseOf>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://purl.org/NET/c4dm/event.owl#agent">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:range rdf:resource="http://xmlns.com/foaf/0.1/Agent"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#hasTopConcept">
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <owl:inverseOf>
+      <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#topConceptOf"/>
+    </owl:inverseOf>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://data.visitkorea.or.kr/property/category">
+    <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >카테고리</rdfs:label>
+    <rdfs:range rdf:resource="http://data.visitkorea.or.kr/ontology/TourismCode"/>
+    <rdfs:comment xml:lang="ko">관광객의 관광과 활동을 구분한 서비스 카테고리
+한국관광공사 카테고리 참조(v3.0)</rdfs:comment>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://data.visitkorea.or.kr/property/organizaer">
+    <rdfs:range rdf:resource="http://xmlns.com/foaf/0.1/Agent"/>
+    <rdfs:comment xml:lang="ko">행사 주최자</rdfs:comment>
+    <rdfs:label xml:lang="ko">주최자</rdfs:label>
+    <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >organizer</rdfs:label>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#topConceptOf">
+    <owl:inverseOf rdf:resource="http://www.w3.org/2004/02/skos/core#hasTopConcept"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#narrowerTransitive">
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <owl:inverseOf rdf:resource="http://www.w3.org/2004/02/skos/core#broaderTransitive"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#TransitiveProperty"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://purl.org/dc/terms/hasVersion">
+    <rdfs:range rdf:resource="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+    <rdfs:domain rdf:resource="http://purl.org/NET/c4dm/event.owl#Event"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://data.visitkorea.or.kr/property/provider">
+    <rdfs:label xml:lang="ko">정보제공자</rdfs:label>
+    <rdfs:label xml:lang="en">provider</rdfs:label>
+    <rdfs:comment xml:lang="ko">장소, 이벤트 등에 대한 정보를 제공하는 자(사람, 기관 등)</rdfs:comment>
+    <rdfs:range rdf:resource="http://xmlns.com/foaf/0.1/Agent"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://www.w3.org/2004/02/skos/core#broader">
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2004/02/skos/core#broaderTransitive"/>
+    <rdfs:domain rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <owl:inverseOf rdf:resource="http://www.w3.org/2004/02/skos/core#narrower"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://purl.org/NET/c4dm/event.owl#place">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:range rdf:resource="http://data.visitkorea.or.kr/ontology/Place"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://xmlns.com/foaf/0.1/page">
+    <rdfs:label xml:lang="en">page</rdfs:label>
+    <rdfs:comment xml:lang="en">A page or document about this thing.</rdfs:comment>
+    <rdfs:range rdf:resource="http://xmlns.com/foaf/0.1/Document"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://xmlns.com/foaf/0.1/depiction">
+    <owl:inverseOf rdf:resource="http://xmlns.com/foaf/0.1/depicts"/>
+    <rdfs:range rdf:resource="http://xmlns.com/foaf/0.1/Image"/>
+  </owl:ObjectProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/serviceFeeIncluded">
+    <rdfs:comment xml:lang="ko">봉사료포함여부</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="en">service fee included</rdfs:label>
+    <rdfs:label xml:lang="ko">봉사료포함여부</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/campfire">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">campfire</rdfs:label>
+    <rdfs:label xml:lang="ko">캠프화이어</rdfs:label>
+    <rdfs:comment xml:lang="ko">캠프화이어</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/price">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:label xml:lang="en">price</rdfs:label>
+    <rdfs:label xml:lang="ko">가격정보</rdfs:label>
+    <rdfs:comment xml:lang="ko">가격정보</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://www.w3.org/2003/01/geo/wgs84_pos#lat"/>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/scale">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">규모</rdfs:comment>
+    <rdfs:label xml:lang="en">scale</rdfs:label>
+    <rdfs:label xml:lang="ko">규모</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/sportsFicility">
+    <rdfs:label xml:lang="en">sports ficility</rdfs:label>
+    <rdfs:label xml:lang="ko">스포츠시설</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">스포츠시설</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/facilities">
+    <rdfs:comment xml:lang="ko">장소내에서 제공되는 편의시설 및 장비(Retail shop, Hair salon, meeting room, steam room, 등)</rdfs:comment>
+    <rdfs:label xml:lang="ko">편의시설/장비</rdfs:label>
+    <rdfs:label xml:lang="en">facilities</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/toiletries">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">세면도구</rdfs:comment>
+    <rdfs:label xml:lang="en">toiletries</rdfs:label>
+    <rdfs:label xml:lang="ko">세면도구</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/checkIn">
+    <rdfs:comment xml:lang="ko">입실시간</rdfs:comment>
+    <rdfs:label xml:lang="en">check in</rdfs:label>
+    <rdfs:label xml:lang="ko">입실시간</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/peakSeason">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">peak season</rdfs:label>
+    <rdfs:label xml:lang="ko">성수기기간</rdfs:label>
+    <rdfs:comment xml:lang="ko">성수기기간</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/restDate">
+    <rdfs:comment xml:lang="ko">쉬는날</rdfs:comment>
+    <rdfs:label xml:lang="en">rest date</rdfs:label>
+    <rdfs:label xml:lang="ko">쉬는날</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/fridgeAvailable">
+    <rdfs:label xml:lang="en">fridge available</rdfs:label>
+    <rdfs:label xml:lang="ko">냉장고 제공</rdfs:label>
+    <rdfs:comment xml:lang="ko">냉장고 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/travelTime">
+    <rdfs:label xml:lang="en">travel time</rdfs:label>
+    <rdfs:label xml:lang="ko">관람소요시간</rdfs:label>
+    <rdfs:comment xml:lang="ko">관람소요시간</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://xmlns.com/foaf/0.1/mbox">
+    <rdfs:comment xml:lang="ko">전자우편주소</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://xmlns.com/foaf/0.1/name">
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/additionalFacility">
+    <rdfs:comment xml:lang="ko">부대시설</rdfs:comment>
+    <rdfs:label xml:lang="en">additional facility</rdfs:label>
+    <rdfs:label xml:lang="ko">부대시설</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/vanityMirror">
+    <rdfs:comment xml:lang="ko">화장대 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">vanity mirror</rdfs:label>
+    <rdfs:label xml:lang="ko">화장대 제공</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/creditCard">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">신용카드사용여부</rdfs:comment>
+    <rdfs:label xml:lang="en">credit card</rdfs:label>
+    <rdfs:label xml:lang="ko">신용카드사용여부</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/seat">
+    <rdfs:label xml:lang="en">seat</rdfs:label>
+    <rdfs:label xml:lang="ko">좌석수</rdfs:label>
+    <rdfs:comment xml:lang="ko">좌석수</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://rdfs.org/ns/void#classes">
+    <rdfs:domain rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/discount">
+    <rdfs:comment xml:lang="ko">할인정보</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/CulturalFacility"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="en">discount</rdfs:label>
+    <rdfs:label xml:lang="ko">할인정보</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://www.w3.org/2004/02/skos/core#prefLabel">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#Concept"/>
+          <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AnnotationProperty"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/mainRoute">
+    <rdfs:comment xml:lang="ko">주요노선</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+    <rdfs:label xml:lang="ko">주요노선</rdfs:label>
+    <rdfs:label xml:lang="en">main route</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/reservationSites">
+    <rdfs:comment xml:lang="ko">예약안내홈페이지</rdfs:comment>
+    <rdfs:label xml:lang="en">reservation sites</rdfs:label>
+    <rdfs:label xml:lang="ko">예약안내홈페이지</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/operationTime">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+    <rdfs:comment xml:lang="ko">운영시간</rdfs:comment>
+    <rdfs:label xml:lang="en">operation time</rdfs:label>
+    <rdfs:label xml:lang="ko">운영시간</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/takeOut">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:comment xml:lang="ko">포장가능여부</rdfs:comment>
+    <rdfs:label xml:lang="en">take out</rdfs:label>
+    <rdfs:label xml:lang="ko">포장가능여부</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/internet">
+    <rdfs:comment xml:lang="ko">인터넷 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="ko">인터넷 제공</rdfs:label>
+    <rdfs:label xml:lang="en">internet</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://www.w3.org/2004/02/skos/core#altLabel">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#Concept"/>
+          <owl:Class rdf:about="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AnnotationProperty"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/tel">
+    <rdfs:label xml:lang="ko">전화번호</rdfs:label>
+    <rdfs:label xml:lang="en">tel</rdfs:label>
+    <rdfs:comment xml:lang="ko">전화번호</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/roomCount">
+    <rdfs:label xml:lang="en">room count</rdfs:label>
+    <rdfs:label xml:lang="ko">객실수</rdfs:label>
+    <rdfs:comment xml:lang="ko">객실수</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/beauty">
+    <rdfs:comment xml:lang="ko">뷰티시설</rdfs:comment>
+    <rdfs:label xml:lang="en">beauty</rdfs:label>
+    <rdfs:label xml:lang="ko">뷰티시설</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/seminar">
+    <rdfs:label xml:lang="en">seminar</rdfs:label>
+    <rdfs:label xml:lang="ko">세미나실</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">세미나실</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/ageLimit">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:label xml:lang="en">age limit</rdfs:label>
+    <rdfs:label xml:lang="ko">체험가능연령</rdfs:label>
+    <rdfs:comment xml:lang="ko">체험가능연령</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://rdfs.org/ns/void#properties">
+    <rdfs:domain rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/parkingFee">
+    <rdfs:label xml:lang="en">parking fee</rdfs:label>
+    <rdfs:label xml:lang="ko">주차요금</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:comment xml:lang="ko">주차요금</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/foreignerMenu">
+    <rdfs:label xml:lang="en">foreigner menu</rdfs:label>
+    <rdfs:label xml:lang="ko">외국인추천메뉴</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:comment xml:lang="ko">외국인추천메뉴</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/startDate">
+    <rdfs:label xml:lang="en">start date</rdfs:label>
+    <rdfs:label xml:lang="ko">시작일</rdfs:label>
+    <rdfs:comment xml:lang="ko">이벤트의 시작일</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/pickup">
+    <rdfs:comment xml:lang="ko">픽업서비스</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">pickup</rdfs:label>
+    <rdfs:label xml:lang="ko">픽업서비스</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/profile">
+    <rdfs:label xml:lang="en">profile</rdfs:label>
+    <rdfs:label xml:lang="ko">프로필</rdfs:label>
+    <rdfs:comment xml:lang="ko">장소가 가지는 기본정보(숙박, 식당, 관광지 등): 요금, 체크인, 체크아웃, 할인정보, 프로그램 등</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://rdfs.org/ns/void#entities">
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+    <rdfs:domain rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/reservation">
+    <rdfs:label xml:lang="ko">예약안내</rdfs:label>
+    <rdfs:label xml:lang="en">reservation</rdfs:label>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">예약안내</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/privateSafe">
+    <rdfs:comment xml:lang="ko">개인금고 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">private safe</rdfs:label>
+    <rdfs:label xml:lang="ko">개인금고 제공</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/restroom">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+    <rdfs:comment xml:lang="ko">화장실</rdfs:comment>
+    <rdfs:label xml:lang="en">restroom</rdfs:label>
+    <rdfs:label xml:lang="ko">화장실</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/foreignLanguageServices">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/LeisureAndSportFacility"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="en">foreign language services</rdfs:label>
+    <rdfs:label xml:lang="ko">외국어안내서비스</rdfs:label>
+    <rdfs:comment xml:lang="ko">외국어안내서비스</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/babyEquipmentRental">
+    <rdfs:label xml:lang="en">baby equipment rental</rdfs:label>
+    <rdfs:label xml:lang="ko">유모차대여서비스</rdfs:label>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">유모차대여서비스</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/hairConditioner">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">hair conditioner</rdfs:label>
+    <rdfs:label xml:lang="ko">드라이기 제공</rdfs:label>
+    <rdfs:comment xml:lang="ko">드라이기 제공</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/playAreaForChildren">
+    <rdfs:comment xml:lang="ko">어린이놀이방</rdfs:comment>
+    <rdfs:label xml:lang="en">play area for children</rdfs:label>
+    <rdfs:label xml:lang="ko">어린이놀이방</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/showTime">
+    <rdfs:comment xml:lang="ko">공연시간</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="ko">공연시간</rdfs:label>
+    <rdfs:label xml:lang="en">show time</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/disableFacility">
+    <rdfs:comment xml:lang="ko">장애인편의시설</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="en">disable facility</rdfs:label>
+    <rdfs:label xml:lang="ko">장애인편의시설</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/publicBath">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">공용샤워실</rdfs:comment>
+    <rdfs:label xml:lang="ko">공용샤워실</rdfs:label>
+    <rdfs:label xml:lang="en">public bath</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/sauna">
+    <rdfs:label xml:lang="en">sauna</rdfs:label>
+    <rdfs:label xml:lang="ko">사우나실</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">사우나실</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/taxIncluded">
+    <rdfs:comment xml:lang="ko">부가세포함여부</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="en">tax included</rdfs:label>
+    <rdfs:label xml:lang="ko">부가세포함여부</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/fairDay">
+    <rdfs:label xml:lang="en">fair day</rdfs:label>
+    <rdfs:label xml:lang="ko">장서는날</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:comment xml:lang="ko">장서는날</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/whirlpoolBaths">
+    <rdfs:comment xml:lang="ko">월풀욕조 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">whirlpool baths</rdfs:label>
+    <rdfs:label xml:lang="ko">월풀욕조 제공</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/smokingSectionAvailable">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:comment xml:lang="ko">금연/흡연</rdfs:comment>
+    <rdfs:label xml:lang="ko">금연/흡연</rdfs:label>
+    <rdfs:label xml:lang="en">smoking section available</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/program">
+    <rdfs:comment xml:lang="ko">행사프로그램 소개</rdfs:comment>
+    <rdfs:label xml:lang="ko">행사프로그램</rdfs:label>
+    <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >program</rdfs:label>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/publicPC">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">공용PC실</rdfs:comment>
+    <rdfs:label xml:lang="en">public PC</rdfs:label>
+    <rdfs:label xml:lang="ko">공용PC실</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/timeRequired">
+    <rdfs:label xml:lang="ko">관람소요시간</rdfs:label>
+    <rdfs:label xml:lang="en">time required</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+    <rdfs:comment xml:lang="ko">관람소요시간</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/openTime">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">영업시간</rdfs:comment>
+    <rdfs:label xml:lang="en">open time</rdfs:label>
+    <rdfs:label xml:lang="ko">영업시간</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/lowSeason">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">비수기기간</rdfs:comment>
+    <rdfs:label xml:lang="en">low season</rdfs:label>
+    <rdfs:label xml:lang="ko">비수기기간</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/bestMenu">
+    <rdfs:label xml:lang="en">best menu</rdfs:label>
+    <rdfs:label xml:lang="ko">대표메뉴</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+    <rdfs:comment xml:lang="ko">대표메뉴</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/saleItems">
+    <rdfs:label xml:lang="en">sale items</rdfs:label>
+    <rdfs:label xml:lang="ko">판매품목</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/ShopAndMarket"/>
+    <rdfs:comment xml:lang="ko">판매품목</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/address">
+    <rdfs:comment xml:lang="ko">장소의 주소</rdfs:comment>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="ko">주소</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/singingRoom">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">singing room</rdfs:label>
+    <rdfs:label xml:lang="ko">노래방</rdfs:label>
+    <rdfs:comment xml:lang="ko">노래방</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/petsAvailable">
+    <rdfs:label xml:lang="en">pets available</rdfs:label>
+    <rdfs:label xml:lang="ko">애완동물동반가능여부</rdfs:label>
+    <rdfs:comment xml:lang="ko">애완동물동반가능여부</rdfs:comment>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://purl.org/dc/terms/title">
+    <rdfs:domain rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/bicycleRental">
+    <rdfs:comment xml:lang="ko">자전거대여</rdfs:comment>
+    <rdfs:label xml:lang="en">bicycle rental</rdfs:label>
+    <rdfs:label xml:lang="ko">자전거대여</rdfs:label>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/fee">
+    <rdfs:label xml:lang="ko">이용요금</rdfs:label>
+    <rdfs:label xml:lang="en">fee</rdfs:label>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">장소, 행사를 관람/입장하기 위한 요금
+admission fee / entrance fee</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/occupancy">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:label xml:lang="en">occupancy</rdfs:label>
+    <rdfs:label xml:lang="ko">수용가능인원</rdfs:label>
+    <rdfs:comment xml:lang="ko">수용가능인원</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/foodAndBeverage">
+    <rdfs:comment xml:lang="ko">식음료장</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="ko">식음료장</rdfs:label>
+    <rdfs:label xml:lang="en">food and beverage</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/endDate">
+    <rdfs:comment xml:lang="ko">이벤트의 종료일</rdfs:comment>
+    <rdfs:label xml:lang="en">end date</rdfs:label>
+    <rdfs:label xml:lang="ko">종료일</rdfs:label>
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/roomType">
+    <rdfs:label xml:lang="en">room type</rdfs:label>
+    <rdfs:label xml:lang="ko">객실유형</rdfs:label>
+    <rdfs:comment xml:lang="ko">객실유형</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/postalCode">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Place"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">모든 장소에 대한 우편번호</rdfs:comment>
+    <rdfs:label xml:lang="ko">우편번호</rdfs:label>
+    <rdfs:label xml:lang="en">postal code</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/kitchenFacility">
+    <rdfs:label xml:lang="ko">취사용품 및 개인기기 제공</rdfs:label>
+    <rdfs:label xml:lang="en">kitchen facility</rdfs:label>
+    <rdfs:comment xml:lang="ko">취사용품 및 개인기기 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/ageAvailable">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Event"/>
+    <rdfs:comment xml:lang="ko">관람 가능 연령</rdfs:comment>
+    <rdfs:label xml:lang="ko">관람 가능 연령</rdfs:label>
+    <rdfs:label xml:lang="en">age available</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/services">
+    <rdfs:comment xml:lang="ko">장소내에서 제공되는 서비스(Travel and tour assistance, Limousine services, Valet parking, Foreign exchange, Personal trainers 등)</rdfs:comment>
+    <rdfs:label xml:lang="en">services</rdfs:label>
+    <rdfs:label xml:lang="ko">서비스</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/timeAvailable">
+    <rdfs:comment xml:lang="ko">이용시간</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:label xml:lang="en">time available</rdfs:label>
+    <rdfs:label xml:lang="ko">이용시간</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://rdfs.org/ns/void#sparqlEndpoint">
+    <rdfs:domain rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/shipInformation">
+    <rdfs:label xml:lang="en">ship information</rdfs:label>
+    <rdfs:label xml:lang="ko">여객선정보</rdfs:label>
+    <rdfs:comment xml:lang="ko">여객선정보</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/cooking">
+    <rdfs:comment xml:lang="ko">객실내 취사 가능 여부</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">cooking</rdfs:label>
+    <rdfs:label xml:lang="ko">객실내 취사 가능 여부</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/airConditioner">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">air conditioner</rdfs:label>
+    <rdfs:label xml:lang="ko">에어컨 제공</rdfs:label>
+    <rdfs:comment xml:lang="ko">에어컨 제공</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/barbecue">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:comment xml:lang="ko">바비큐</rdfs:comment>
+    <rdfs:label xml:lang="ko">바비큐</rdfs:label>
+    <rdfs:label xml:lang="en">barbecue</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/closedForTheDay">
+    <rdfs:comment xml:lang="ko">쉬는날</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:label xml:lang="en">closed for the day</rdfs:label>
+    <rdfs:label xml:lang="ko">쉬는날</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://rdfs.org/ns/void#triples">
+    <rdfs:domain rdf:resource="http://rdfs.org/ns/void#Dataset"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/checkOut">
+    <rdfs:comment xml:lang="ko">퇴실기간</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">check out</rdfs:label>
+    <rdfs:label xml:lang="ko">퇴실기간</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/seasons">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:comment xml:lang="ko">이용시기</rdfs:comment>
+    <rdfs:label xml:lang="en">seasons</rdfs:label>
+    <rdfs:label xml:lang="ko">이용시기</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/fitnessCenter">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">fitness center</rdfs:label>
+    <rdfs:label xml:lang="ko">휘트니스센터</rdfs:label>
+    <rdfs:comment xml:lang="ko">휘트니스센터</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://www.w3.org/2003/01/geo/wgs84_pos#long"/>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/roomRates">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">room rates</rdfs:label>
+    <rdfs:label xml:lang="ko">객실요금</rdfs:label>
+    <rdfs:comment xml:lang="ko">객실요금</rdfs:comment>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/dueDate">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/EventVersion"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Event"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">이벤트 시작예정일</rdfs:comment>
+    <rdfs:label xml:lang="en">due date</rdfs:label>
+    <rdfs:label xml:lang="ko">예정일</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/menu">
+    <rdfs:label xml:lang="en">menu</rdfs:label>
+    <rdfs:label xml:lang="ko">취급메뉴</rdfs:label>
+    <rdfs:comment xml:lang="ko">취급메뉴</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Gastro"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://www.w3.org/2004/02/skos/core#definition">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AnnotationProperty"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/openningDate">
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Attraction"/>
+    <rdfs:comment xml:lang="ko">개장일</rdfs:comment>
+    <rdfs:label xml:lang="ko">openning date</rdfs:label>
+    <rdfs:label xml:lang="en">개장일</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/tvAvailable">
+    <rdfs:comment xml:lang="ko">TV 제공</rdfs:comment>
+    <rdfs:domain rdf:resource="http://data.visitkorea.or.kr/ontology/Accommodation"/>
+    <rdfs:label xml:lang="en">TV제공</rdfs:label>
+    <rdfs:label xml:lang="ko">TV available</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/fax">
+    <rdfs:comment xml:lang="ko">팩스번호</rdfs:comment>
+    <rdfs:label xml:lang="en">fax</rdfs:label>
+    <rdfs:label xml:lang="ko">팩스번호</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://data.visitkorea.or.kr/property/parking">
+    <rdfs:domain>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Attraction"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/Gastro"/>
+          <owl:Class rdf:about="http://data.visitkorea.or.kr/ontology/TerminalInfrastructure"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:domain>
+    <rdfs:comment xml:lang="ko">주차시설</rdfs:comment>
+    <rdfs:label xml:lang="en">parking</rdfs:label>
+    <rdfs:label xml:lang="ko">주차시설</rdfs:label>
+  </owl:DatatypeProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/description">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dublincore.org/documents/2012/06/14/dcmi-terms/</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">Description may include but is not limited to: an abstract, a table of contents, a graphical representation, or a free-text account of the resource.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://www.w3.org/ns/radion#versionNotes">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.w3.org/ns/radion</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">Notes on the particular version of the Asset.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/vocommons/voaf#toDoList">
+    <rdfs:comment xml:lang="en">Describes future tasks planned by a resource curator. This property is primarily intended to be used for vocabularies or datasets, but the domain is left open, it can be used for any resource. Use iCalendar Vtodo class and its properties to further describe the task calendar, priorities etc.</rdfs:comment>
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://lov.okfn.org/vocommons/voaf/v2.3/</rdfs:seeAlso>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/title">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dublincore.org/documents/2012/06/14/dcmi-terms/</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">A name given to the resource.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://xmlns.com/foaf/0.1/homepage">
+    <rdfs:comment xml:lang="en">A homepage for some thing.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/vocab/vann/preferredNamespacePrefix">
+    <rdfs:comment xml:lang="en">The preferred namespace prefix to use when using terms from this vocabulary in an XML document.</rdfs:comment>
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://vocab.org/vann/</rdfs:seeAlso>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/vocab/vann/preferredNamespaceUri">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://vocab.org/vann/</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">The preferred namespace URI to use when using terms from this vocabulary in an XML document.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <Class rdf:about="http://data.visitkorea.or.kr/resource/TourismScheme">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >관광도메인 분류체계를 정의하기 위한 표준 용어임</rdfs:comment>
+    <rdfs:label xml:lang="ko">관광도메인</rdfs:label>
+  </Class>
+  <Class rdf:about="http://data.visitkorea.or.kr/resource/AddressScheme">
+    <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >주소도메인</rdfs:label>
+    <rdfs:comment xml:lang="ko">주소체계정의</rdfs:comment>
+  </Class>
+  <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/modified">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dublincore.org/documents/2012/06/14/dcmi-terms/</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">Date on which the resource was changed.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/dc/terms/issued">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dublincore.org/documents/2012/06/14/dcmi-terms/</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">Date of formal issuance (e.g., publication) of the resource.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://purl.org/vocab/vann/changes">
+    <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://vocab.org/vann/</rdfs:seeAlso>
+    <rdfs:comment xml:lang="en">A reference to a resource that describes changes between this version of a vocabulary and the previous.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+  </owl:AnnotationProperty>
+  <owl:AnnotationProperty rdf:about="http://creativecommons.org/ns#license">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+  </owl:AnnotationProperty>
+</rdf:RDF>
