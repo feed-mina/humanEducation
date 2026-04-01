@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(c:Usershuman-32OneDriveドキュメントyerinMinhumaneducation.venvScriptspython.exe -c \":*)"
+    ]
+  }
+}
