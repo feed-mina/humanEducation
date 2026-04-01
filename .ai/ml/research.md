@@ -290,22 +290,26 @@ weights = {
 **ML에서 해야 할 분석 작업**
 
 - [x] 43개 컬럼에서 유효 컬럼 6개 추출 후 정제 CSV 저장 → `facility_clean.csv` 생성 완료
-- [ ] x/y 좌표 → `EPSG:4326` 위경도 확인 (x=126.95, y=37.54 → WGS84로 확인됨, EPSG:5179 변환 불필요)
-- [ ] 각 자전거도로 경로 기준 반경 500m 내 편의시설 수 집계 (새 피처)
+- [x] x/y 좌표 → `EPSG:4326` 위경도 확인 (x=126.95, y=37.54 → WGS84로 확인됨)
+- [x] 각 자전거도로 경로 기준 반경 500m 내 편의시설 수 집계 → `facility_count` 완료 (평균 1.09)
 - [ ] `설치유형` 원핫인코딩 → 경로 추천 피처로 활용
+
+#### ⚠️ 컬럼명 주의
+
+- `facility_clean.csv` 좌표 컬럼명: `x 좌표`, `y 좌표` (공백 포함) — `"x"`, `"y"` 로 접근 시 KeyError 발생
 
 ---
 
-### 7.3 분석 파일 목록 및 작업 순서 *(2026-03-31 업데이트)*
+### 7.3 분석 파일 목록 및 작업 순서 *(2026-04-01 업데이트)*
 
 | 순서 | 파일 | 작업 내용 | 산출물 | 상태 |
 | ---- | ---- | --------- | ------ | ---- |
 | 1 | `ml.ipynb` | TAAS 사고 데이터 위경도 정제 | `taas_clean.csv` | ⏳ |
-| 2 | `step2_road_clean.py` | 자전거도로 서울+경기 필터 + 피처 생성 | `road_clean.csv` | ✅ **완료** (5,319행, 332KB) |
-| 3 | `step1_facility_clean.py` | 편의시설 6개 컬럼 추출 | `facility_clean.csv` | ✅ **완료** (3,368행) |
-| 4 | `step3_tour_collect.py` | TourAPI 호출 → 서울+경기 관광지 좌표 수집 | `tour_poi.csv` | ✅ **완료** (3,407건, 453KB) |
-| 5 | `step4_spatial_join.py` | 도로 + 관광지/편의시설 Spatial Join | `road_features.csv` | ⏳ **다음** |
-| 6 | `ml.ipynb` | 도로 + TAAS Spatial Join (100m 반경) | `route_safety_features.csv` | ⏳ |
+| 2 | `ml.ipynb` (step2) | 자전거도로 서울+경기 필터 + 피처 생성 | `road_clean.csv` | ✅ **완료** (5,319행, 10컬럼, 332KB) |
+| 3 | `ml.ipynb` (step1) | 편의시설 6개 컬럼 추출 | `facility_clean.csv` | ✅ **완료** (3,368행, 6컬럼) |
+| 4 | `ml.ipynb` (step3) | TourAPI 호출 → 서울+경기 관광지 좌표 수집 | `tour_poi.csv` | ✅ **완료** (2,529건, 335KB) |
+| 5 | `ml.ipynb` (step4) | 도로 + 관광지/편의시설 Spatial Join | `road_features.csv` | ✅ **완료** (1,647행, 14컬럼, 171KB) |
+| 6 | `ml.ipynb` | 도로 + TAAS Spatial Join (100m 반경) | `route_safety_features.csv` | ⏳ **다음** |
 | 7 | `ml.ipynb` | 최종 피처 병합 + 모델 학습 | `safety_model.pkl` | ⏳ |
 
 ---
