@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(python -c \"import docx; print\\('python-docx:', docx.__version__\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import docx; print\\('python-docx OK'\\)\")",
+      "Bash(python generate_report.py)"
+    ]
+  }
+}
