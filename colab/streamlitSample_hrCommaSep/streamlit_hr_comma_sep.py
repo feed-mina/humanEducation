@@ -2,12 +2,15 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent
 
 # 1. 파일 로드 함수 (캐싱 적용으로 성능 최적화)
 @st.cache_resource
 def load_assets():
-    model = joblib.load('attrition_model.pkl')
-    scaler = joblib.load('scaler.pkl')
+    model = joblib.load(BASE_DIR / 'model' / 'attrition_model.pkl')
+    scaler = joblib.load(BASE_DIR / 'model' / 'scaler.pkl')
     return model, scaler
 
 def main():
