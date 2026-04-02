@@ -1,11 +1,7 @@
 numpy
 pandas
 scikit-learn
+joblib
 matplotlib
 seaborn
-jupyter
-ipykernel
-torch
-torchvision
-torchaudio
 streamlit
