@@ -19,15 +19,24 @@ import matplotlib.font_manager as fm
 # ─────────────────────────────────────────────
 def set_korean_font():
     candidates = [
-        "C:/Windows/Fonts/malgun.ttf",      # Windows 맑은 고딕
+        # Linux (Streamlit Cloud) — fonts-nanum 패키지
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf",
+        # Windows
+        "C:/Windows/Fonts/malgun.ttf",
         "C:/Windows/Fonts/NanumGothic.ttf",
-        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",  # Linux
     ]
     for path in candidates:
         if os.path.exists(path):
             fm.fontManager.addfont(path)
             prop = fm.FontProperties(fname=path)
             plt.rcParams["font.family"] = prop.get_name()
+            plt.rcParams["axes.unicode_minus"] = False
+            return
+    # 폴백: 시스템에서 한글 지원 폰트 자동 탐색
+    for f in fm.fontManager.ttflist:
+        if any(k in f.name for k in ("Nanum", "Gothic", "Malgun", "CJK")):
+            plt.rcParams["font.family"] = f.name
             plt.rcParams["axes.unicode_minus"] = False
             return
     plt.rcParams["axes.unicode_minus"] = False
