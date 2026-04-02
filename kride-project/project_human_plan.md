@@ -134,3 +134,30 @@ K-POP 성지 '혼잡도' 실시간 API: 관광객들은 사람이 너무 많지 
 팁: 구글 맵 API나 카카오 맵 API에서도 고도 정보를 가져올 수 있지만, 공공데이터의 '수치지형도'를 활용하기도 합니다.
 날씨 데이터 (Feature): 기상청 API.
 비가 오거나 눈이 올 때 자전거 사고 위험도가 어떻게 변하는지 가중치를 줍니다.
+
+---
+
+## 2026-04-01 진행 현황
+
+### ml.ipynb 실행 결과 요약
+
+데이터 전처리 및 Spatial Join까지 완료. 상세 분석은 `research.md` 참조.
+
+- 최종 학습 데이터: `road_features.csv` (1,647행 × 14컬럼)
+- 안전 모델 RandomForest R²: **0.1890** (위치 피처가 가장 중요: 위도 0.50, 경도 0.39)
+- 관광 POI Spatial Join 완료: tourist_count, cultural_count, leisure_count, facility_count
+
+### 오늘 목표
+
+1. ml.ipynb: tourism_score + final_score(안전×관광 통합 점수) 계산 후 joblib 저장
+2. Streamlit 앱 작성 → Streamlit Cloud 배포
+3. FastAPI 서버 → Vercel React 연동
+
+### 두 모델 통합 전략
+
+- Safety Model: RandomForest → safety_index 예측 → MinMaxScaler 정규화
+- Tourism Score: tourist×0.5 + cultural×0.3 + leisure×0.2 → MinMaxScaler 정규화
+- final_score = w_safety(0.6) × safety_score + w_tourism(0.4) × tourism_score
+- 사용자가 슬라이더로 가중치 조절 가능 (Streamlit/React UI)
+
+상세 개발 계획은 `plan.md` 참조.
