@@ -1,10 +1,14 @@
 # K-Ride ML 기술 리서치
 
-## 현재 진행 상황 요약
+## 현재 진행 상황 요약 (2026-04-02 기준)
 
-- TAAS 사고 데이터 탐색 완료 (`0330`, `0331` 노트북)
-- 안전지수 산출 공식 초안 완성
-- 자전거도로 피처 기반 회귀/분류 모델 실험 중
+- ✅ 전처리 완료: `road_features.csv` (1,647행, 14컬럼)
+- ✅ Spatial Join 완료: 관광지(1km), 편의시설(500m) 피처 생성
+- ✅ 회귀 모델 실험 완료 → 한계 확인, **분류로 전략 전환**
+- ✅ **pkl 5종 생성 완료** (`safety_classifier`, `safety_regressor`, `safety_scaler`, `safety_meta`, `tourism_scaler`)
+- ✅ `road_scored.csv` 생성 (1,647행, 19컬럼) — safety/tourism/final_score 포함
+- ✅ `streamlit_kride.py` 작성 완료 (탭 3종: 안전등급 예측 / 경로 추천 Top-10 / 데이터 탐색)
+- ⏳ **다음 목표: Streamlit Cloud 배포 + model_comparison.md 작성 (Day 5)**
 
 ---
 
@@ -16,54 +20,54 @@
 - **데이터:** 자전거 관련 교통사고 (위치, 유형, 피해 정도)
 - **현황:** `data/raw_accident_data/` 에 저장 완료
 - **주요 컬럼:** 사고일시, 위도/경도, 사망자수, 중상자수, 경상자수, 사고유형
+- **⚠️ Spatial Join 미완료** → P2 (시간 부족 시 2주차 이월)
 
 ### 1.2 공공데이터포털 자전거도로
 
 - **URL:** <https://www.data.go.kr>
-- **데이터:** 전국 자전거도로 노선, 너비, 관리기관
-- **현황:** `data/raw_ml/` 에 일부 저장 (서울 데이터 중심)
-- **주요 컬럼:** 자전거도로너비, 안전지수, 위도/경도, 관리기관명
+- **현황:** `road_features.csv` 완성 (1,647행, 14컬럼)
+- **핵심 피처:** width_m, length_km, is_wide_road, safety_index, tourist_count, cultural_count, leisure_count, facility_count
 
-### 1.3 AI Hub (딥러닝용)
+### 1.3 한국관광공사 TourAPI
 
-- **URL:** <https://aihub.or.kr>
-- **데이터셋 후보:**
-  - 차량 주행 영상 (자전거도로 주행 영상)
-  - 보행자 인식 데이터
-  - 도로 장애물 탐지 데이터
-- **라이선스:** 비상업적 연구 목적 사용 가능
+- **End Point:** `https://apis.data.go.kr/B551011/KorService2`
+- **수집 완료:** 서울+경기 2,529건 (관광지 1,775 / 문화시설 671 / 레저스포츠 83)
+- **활용:** tourist_count, cultural_count, leisure_count 피처로 Spatial Join 완료
 
 ---
 
-## 2. 안전지수 산출 방법
+## 2. 전략 전환: 회귀 → 분류
 
-### 현재 공식 (노트북 기준)
+### 2.1 회귀 실패 원인 분석
 
-```python
-safety_score = (사망자수 * 50) + (중상자수 * 20) + (경상자수 * 10)
-```
+| 모델 | R² | 원인 |
+| ---- | -- | ---- |
+| LinearRegression | 0.0096 | safety_index가 width_m, length_km로만 계산 → 선형 관계 포착 불가 |
+| 다중회귀 | 0.0635 | 피처 추가해도 타겟 자체의 분산 설명력 낮음 |
+| RandomForest | 0.1890 | 현재 최고, 그러나 여전히 낮음 |
+| 다항회귀 | 0.0132 | 과적합 없이 낮음 |
 
-점수가 높을수록 위험. 경로별 100m 반경 내 사고 집계 후 정규화 예정.
+**핵심 문제:** `safety_index = f(width_m, length_km)` 공식 기반 타겟 → 입력 피처와 타겟이 동어반복 구조. TAAS 사고 데이터 없이는 회귀 성능 개선 어려움.
 
-### 개선 방향
+### 2.2 분류 전환 근거
 
-- 시간대 가중치 추가 (야간 사고 = 1.5배)
-- 사고 유형 가중치 (자전거-차량 충돌 > 단독 사고)
-- 최근 3년 데이터 가중 평균 (최근 연도 가중치 증가)
+- **3등급 구간화로 타겟 재정의:** 연속값 → 범주형
+  ```python
+  safety_grade = pd.qcut(safety_index, q=3, labels=[0, 1, 2])
+  # 0=위험(하위33%), 1=보통(중간33%), 2=안전(상위33%)
+  ```
+- **분류는 불균형에 강건:** F1-macro로 평가 시 클래스 불균형 완화
+- **사용자에게 직관적:** "이 경로는 안전/보통/위험" 출력이 수치보다 이해하기 쉬움
 
 ---
 
-## 3. 모델 선택 근거
+## 3. 모델 설계
 
-### 3.1 안전지수 예측 (회귀)
+### 3.1 모델 1 — 안전등급 분류 (safety_classifier.pkl)
 
-| 모델 | 장점 | 단점 | 채택 여부 |
-| ---- | ---- | ---- | --------- |
-| LinearRegression | 해석 용이 | 비선형 관계 포착 불가 | 기준선 |
-| RandomForest | 비선형, 이상치 강건 | 학습 느림 | 채택 |
-| XGBoost | 높은 성능, 피처 중요도 | 과적합 주의 | 채택 |
+**목적:** 도로 피처 입력 → 안전등급(0/1/2) 예측
 
-**선택:** RandomForest + XGBoost 앙상블, LinearRegression은 기준선(baseline)으로 사용.
+**피처셋:**
 
 ### 3.1-A 사고 데이터 기반 안전지수 반영 설계 (구 단위 → 노선 단위 연결)
 
@@ -115,45 +119,100 @@ safety_index_v2 = (1 - district_danger) * 0.6 + road_attr_score * 0.4
 > **현재 데이터 한계**: 서울 사고다발지 111건만 있고 경기도 자전거 사고 데이터 미확보. 서울 25구 중 사고 기록이 있는 구만 위험도 적용, 나머지(경기 포함)는 도로 속성 점수만 사용.
 
 ### 3.2 위험등급 분류 (분류)
+| 피처 | 설명 | 전처리 |
+| ---- | ---- | ------ |
+| `width_m` | 도로 너비 | StandardScaler |
+| `length_km` | 도로 길이 | StandardScaler |
+| `is_wide_road` | 너비 2m 이상 여부 | 그대로 (0/1) |
+| `facility_count` | 500m 내 편의시설 수 | StandardScaler |
+| `tourist_count` | 1km 내 관광지 수 | StandardScaler |
+| `cultural_count` | 1km 내 문화시설 수 | StandardScaler |
+| `road_type_OHE` | 도로 유형 원핫인코딩 | 결측 → 'unknown' |
 
-- 타겟: 안전지수 기준 3등급 (안전/보통/위험)
-- 클래스 불균형: 대부분 경로가 "안전" → SMOTE 오버샘플링 적용
-- 평가: F1-macro (불균형 데이터에 적합)
+**타겟:** `safety_grade` (0=위험, 1=보통, 2=안전)
 
-### 3.3 경로 추천 (코사인 유사도)
+**모델 선택:**
 
+| 모델 | 채택 | 이유 |
+| ---- | ---- | ---- |
+| RandomForestClassifier | ✅ 채택 | 회귀에서도 최고 성능, 피처 중요도 제공 |
+| LogisticRegression | 기준선 | 해석 용이, baseline |
+| XGBoostClassifier | 비교용 | 성능 비교 후 채택 여부 결정 |
+
+**평가:**
+- F1-macro (클래스 불균형 대응)
+- 목표: F1-macro > 0.6
+
+**저장:**
 ```python
-from sklearn.metrics.pairwise import cosine_similarity
-
-# 경로 피처 벡터: [안전지수, 도로폭, 사고건수, 경사도, 관광지접근성]
-similarity_matrix = cosine_similarity(route_features)
-# 사용자 선호도 벡터와 유사도 계산 → Top-5 추천
+joblib.dump(model, 'kride-project/ml-server/models/safety_classifier.pkl')
+joblib.dump(scaler, 'kride-project/ml-server/models/safety_scaler.pkl')
 ```
 
 ---
 
-## 4. 공간 데이터 처리 (Spatial Join)
+### 3.2 모델 2 — 관광 경로 추천 스코어 (tourist_scorer.pkl)
 
-### 방법: geopandas + shapely
+**목적:** 사용자 모드(안전/관광/균형) 선택 → 경로별 추천 점수 계산 → Top-10 출력
+
+**접근법: 가중치 기반 점수 + MinMaxScaler**
 
 ```python
-import geopandas as gpd
-from shapely.geometry import Point
+# 각 피처를 0~1로 정규화 (MinMaxScaler)
+# tourist_scorer.pkl = MinMaxScaler 저장
 
-# 사고 데이터 → GeoDataFrame
-accident_gdf = gpd.GeoDataFrame(
-    accident_df,
-    geometry=gpd.points_from_xy(accident_df.경도, accident_df.위도),
-    crs="EPSG:4326"
-)
+weight_modes = {
+    "safe":     {"safety_grade": 0.6, "tourist_count": 0.15, "cultural_count": 0.15, "facility_count": 0.1},
+    "tourist":  {"safety_grade": 0.3, "tourist_count": 0.4,  "cultural_count": 0.2,  "facility_count": 0.1},
+    "balanced": {"safety_grade": 0.4, "tourist_count": 0.3,  "cultural_count": 0.2,  "facility_count": 0.1},
+}
 
-# 자전거도로 버퍼 (100m) → 사고 건수 집계
-route_gdf["buffer"] = route_gdf.geometry.buffer(0.001)  # ~100m
-joined = gpd.sjoin(accident_gdf, route_gdf, how="left", predicate="within")
-route_safety = joined.groupby("route_id")["safety_score"].sum()
+# route_score = Σ(정규화된_피처 × 가중치)
 ```
 
-### PostGIS 쿼리 (서버 측)
+**왜 ML 모델이 아닌가?**
+- 추천 레이블(어떤 경로가 "좋은" 경로인지) 데이터 없음
+- 사용자 선호도는 도메인 지식 기반 가중치가 더 설명 가능
+- MinMaxScaler를 pkl로 저장 → 새 데이터에도 동일 정규화 적용 가능
+
+---
+
+## 4. Streamlit 통합 앱 설계 (streamlit_kride.py)
+
+```
+사이드바
+└── 모드 선택: 안전 우선 / 관광 우선 / 균형
+
+탭 1: 안전등급 예측
+├── 입력: 도로폭(슬라이더), 도로길이, 편의시설 수
+├── 처리: safety_scaler → safety_classifier 예측
+└── 출력: 안전등급 (🟢안전 / 🟡보통 / 🔴위험)
+
+탭 2: 경로 추천
+├── 처리: tourist_scorer(MinMaxScaler) → 가중치 점수 계산
+└── 출력: Top-10 경로 테이블 (점수, 도로폭, 관광지 수 등)
+
+탭 3: 데이터 탐색
+└── road_features 분포 차트 (히스토그램, 상관관계 히트맵)
+```
+
+---
+
+## 5. 공간 데이터 처리 (Spatial Join) — 완료
+
+### 완료 내용
+
+```python
+# 관광지 1km 반경 집계 (EPSG:5179 변환 후)
+tourist_count  평균: 1.63
+cultural_count 평균: 0.74
+leisure_count  평균: 0.10
+
+# 편의시설 500m 반경 집계
+facility_count 평균: 1.09
+```
+
+### PostGIS 쿼리 (서버 측 — 2주차 연동용)
 
 ```sql
 SELECT r.route_id, COUNT(a.accident_id) as accident_count
@@ -165,7 +224,7 @@ GROUP BY r.route_id;
 
 ---
 
-## 5. YOLOv8 객체 탐지
+## 6. YOLOv8 객체 탐지 — 2주차 이월
 
 ### 탐지 대상 클래스
 
@@ -175,26 +234,10 @@ GROUP BY r.route_id;
 | bicycle | 자전거 | 중간 |
 | vehicle | 차량 | 높음 |
 | obstacle | 장애물 (공사, 라바콘) | 높음 |
-| congestion | 혼잡 구간 | 중간 |
-
-### 학습 전략
-
-```text
-Base model: YOLOv8n (nano) — CPU 환경 대응
-Fine-tuning: AI Hub 자전거 주행 영상 데이터
-Epochs: 50 (조기 종료 patience=10)
-Image size: 640x640
-Batch size: 16
-```
-
-### 평가 목표
-
-- mAP@0.5 > 0.60
-- 추론 속도: < 100ms / frame (CPU)
 
 ---
 
-## 6. 경로 최적화 알고리즘
+## 7. 피처 중요도 현황 (RandomForest 회귀 기준)
 
 ### 혼잡도 데이터 확보 방법
 
@@ -465,22 +508,27 @@ weights = {
 # 스크립트: step4_spatial_join.py
 # 산출 컬럼: tourist_count, cultural_count, leisure_count
 ```
+| 피처 | 중요도 |
+| ---- | ------ |
+| 기점위도 | 0.5028 |
+| 기점경도 | 0.3903 |
+| 자전거도로너비(m) | 0.1068 |
+
+> 위경도가 압도적 → 분류 모델에서는 위경도 제외하고 도메인 피처만 사용 예정
 
 ---
 
 ## 8. 미결 사항 (Action Items)
 
-- [ ] TAAS 위경도 컬럼명 통일 (일부 파일 컬럼명 불일치 확인 필요)
-- [x] 편의시설 x/y 좌표계 확인 → WGS84(EPSG:4326) 확인됨, 변환 불필요
+- [x] **[P0]** safety_grade 타겟 생성 (3분위 구간화) — q33=0.4661, q66=0.4787
+- [x] **[P0]** RandomForestClassifier 학습 + safety_classifier.pkl 저장 — F1=0.9864
+- [x] **[P0]** RandomForestRegressor 학습 + safety_regressor.pkl 저장 — R²=0.9539
+- [x] **[P0]** MinMaxScaler 학습 + tourism_scaler.pkl 저장
+- [x] **[P0]** road_scored.csv 저장 (1,647행, 19컬럼)
+- [x] **[P1]** streamlit_kride.py 작성 및 로컬 실행 확인
+- [ ] **[P1]** Streamlit Cloud 배포 (공개 URL 확보)
+- [ ] **[P1]** model_comparison.md 작성 (Day 5)
+- [ ] [P2] TAAS 위경도 컬럼명 통일 및 Spatial Join (100m 반경 사고 집계) — 2주차 이월
+- [x] 편의시설 x/y 좌표계 확인 → WGS84(EPSG:4326) 확인됨
 - [x] 자전거도로 필터링 기준 확정 → 서울특별시 + 경기도 (5,319행)
-- [x] **road_clean.csv 생성 완료** → 5,319행, 332KB, 9컬럼 (`step2_road_clean.py`)
-- [x] **facility_clean.csv 생성 완료** → 3,368행, 6컬럼 (`step1_facility_clean.py`)
-- [x] 관광지 POI API 키 발급 완료 → 한국관광공사 국문 관광정보 서비스_GW
-  - End Point: `https://apis.data.go.kr/B551011/KorService2`
-  - 포맷: JSON+XML, 자동승인, 이용제한 없음
-  - 활용 계획: 자전거 경로 1km 반경 내 관광지 수 → `tourist_count` 피처
-  - 주요 API: `/areaBasedList2` (지역 기반), `/locationBasedList2` (위치 기반)
-- [ ] **`step3_tour_collect.py` 작성** → TourAPI 호출로 서울+경기 관광지 좌표 수집
-- [ ] `tour_poi.csv` 생성 후 Spatial Join 코드 작성
-- [ ] AI Hub 데이터셋 신청 및 다운로드 (수동 작업)
-- [ ] 경사도 데이터 수집 방법 확정 (카카오맵 API vs 공공데이터)
+- [x] road_features.csv Spatial Join 완료 (1,647행, 14컬럼)
