@@ -1,12 +1,15 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent
 
 # ======================
 # 1. 모델 & 인코더 로드
 # ======================
-model = joblib.load("model/tips_model02.pkl")
-encoders = joblib.load("model/tips_labelencoders02.pkl")
+model = joblib.load(BASE_DIR / "model" / "tips_model02.pkl")
+encoders = joblib.load(BASE_DIR / "model" / "tips_labelencoders02.pkl")
 
 st.title("Tip Prediction App")
 
