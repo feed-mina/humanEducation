@@ -1,5 +1,7 @@
 # K-Ride ML 구현 계획
 
+> 관련 문서: [Streamlit 포트폴리오 Next.js 배포 계획](../streamlit-portfolio/plan.md) | [배포 가이드](../streamlit-portfolio/guide.md)
+
 ## 목표
 
 이번 주(3/31 ~ 4/4) 안에 ML 데이터 수집 및 분석 완료.
