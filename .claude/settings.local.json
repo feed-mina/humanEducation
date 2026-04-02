@@ -6,7 +6,8 @@
       "Bash(pip show:*)",
       "Bash(pip list:*)",
       "Bash(jupyter kernelspec:*)",
-      "Bash(conda info:*)"
+      "Bash(conda info:*)",
+      "Bash(.venv/Scripts/python -c ':*)"
     ]
   }
 }
