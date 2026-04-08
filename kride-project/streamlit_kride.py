@@ -6,13 +6,29 @@ K-Ride 자전거 경로 안전 분석 & 추천 앱
 실행: streamlit run kride-project/streamlit_kride.py
 """
 
+import math
 import os
+import pickle
+
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+
+try:
+    import folium
+    from streamlit_folium import st_folium
+    HAS_FOLIUM = True
+except ImportError:
+    HAS_FOLIUM = False
+
+try:
+    import networkx as nx
+    HAS_NX = True
+except ImportError:
+    HAS_NX = False
 
 # ─────────────────────────────────────────────
 # 한글 폰트 설정
@@ -46,9 +62,11 @@ set_korean_font()
 # ─────────────────────────────────────────────
 # 경로 설정
 # ─────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(__file__)
-MODELS_DIR = os.path.join(BASE_DIR, "models")
-DATA_PATH  = os.path.join(BASE_DIR, "data", "raw_ml", "road_scored.csv")
+BASE_DIR      = os.path.dirname(__file__)
+MODELS_DIR    = os.path.join(BASE_DIR, "models")
+DATA_PATH     = os.path.join(BASE_DIR, "data", "raw_ml", "road_scored.csv")
+GRAPH_PATH    = os.path.join(MODELS_DIR, "route_graph.pkl")
+FACILITY_PATH = os.path.join(BASE_DIR, "data", "raw_ml", "facility_clean.csv")
 
 # ─────────────────────────────────────────────
 # 리소스 로드 (캐시)
@@ -65,8 +83,40 @@ def load_models():
 def load_data():
     return pd.read_csv(DATA_PATH)
 
+@st.cache_resource
+def load_graph():
+    """route_graph.pkl 로드 (없으면 None 반환)"""
+    if not HAS_NX or not os.path.exists(GRAPH_PATH):
+        return None, None
+    with open(GRAPH_PATH, "rb") as f:
+        data = pickle.load(f)
+    return data.get("G_main"), data.get("meta", {})
+
+@st.cache_data
+def load_facility():
+    if not os.path.exists(FACILITY_PATH):
+        return None
+    try:
+        return pd.read_csv(FACILITY_PATH, encoding="utf-8-sig")
+    except Exception:
+        return pd.read_csv(FACILITY_PATH, encoding="cp949")
+
+def haversine(c1, c2) -> float:
+    R = 6371.0
+    lat1, lon1 = math.radians(c1[0]), math.radians(c1[1])
+    lat2, lon2 = math.radians(c2[0]), math.radians(c2[1])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+def nearest_node(graph, lat, lon):
+    target = (lat, lon)
+    return min(graph.nodes, key=lambda n: haversine(n, target))
+
 clf, reg, scaler, meta = load_models()
 df = load_data()
+G_main, graph_meta = load_graph()
+df_facility = load_facility()
 
 FEATURES      = meta["features"]          # ['width_m', 'length_km', 'district_danger', 'road_attr_score']
 DANGER_LABEL  = {0: "안전", 1: "보통", 2: "위험"}
@@ -129,7 +179,7 @@ df["route_score"] = df.apply(compute_route_score, axis=1, mode=mode)
 # ─────────────────────────────────────────────
 # 탭
 # ─────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["🔍 안전등급 예측", "📍 경로 추천 Top-10", "📊 데이터 탐색"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔍 안전등급 예측", "📍 경로 추천 Top-10", "📊 데이터 탐색", "🗺️ 경로 탐색"])
 
 
 # ══════════════════════════════════════════════
@@ -274,7 +324,8 @@ with tab3:
         ax1.hist(df["safety_score"], bins=30, color="#4DA6FF", edgecolor="white")
         ax1.set_xlabel("safety_score")
         ax1.set_ylabel("count")
-        q33, q66 = meta["q33"], meta["q66"]
+        q33, q66 = meta["q33"], meta["q66"] # [메모] meta, q33, q66은 어떤 의미인가요 ? 
+        # [메모] axvline은 어떤 의미인가요 ? s
         ax1.axvline(q33, color="#FF6B6B", lw=1.5, linestyle="--", label=f"q33={q33:.3f}")
         ax1.axvline(q66, color="#FFA500", lw=1.5, linestyle="--", label=f"q66={q66:.3f}")
         ax1.legend(fontsize=8)
@@ -289,7 +340,7 @@ with tab3:
         ax2.hist(nonzero, bins=30, color="#57CC99", edgecolor="white")
         ax2.set_xlabel("tourism_score (0 제외)")
         ax2.set_ylabel("count")
-        ax2.set_title(f"비영(非零) 세그먼트: {len(nonzero):,}개")
+        ax2.set_title(f"0 값 제외 세그먼트: {len(nonzero):,}개")
         st.pyplot(fig2)
         plt.close(fig2)
 
@@ -313,3 +364,195 @@ with tab3:
                  "cultural_count", "facility_count", "safety_score", "tourism_score", "final_score"]
     st.dataframe(df[stat_cols].describe().T.style.format("{:.3f}"),
                  width="stretch")
+
+
+# ══════════════════════════════════════════════
+# 탭 4: 경로 탐색
+# ══════════════════════════════════════════════
+with tab4:
+    st.header("경로 탐색")
+
+    if not HAS_NX or G_main is None:
+        st.warning(
+            "route_graph.pkl이 없습니다.  \n"
+            "`python kride-project/build_route_graph.py` 를 먼저 실행하세요."
+        )
+        if not HAS_NX:
+            st.info("networkx가 설치되어 있지 않습니다: `pip install networkx`")
+    else:
+        st.caption(
+            f"그래프: {graph_meta.get('main_nodes', '?'):,} 노드 / "
+            f"{graph_meta.get('main_edges', '?'):,} 엣지"
+        )
+
+        # ── 모드 선택 ──────────────────────────────────
+        route_mode = st.radio(
+            "탐색 모드",
+            options=["route", "course"],
+            format_func=lambda x: "📍 A→B 최적 경로" if x == "route" else "🔄 순환 코스 생성",
+            horizontal=True,
+        )
+        st.divider()
+
+        col_l, col_r = st.columns(2)
+
+        if route_mode == "route":
+            # ── A→B 경로 탐색 ─────────────────────────
+            with col_l:
+                st.subheader("출발지")
+                s_lat = st.number_input("출발 위도",  value=37.5665, format="%.6f", key="s_lat")
+                s_lon = st.number_input("출발 경도",  value=126.9780, format="%.6f", key="s_lon")
+
+            with col_r:
+                st.subheader("도착지")
+                e_lat = st.number_input("도착 위도",  value=37.5172, format="%.6f", key="e_lat")
+                e_lon = st.number_input("도착 경도",  value=127.0473, format="%.6f", key="e_lon")
+
+            w_s = st.slider("안전 가중치", 0.1, 0.9, 0.6, 0.1, key="r_ws")
+            w_t = round(1.0 - w_s, 1)
+            st.caption(f"관광 가중치: {w_t}")
+
+            if st.button("경로 탐색", type="primary"):
+                import networkx as nx_rt
+
+                G_work = G_main.copy()
+                for u, v, d in G_work.edges(data=True):
+                    score = w_s * d.get("safety_score", 0.5) + w_t * d.get("tourism_score", 0.5)
+                    d["weight"] = max(1.0 - score, 1e-6)
+
+                start_node = nearest_node(G_work, s_lat, s_lon)
+                end_node   = nearest_node(G_work, e_lat, e_lon)
+
+                try:
+                    path_nodes = nx_rt.shortest_path(G_work, source=start_node, target=end_node, weight="weight")
+                except (nx_rt.NetworkXNoPath, nx_rt.NodeNotFound):
+                    st.error("경로를 찾을 수 없습니다. 출발/도착 좌표를 조정해 보세요.")
+                    path_nodes = []
+
+                if path_nodes:
+                    total_dist = 0.0
+                    safety_sum = tourism_sum = edge_cnt = 0.0
+                    for i in range(len(path_nodes) - 1):
+                        u, v = path_nodes[i], path_nodes[i + 1]
+                        if G_work.has_edge(u, v):
+                            d = G_work[u][v]
+                            total_dist  += d.get("length_km", haversine(u, v))
+                            safety_sum  += d.get("safety_score", 0.5)
+                            tourism_sum += d.get("tourism_score", 0.5)
+                            edge_cnt    += 1
+
+                    avg_s = safety_sum  / edge_cnt if edge_cnt else 0.0
+                    avg_t = tourism_sum / edge_cnt if edge_cnt else 0.0
+
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("총 거리", f"{total_dist:.2f} km")
+                    m2.metric("평균 안전 점수", f"{avg_s:.3f}")
+                    m3.metric("평균 관광 점수", f"{avg_t:.3f}")
+
+                    # [메모] folium은 어떤 라이브러리인가요 ? 
+                    # folium 지도
+                    if HAS_FOLIUM:
+                        center_lat = (s_lat + e_lat) / 2
+                        center_lon = (s_lon + e_lon) / 2
+                        m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+
+                        coords = [[n[0], n[1]] for n in path_nodes]
+                        folium.PolyLine(
+                            coords, color="#2563EB", weight=4, opacity=0.8,
+                            tooltip=f"경로 ({total_dist:.2f} km)"
+                        ).add_to(m)
+                        folium.Marker([s_lat, s_lon],
+                                      icon=folium.Icon(color="green", icon="play"),
+                                      tooltip="출발").add_to(m)
+                        folium.Marker([e_lat, e_lon],
+                                      icon=folium.Icon(color="red", icon="stop"),
+                                      tooltip="도착").add_to(m)
+
+                        # 편의시설 마커
+                        if df_facility is not None:
+                            lat_col = next((c for c in ["lat", "latitude", "위도", "y"] if c in df_facility.columns), None)
+                            lon_col = next((c for c in ["lon", "longitude", "경도", "x"] if c in df_facility.columns), None)
+                            name_col = next((c for c in ["name", "시설명", "명칭"] if c in df_facility.columns), None)
+                            if lat_col and lon_col:
+                                fac_layer = folium.FeatureGroup(name="편의시설")
+                                for _, row in df_facility.iterrows():
+                                    try:
+                                        fc = (float(row[lat_col]), float(row[lon_col]))
+                                        if any(haversine(fc, (n[0], n[1])) <= 0.5 for n in path_nodes[::5]):
+                                            folium.CircleMarker(
+                                                location=list(fc),
+                                                radius=5, color="#F59E0B",
+                                                fill=True, fill_opacity=0.8,
+                                                tooltip=row.get(name_col, "편의시설") if name_col else "편의시설",
+                                            ).add_to(fac_layer)
+                                    except (ValueError, TypeError):
+                                        pass
+                                fac_layer.add_to(m)
+                                folium.LayerControl().add_to(m)
+
+                        st_folium(m, width=700, height=450)
+                    else:
+                        st.info("지도 표시를 위해 folium을 설치하세요: `pip install folium streamlit-folium`")
+                        st.write("경로 노드 수:", len(path_nodes))
+
+        else:
+            # ── 순환 코스 생성 ────────────────────────
+            st.subheader("시작점")
+            c_lat = st.number_input("시작 위도",  value=37.5665, format="%.6f", key="c_lat")
+            c_lon = st.number_input("시작 경도",  value=126.9780, format="%.6f", key="c_lon")
+            target_km = st.slider("목표 거리 (km)", 5, 50, 20, 5)
+            w_s_c = st.slider("안전 가중치", 0.1, 0.9, 0.6, 0.1, key="c_ws")
+            w_t_c = round(1.0 - w_s_c, 1)
+            st.caption(f"관광 가중치: {w_t_c}")
+
+            if st.button("코스 생성", type="primary"):
+                G_work = G_main.copy()
+                for u, v, d in G_work.edges(data=True):
+                    score = w_s_c * d.get("safety_score", 0.5) + w_t_c * d.get("tourism_score", 0.5)
+                    d["weight"] = max(1.0 - score, 1e-6)
+
+                start_node = nearest_node(G_work, c_lat, c_lon)
+                best_course, best_dist = [start_node], 0.0
+                stack = [(start_node, [start_node], 0.0)]
+                visited = set()
+                MAX_ITER = 30_000
+                iters = 0
+
+                while stack and iters < MAX_ITER:
+                    iters += 1
+                    node, path, dist = stack.pop()
+                    if dist >= target_km * 0.9 and dist > best_dist:
+                        best_dist, best_course = dist, path
+                    if dist >= target_km:
+                        break
+                    neighbors = sorted(
+                        [n for n in G_work.neighbors(node) if n not in visited],
+                        key=lambda n: -G_work[node][n].get("final_score", 0),
+                    )
+                    for nb in neighbors[:5]:
+                        edge = G_work[node][nb]
+                        new_dist = dist + edge.get("length_km", haversine(node, nb))
+                        if new_dist <= target_km * 1.2:
+                            visited.add(nb)
+                            stack.append((nb, path + [nb], new_dist))
+
+                m1, m2 = st.columns(2)
+                m1.metric("생성된 코스 거리", f"{best_dist:.2f} km")
+                m2.metric("경유 노드 수", f"{len(best_course):,}")
+
+                if HAS_FOLIUM and len(best_course) > 1:
+                    m = folium.Map(location=[c_lat, c_lon], zoom_start=13)
+                    coords = [[n[0], n[1]] for n in best_course]
+                    folium.PolyLine(
+                        coords, color="#16A34A", weight=4, opacity=0.8,
+                        tooltip=f"순환 코스 ({best_dist:.2f} km)"
+                    ).add_to(m)
+                    folium.Marker(
+                        [c_lat, c_lon],
+                        icon=folium.Icon(color="blue", icon="home"),
+                        tooltip="시작/종료",
+                    ).add_to(m)
+                    st_folium(m, width=700, height=450)
+                elif not HAS_FOLIUM:
+                    st.info("지도 표시를 위해 folium을 설치하세요: `pip install folium streamlit-folium`")
+                    st.write("코스 노드 수:", len(best_course))
