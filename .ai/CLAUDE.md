@@ -17,3 +17,4 @@ Never do:
 명시적 승인 없이 실패하는 테스트 제거 금지
 사용자 요청 없이 브라우저를 자동으로 실행하지 않음 (Never open the browser automatically)
 폴더/파일 생성이 필요하다면 우선 .ai 폴더 안에서 생성 후 plan에 필요한 폴더 위치를 설명
+Python 스크립트를 직접 실행하지 않음 — 코드 작성 후 사용자가 직접 실행 (Never run python scripts; the user runs them)
