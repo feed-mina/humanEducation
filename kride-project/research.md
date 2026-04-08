@@ -1054,3 +1054,199 @@ STEP 4: route_graph.pkl 저장 완료
 
 **MVP 임시 전략**: G 전체(2,245 노드)를 지도 시각화 용도로만 쓰고,  
 경로 탐색은 COORD_PRECISION을 3으로 낮춰 재빌드 후 재평가.
+
+---
+
+## 19. osmnx 기반 그래프 재설계 (2026-04-08)
+
+### 문제 요약
+
+`COORD_PRECISION = 3` 으로 완화해도 최대 연결 컴포넌트 3.2% → 근본 원인은 좌표 오차가 아니라 **원천 데이터 구조** 자체.
+
+- 공공 자전거 도로 데이터는 행정구역(시군구) 단위 관리용 통계 데이터
+- 교차점 연결 정보(토폴로지) 없음 → 그래프 연결 불가
+
+### 해결: osmnx + KDTree 점수 매핑
+
+**osmnx**: OpenStreetMap에서 자전거 도로 네트워크를 교차점(노드) + 도로 구간(엣지) 형태의 토폴로지 그래프로 직접 가져오는 라이브러리.
+
+```python
+G_osm = ox.graph_from_place("Seoul, South Korea", network_type="bike")
+# → 수만 개 노드가 실제 교차점으로 연결된 그래프
+```
+
+**KDTree**: scipy.spatial의 공간 탐색 자료구조. OSM 엣지 수만 개에 대해 road_scored 1,647개 중 가장 가까운 세그먼트를 O(log n)으로 탐색.
+
+```text
+단순 반복: 수만 × 1,647 = 수천만 번 연산
+KDTree:   수만 × log(1,647) ≈ 수만 × 11번 연산
+```
+
+### 점수 매핑 방식
+
+```text
+OSM 엣지 중점 (mid_lat, mid_lon)
+    │
+KDTree.query() → 가장 가까운 road_scored 세그먼트
+    │
+거리 ≤ 2km  → 해당 세그먼트의 safety_score, tourism_score, final_score 부여
+거리 > 2km  → 전체 중앙값(median) 기본값 부여
+```
+
+### 변경 후 기대 결과
+
+| 항목 | 기존 (공공데이터) | v2 (osmnx) |
+| --- | --- | --- |
+| 노드 수 | ~2,000개 | 수만 개 |
+| 최대 연결 컴포넌트 | 1~3% | 80% 이상 예상 |
+| 점수 출처 | road_scored.csv 직접 | road_scored → KDTree 최근접 매핑 |
+| 경로 탐색 가능 여부 | 사실상 불가 | 가능 |
+
+### 추가 설치 패키지
+
+```bash
+pip install scipy   # KDTree
+pip install osmnx   # OSM 네트워크 다운로드
+```
+
+---
+
+## 20. build_route_graph.py v2 실행 결과 (2026-04-08)
+
+### 실행 결과
+
+```text
+STEP 1: road_scored.csv 로드
+  유효 행: 1,647개
+  기본값 — safety: 0.496, tourism: 0.041, final: 0.326
+  KDTree 구성 완료 (1,647개 포인트)
+
+STEP 2: osmnx 서울 자전거 네트워크 다운로드
+  OSM 노드 수: 120,782
+  OSM 엣지 수: 171,275
+
+STEP 3: 점수 매핑
+  점수 매핑 성공: 62,983개 엣지 (36.8%)
+  기본값 사용:    108,292개 엣지 (63.2%, 2.0km 초과)
+  최종 노드 수:   120,775
+  최종 엣지 수:   169,136
+
+STEP 4: 연결성 분석
+  연결 컴포넌트 수: 1
+  최대 컴포넌트 노드 수: 120,775 (100.0%)
+  최대 컴포넌트 엣지 수: 169,136
+
+STEP 5: route_graph.pkl 저장 완료
+```
+
+### 결과 분석
+
+| 항목 | 기존 (공공데이터) | v2 (osmnx) 실제 결과 |
+| --- | --- | --- |
+| 노드 수 | ~2,000개 | **120,775개** |
+| 연결 컴포넌트 수 | 881개 | **1개** |
+| 최대 연결률 | 1.4% | **100%** |
+| 경로 탐색 가능 여부 | 불가 | **가능** |
+
+컴포넌트가 1개라는 것은 **서울 전체 자전거 네트워크가 완전히 연결된 하나의 그래프**임을 의미.  
+OSM 데이터는 교차로-도로 구간이 실제 지형 기준으로 연결되어 있어 서울 같은 연속 도시에서는 자연스럽게 단일 컴포넌트.
+
+### 점수 매핑 성공률 (36.8%) 분석
+
+- road_scored.csv: 1,647개 세그먼트 (서울 자전거도로 일부만 커버)
+- OSM: 171,275개 엣지 (서울 전체 자전거 네트워크)
+- 커버 비율이 낮아 63.2%는 기본값(median) 적용
+- MAX_MATCH_KM를 높이면 성공률은 올라가나, 수km 떨어진 세그먼트 점수를 쓰게 되어 **점수 정확도 저하** 트레이드오프 존재
+- 현재 2km 설정은 정확도 우선 판단; 추후 road_scored.csv 확장(경기 포함)으로 근본 해결 가능
+
+### 저장 파일
+
+`kride-project/models/route_graph.pkl`
+
+- `G`: 전체 그래프 (120,775 노드 / 169,136 엣지)
+- `G_main`: 최대 연결 컴포넌트 (동일, 100% 연결)
+
+requirements.txt에 `scipy`, `osmnx`, `networkx` 추가 완료.
+
+---
+
+## 21. Phase 3-8 날씨 LSTM — ASOS API 데이터 수집 (2026-04-08)
+
+### API 정보
+
+| 항목 | 내용 |
+| --- | --- |
+| 서비스명 | 기상청_지상(중관,ASOS) 일자료 조회서비스 |
+| EndPoint | `https://apis.data.go.kr/1360000/AsosDalyInfoService/getWthrDataList` |
+| 포맷 | JSON / XML |
+| 출처 | 공공데이터포털 (data.go.kr) |
+| 활용기간 | 2026-04-08 ~ 2028-04-08 |
+
+### 수집 관측소 및 기간
+
+- **기간**: 2023-01-01 ~ 2025-12-31 (3년, 관측소당 ~1,095건)
+- **관측소**: 서울(108), 수원(119), 인천(112), 양평(202), 이천(203)
+- **총 예상 행**: 5 관측소 × 1,095일 ≈ 5,475행
+
+### 수집 컬럼 (weather_asos_daily.csv)
+
+| API 필드 | CSV 컬럼명 | 설명 |
+| --- | --- | --- |
+| tm | 일시 | 날짜 (YYYY-MM-DD) |
+| stnNm | 지점명 | 관측소명 |
+| avgTa | 평균기온(°C) | 일 평균 기온 |
+| sumRn | 일강수량(mm) | 일 강수량 합계 |
+| avgWs | 평균풍속(m/s) | 일 평균 풍속 |
+| avgRhm | 평균상대습도(%) | 일 평균 상대습도 |
+| avgTca | 평균전운량(1/10) | 일 평균 전운량 (0~10) |
+
+### 날씨 3분류 기준 (build_weather_lstm.py)
+
+```text
+강수량 >= 1mm          → 2 (비·눈)
+전운량 >= 8 (10분의 8) → 1 (흐림)
+나머지                 → 0 (맑음)
+```
+
+### safety_score 날씨 보정
+
+```python
+WEATHER_PENALTY = {0: 0.0, 1: -0.05, 2: -0.20}
+# 맑음: 페널티 없음
+# 흐림: safety_score -0.05 (미끄럼 위험 소폭 증가)
+# 비·눈: safety_score -0.20 (빗길/눈길 위험 대폭 증가)
+```
+
+### API 403 오류 해결 (2026-04-08)
+
+**증상**: `serviceKey`를 `params={}` 딕셔너리로 전달 시 403 Forbidden 발생
+
+**원인**: `requests` 라이브러리가 params 딕셔너리의 값을 자동으로 URL 인코딩함 → 공공데이터포털 서버가 인코딩된 키를 인식 못해 인증 거부. 한국 공공데이터포털 API 전반에서 발생하는 알려진 이슈.
+
+**해결**: `serviceKey`만 URL에 직접 삽입, 나머지 파라미터는 `params`로 전달
+
+```python
+# 수정 전 (403 발생)
+params = {"serviceKey": api_key, "pageNo": "1", ...}
+resp = requests.get(API_URL, params=params)
+
+# 수정 후 (정상)
+url = f"{API_URL}?serviceKey={api_key}"
+params = {"pageNo": "1", "numOfRows": "999", ...}
+resp = requests.get(url, params=params)
+```
+
+### 실행 순서
+
+```bash
+# 1. .env 파일에 API 키 저장 (최초 1회)
+# kride-project/.env 파일: ASOS_API_KEY=인증키
+
+# 2. 데이터 수집
+python kride-project/fetch_weather_data.py
+# 출력: data/dl/kma_weather_raw/weather_asos_daily.csv
+
+# 3. LSTM 학습
+python kride-project/build_weather_lstm.py
+# 출력: models/dl/weather_lstm.pt
+```

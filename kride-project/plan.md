@@ -348,8 +348,9 @@ def get_facilities_on_route(path_coords, facility_df, radius_m=500):
 
 1. [X] `road_scored.csv`에 `end_lat` / `end_lon` 포함 여부 확인 → 19컬럼 모두 존재, 결측 없음
 2. [X] `build_route_graph.py` 실행 → `models/route_graph.pkl` 생성 완료 (2026-04-08)
-3. [ ] **[이슈] 그래프 단절 문제 해결** — 881개 컴포넌트, G_main 32 노드(1.4%)로 경로탐색 불가
-   - 우선: `COORD_PRECISION = 3` 으로 낮춰 재빌드 후 연결성 재확인
+3. [X] **그래프 단절 문제 해결** — osmnx 기반으로 재설계, 연결 컴포넌트 1개(100%) 달성 (2026-04-08)
+   - 원인: 공공 자전거도로 행정 데이터는 교차점 토폴로지 없음 → osmnx(OSM 자전거 네트워크)로 전환
+   - 결과: 120,775 노드 / 169,136 엣지, 완전 연결 그래프
 4. [ ] FastAPI `/api/route` 엔드포인트 작성
 5. [ ] FastAPI `/api/course` 엔드포인트 작성
 6. [ ] FastAPI `/api/facilities` 엔드포인트 작성
@@ -536,14 +537,21 @@ GET /api/weather_forecast
 ### Task (Phase 3-8)
 
 ```text
-  [ ] data.kma.go.kr에서 서울/경기 과거 날씨 CSV 다운 (3년치)
-  [ ] 시군구 코드 ↔ 관측소 코드 매핑 테이블 작성
-  [ ] WeatherLSTM 학습 스크립트 작성 (build_weather_lstm.py)
-  [ ] 모델 저장: models/dl/weather_lstm.pt
-  [ ] safety_score 날씨 보정 함수 작성
-  [ ] FastAPI /api/weather_forecast 엔드포인트 작성
-  [ ] /api/route에 travel_date 파라미터 추가
-  [ ] Streamlit 날짜 선택 UI + 예상 날씨 표시 추가
+  [X] 공공데이터포털 ASOS 일자료 API 키 발급 (2026-04-08)
+       - API: 기상청_지상(중관,ASOS) 일자료 조회서비스
+       - EndPoint: https://apis.data.go.kr/1360000/AsosDalyInfoService/getWthrDataList
+       - 관측소: 서울(108), 수원(119), 인천(112), 양평(202), 이천(203)
+  [X] fetch_weather_data.py 작성 완료 → data/dl/kma_weather_raw/weather_asos_daily.csv
+  [X] WeatherLSTM 학습 스크립트 작성 (build_weather_lstm.py) — 기존 파일 존재
+  [X] safety_score 날씨 보정 함수 작성 (weather_kma.py에 포함)
+  [X] fetch_weather_data.py API 403 오류 수정 — serviceKey URL 직접 삽입 방식으로 변경 (2026-04-08)
+       원인: requests params={}로 전달 시 자동 URL 인코딩 → 공공데이터포털 인증 거부
+       해결: url = f"{API_URL}?serviceKey={api_key}" 후 나머지만 params로 전달
+  [X] .env 파일 생성 (ASOS_API_KEY 저장) + .gitignore에 추가
+  [ ] fetch_weather_data.py 재실행 → weather_asos_daily.csv 생성 확인
+  [ ] build_weather_lstm.py 실행 → models/dl/weather_lstm.pt 생성
+  [ ] (후순위) FastAPI /api/weather_forecast 엔드포인트 작성
+  [ ] (후순위) Streamlit 날짜 선택 UI + 예상 날씨 표시 추가
 ```
 
 ---
