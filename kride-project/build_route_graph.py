@@ -119,6 +119,14 @@ for _, row in df.iterrows():
         continue
 
     # 길이가 0이면 haversine 계산값으로 대체
+
+    # 자전거 도로 데이터에서 length_km 값이 0 또는 누락된 행이 있을 수 있다. 도로명: 한강변 자전거도로 3구간
+    # start: (37.5123, 126.9876)
+    # end:   (37.5145, 126.9901)
+    # length_km: 0   ← 데이터 오류
+    # 이런 경우 haversine 함수를 사용해서 실제 두 좌표 간의 직선거리를 계산해 length_km 값을 대체한다.여기서haversine은 지구 곡률을 고려한 두 좌표 사이의 실제 거리 공식이다 
+
+
     length = float(row["length_km"])
     if length <= 0:
         length = haversine(s, e)
@@ -193,6 +201,18 @@ print("=" * 65)
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 # G (전체) + G_main (최대 연결) 함께 저장
+# G(전체) VS G_main(최대 연결) 비교
+# 자전거 도로데이터로 그래프를 만들면 모든 도로가 하나로 이어지지않고 섬처럼 분리된 구간들이 생긴다. 
+# G (전체 그래프)
+# ├── 컴포넌트 A: 서울 도심 (노드 800개) ← 가장 큰 덩어리
+# ├── 컴포넌트 B: 한강변 일부 (노드 50개)
+# ├── 컴포넌트 C: 경기 외곽 (노드 20개)
+# └── 컴포넌트 D: 고립된 도로 (노드 3개)
+
+# G_main은 이 중 가장 큰 덩어리 만 추출한다 G(전체) 지도 시각화, 통계, 모든 도로 표시용
+# G_main 경로 탐색(다익스트라 알고리즘)용 , 연결 안된 섬에서는 경로 탐색 자체가 불가능
+# 경로 탐색시 G_main만 사용한다. 출발지와 도착지가 서로 다른 컴포넌트에 있으면 nx.shortest_path가 에러를 뱉는다.
+
 graph_data = {
     "G":      G,
     "G_main": G_main,
@@ -205,7 +225,16 @@ graph_data = {
         "coord_precision": COORD_PRECISION,
     }
 }
-# [메모] coord_precision은 어떤 의미인가요 ? 
+# [메모] coord_precision은 어떤 의미인가요 ?  
+# coord_precision = 4 는 위경도 좌표를 소수점 몇 자리까지 반올림해서 그래프로 쏠지 결정하는 값이다
+
+# 여기서는 반올림 정밀도 = 거리 허용 오차입니다. 
+# COORD_PRECISION	소수점 자리	허용 오차 (대략)
+# 2	0.01도	~1,100m 
+# 3	0.001도	~111m
+# 4	0.0001도	~11m ← 현재 설정 
+# 값을 높이면 연결성은 좋아지지만 너무 많은 노드가 합쳐져 정확도가 떨어지고 낮추면 연결이 끊기는 섬이 많아 집니다.abs
+
 with open(GRAPH_PATH, "wb") as f:
     pickle.dump(graph_data, f)
 

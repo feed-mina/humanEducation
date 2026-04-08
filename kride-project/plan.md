@@ -346,9 +346,10 @@ def get_facilities_on_route(path_coords, facility_df, radius_m=500):
 
 ### Task (Phase 3-5)
 
-1. [ ] `road_scored.csv`에 `end_lat` / `end_lon` 포함 여부 확인
-2. [ ] 없을 경우: `build_tourism_model.py`에서 `road_clean_v2.csv` 종점 좌표 조인 추가
-3. [ ] `build_route_graph.py` 작성 → `models/route_graph.pkl` 생성
+1. [X] `road_scored.csv`에 `end_lat` / `end_lon` 포함 여부 확인 → 19컬럼 모두 존재, 결측 없음
+2. [X] `build_route_graph.py` 실행 → `models/route_graph.pkl` 생성 완료 (2026-04-08)
+3. [ ] **[이슈] 그래프 단절 문제 해결** — 881개 컴포넌트, G_main 32 노드(1.4%)로 경로탐색 불가
+   - 우선: `COORD_PRECISION = 3` 으로 낮춰 재빌드 후 연결성 재확인
 4. [ ] FastAPI `/api/route` 엔드포인트 작성
 5. [ ] FastAPI `/api/course` 엔드포인트 작성
 6. [ ] FastAPI `/api/facilities` 엔드포인트 작성

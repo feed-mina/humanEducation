@@ -1001,3 +1001,56 @@ STEP 3 (여유 시 / zero-shot 우선 적용)
   → 파인튜닝은 시간 여유 시 추가 (이벤트 추출 데이터 17,625건 사용)
   → 장소명 geocoding → Spatial Join → 경로 근처 이벤트 알림
 ```
+
+---
+
+## 18. build_route_graph.py 실행 결과 (2026-04-08)
+
+### 실행 결과 요약
+
+```text
+STEP 1: road_scored.csv 로드
+  shape: (1647, 19)
+  컬럼: start_lat, start_lon, end_lat, end_lon, length_km, width_m,
+        road_type, is_official, is_wide_road, safety_index,
+        tourist_count, cultural_count, leisure_count, facility_count,
+        tourism_score, district_danger, road_attr_score, safety_score, final_score
+  좌표 결측: 없음 (1,647 → 1,647행 유지)
+
+STEP 2: 그래프 구성
+  추가된 엣지: 1,370개
+  스킵된 세그먼트: 186개 (self-loop 또는 zero-length)
+  노드 수: 2,245
+  엣지 수: 1,370
+
+STEP 3: 연결성 분석
+  연결 컴포넌트 수: 881개
+  최대 컴포넌트 노드 수: 32개 (전체의 1.4%)
+  최대 컴포넌트 엣지 수: 31개
+  G_main: 32 노드 / 31 엣지
+
+STEP 4: route_graph.pkl 저장 완료
+  → kride-project/models/route_graph.pkl
+```
+
+### 핵심 문제: 그래프 단절 심각
+
+연결 컴포넌트 881개, 최대 연결 컴포넌트가 전체의 **1.4%** 에 불과함.
+이 상태에서는 G_main으로 경로 탐색 시 커버 가능한 구간이 극히 제한적.
+
+**원인 분석**:
+
+- `road_scored.csv`의 도로 세그먼트들이 좌표 단위로 연결되지 않음
+- 동일 구간이라도 좌표 정밀도 차이(소수점 4자리 반올림 기준 11m)로 인해 노드 병합 실패
+- 자전거 도로 원천 데이터가 노선별 독립 행으로 기록되어 교차점 연결 정보 없음
+
+**해결 방향 (Phase 3-5 보완)**:
+
+| 방법 | 설명 | 난이도 |
+| --- | --- | --- |
+| COORD_PRECISION 완화 | 소수점 3자리(~111m)로 낮춰 더 많은 노드 병합 | 낮음 |
+| OSM 도로 데이터 보완 | OpenStreetMap 자전거 도로 네트워크로 대체 or 보완 | 중간 |
+| 구(區) 단위 서브그래프 | 전국 탐색 포기 → 특정 구 내 경로 탐색만 구현 | 낮음 |
+
+**MVP 임시 전략**: G 전체(2,245 노드)를 지도 시각화 용도로만 쓰고,  
+경로 탐색은 COORD_PRECISION을 3으로 낮춰 재빌드 후 재평가.
