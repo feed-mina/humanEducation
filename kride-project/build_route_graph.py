@@ -1,16 +1,21 @@
 """
-build_route_graph.py
-====================
-road_scored.csv → networkx 그래프 → models/route_graph.pkl
+build_route_graph.py  (v2 — osmnx 기반)
+========================================
+기존 방식(road_scored.csv start/end 좌표 연결)은 원천 데이터가
+행정구역 단위로 분절되어 그래프 연결성이 1~3% 수준으로 경로탐색 불가.
+
+v2: osmnx로 서울 자전거 도로 네트워크(토폴로지 보장) 다운로드 후,
+    기존 road_scored.csv의 safety/tourism 점수를 최근접 매핑으로 부여.
 
 [ 실행 순서 ]
   python kride-project/build_route_graph.py
 
 [ 단계 요약 ]
-  STEP 1 : road_scored.csv 로드
-  STEP 2 : 그래프 노드/엣지 구성 (start↔end 좌표)
-  STEP 3 : 연결성 분석
-  STEP 4 : route_graph.pkl 저장
+  STEP 1 : road_scored.csv 로드 (안전/관광 점수 소스)
+  STEP 2 : osmnx로 서울 자전거 도로 네트워크 다운로드
+  STEP 3 : OSM 엣지 ↔ road_scored 최근접 매핑 → 점수 부여
+  STEP 4 : 연결성 분석
+  STEP 5 : route_graph.pkl 저장
 
 [ 출력 파일 ]
   kride-project/models/route_graph.pkl
@@ -18,12 +23,13 @@ road_scored.csv → networkx 그래프 → models/route_graph.pkl
 
 import os
 import sys
-import math
 import pickle
 import warnings
 
 import pandas as pd
 import networkx as nx
+import osmnx as ox
+from scipy.spatial import KDTree
 
 warnings.filterwarnings("ignore")
 
@@ -35,38 +41,20 @@ except NameError:
     if not os.path.exists(BASE_DIR):
         BASE_DIR = os.getcwd()
 
-RAW_DIR    = os.path.join(BASE_DIR, "data", "raw_ml")
-MODELS_DIR = os.path.join(BASE_DIR, "models")
-
+RAW_DIR     = os.path.join(BASE_DIR, "data", "raw_ml")
+MODELS_DIR  = os.path.join(BASE_DIR, "models")
 SCORED_PATH = os.path.join(RAW_DIR,    "road_scored.csv")
 GRAPH_PATH  = os.path.join(MODELS_DIR, "route_graph.pkl")
 
-# 좌표 반올림 정밀도 (노드 병합 기준 — 소수점 4자리 ≈ 11m)
-COORD_PRECISION = 4
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-def haversine(c1, c2) -> float:
-    """두 (lat, lon) 좌표 사이 거리 (km)"""
-    R = 6371.0
-    lat1, lon1 = math.radians(c1[0]), math.radians(c1[1])
-    lat2, lon2 = math.radians(c2[0]), math.radians(c2[1])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    return R * 2 * math.asin(math.sqrt(a))
-
-
-def round_coord(lat, lon, precision=COORD_PRECISION):
-    """좌표를 지정 정밀도로 반올림 (노드 키 생성용)"""
-    return (round(float(lat), precision), round(float(lon), precision))
+# road_scored 점수를 OSM 엣지에 매핑할 최대 거리 (km)
+MAX_MATCH_KM = 2.0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STEP 1: road_scored.csv 로드
+# STEP 1: road_scored.csv 로드 (안전/관광 점수 소스)
 # ══════════════════════════════════════════════════════════════════════════════
 print("=" * 65)
-print("STEP 1: road_scored.csv 로드")
+print("STEP 1: road_scored.csv 로드 (점수 소스)")
 print("=" * 65)
 
 if not os.path.exists(SCORED_PATH):
@@ -74,108 +62,120 @@ if not os.path.exists(SCORED_PATH):
     sys.exit(1)
 
 df = pd.read_csv(SCORED_PATH, encoding="utf-8-sig")
-print(f"  shape: {df.shape}")
-print(f"  컬럼: {list(df.columns)}\n")
-
-# 필수 컬럼 확인
-REQUIRED = ["start_lat", "start_lon", "end_lat", "end_lon",
-            "length_km", "safety_score", "tourism_score", "final_score"]
-missing = [c for c in REQUIRED if c not in df.columns]
-if missing:
-    print(f"  ❌ 필수 컬럼 없음: {missing}")
-    sys.exit(1)
-
-# 좌표 결측 제거
-before = len(df)
-df = df.dropna(subset=["start_lat", "start_lon", "end_lat", "end_lon"])
-print(f"  좌표 결측 제거: {before:,} → {len(df):,}행\n")
-
-# 수치 변환
-for col in REQUIRED:
+for col in ["start_lat", "start_lon", "safety_score", "tourism_score", "final_score"]:
     df[col] = pd.to_numeric(df[col], errors="coerce")
-df = df.dropna(subset=REQUIRED)
-print(f"  수치 변환 후: {len(df):,}행\n")
+df = df.dropna(subset=["start_lat", "start_lon", "safety_score", "tourism_score", "final_score"])
+print(f"  유효 행: {len(df):,}개")
+
+# 매핑 실패 시 사용할 기본값 (중앙값)
+default_safety  = float(df["safety_score"].median())
+default_tourism = float(df["tourism_score"].median())
+default_final   = float(df["final_score"].median())
+print(f"  기본값 — safety: {default_safety:.3f}, tourism: {default_tourism:.3f}, final: {default_final:.3f}")
+
+# KDTree 구성: road_scored 세그먼트의 시작점 좌표
+score_coords = df[["start_lat", "start_lon"]].values
+score_tree   = KDTree(score_coords)
+print(f"  KDTree 구성 완료 ({len(score_coords):,}개 포인트)\n")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STEP 2: 그래프 구성
+# STEP 2: osmnx로 서울 자전거 도로 네트워크 다운로드
 # ══════════════════════════════════════════════════════════════════════════════
 print("=" * 65)
-print("STEP 2: networkx 그래프 구성")
+print("STEP 2: osmnx 서울 자전거 네트워크 다운로드")
 print("=" * 65)
+print("  첫 실행 시 수 분 소요됩니다. 이후 실행은 캐시를 사용합니다.\n")
+
+ox.settings.use_cache = True
+ox.settings.log_console = False
+
+G_osm = ox.graph_from_place("Seoul, South Korea", network_type="bike")
+G_osm = ox.convert.to_undirected(G_osm)
+
+print(f"  OSM 노드 수: {G_osm.number_of_nodes():,}")
+print(f"  OSM 엣지 수: {G_osm.number_of_edges():,}\n")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 3: OSM 엣지에 safety/tourism 점수 매핑
+# ══════════════════════════════════════════════════════════════════════════════
+print("=" * 65)
+print("STEP 3: OSM 엣지 ↔ road_scored 점수 매핑 (최근접 세그먼트)")
+print("=" * 65)
+print(f"  매핑 허용 거리: {MAX_MATCH_KM}km 이내\n")
+
+nodes_data = dict(G_osm.nodes(data=True))
 
 G = nx.Graph()
+mapped   = 0
+fallback = 0
 
-added = 0
-skipped = 0
+for u, v, data in G_osm.edges(data=True):
+    u_data = nodes_data[u]
+    v_data = nodes_data[v]
 
-for _, row in df.iterrows():
-    s = round_coord(row["start_lat"], row["start_lon"])
-    e = round_coord(row["end_lat"],   row["end_lon"])
+    # 엣지 중점 계산 (osmnx: x=경도, y=위도)
+    mid_lat = (u_data["y"] + v_data["y"]) / 2
+    mid_lon = (u_data["x"] + v_data["x"]) / 2
 
-    # 시작 == 끝인 세그먼트 스킵 (self-loop)
-    if s == e:
-        skipped += 1
+    # KDTree로 최근접 road_scored 세그먼트 탐색
+    # KDTree는 유클리드 거리를 사용하므로, 위도 1도 ≈ 111km로 간이 변환
+    dist_deg, idx = score_tree.query([mid_lat, mid_lon])
+    dist_km = dist_deg * 111.0
+
+    if dist_km <= MAX_MATCH_KM:
+        row     = df.iloc[idx]
+        safety  = float(row["safety_score"])
+        tourism = float(row["tourism_score"])
+        final   = float(row["final_score"])
+        mapped += 1
+    else:
+        safety  = default_safety
+        tourism = default_tourism
+        final   = default_final
+        fallback += 1
+
+    length_m  = data.get("length", 0)
+    length_km = length_m / 1000 if length_m > 0 else 0.05
+
+    # 노드 키: (위도, 경도) 소수점 5자리 (약 1.1m 정밀도)
+    node_u = (round(u_data["y"], 5), round(u_data["x"], 5))
+    node_v = (round(v_data["y"], 5), round(v_data["x"], 5))
+
+    if node_u == node_v:
         continue
 
-    # 길이가 0이면 haversine 계산값으로 대체
+    edge_attrs = dict(
+        weight        = 1.0 - final,   # Dijkstra: 낮을수록 선호
+        safety_score  = safety,
+        tourism_score = tourism,
+        final_score   = final,
+        length_km     = length_km,
+        osm_u         = u,
+        osm_v         = v,
+    )
+    if "name" in data:
+        edge_attrs["road_name"] = data["name"]
 
-    # 자전거 도로 데이터에서 length_km 값이 0 또는 누락된 행이 있을 수 있다. 도로명: 한강변 자전거도로 3구간
-    # start: (37.5123, 126.9876)
-    # end:   (37.5145, 126.9901)
-    # length_km: 0   ← 데이터 오류
-    # 이런 경우 haversine 함수를 사용해서 실제 두 좌표 간의 직선거리를 계산해 length_km 값을 대체한다.여기서haversine은 지구 곡률을 고려한 두 좌표 사이의 실제 거리 공식이다 
-
-
-    length = float(row["length_km"])
-    if length <= 0:
-        length = haversine(s, e)
-        if length < 0.001:
-            skipped += 1
-            continue
-
-    safety  = float(row["safety_score"])
-    tourism = float(row["tourism_score"])
-    final   = float(row["final_score"])
-
-    # 기존 엣지가 있으면 점수가 더 높은 쪽으로 업데이트
-    if G.has_edge(s, e):
-        if final > G[s][e]["final_score"]:
-            G[s][e].update(dict(
-                weight=1.0 - final,
-                safety_score=safety,
-                tourism_score=tourism,
-                final_score=final,
-                length_km=length,
-            ))
+    # 중복 엣지는 점수가 더 높은 쪽으로 업데이트
+    if G.has_edge(node_u, node_v):
+        if final > G[node_u][node_v]["final_score"]:
+            G[node_u][node_v].update(edge_attrs)
     else:
-        edge_attrs = dict(
-            weight=1.0 - final,   # Dijkstra: 낮을수록 선호
-            safety_score=safety,
-            tourism_score=tourism,
-            final_score=final,
-            length_km=length,
-        )
-        # 선택적 컬럼 추가
-        for opt in ["route_name", "sigungu", "road_type", "tourist_count",
-                    "facility_count", "cultural_count"]:
-            if opt in df.columns:
-                edge_attrs[opt] = row.get(opt, "")
+        G.add_edge(node_u, node_v, **edge_attrs)
 
-        G.add_edge(s, e, **edge_attrs)
-        added += 1
-
-print(f"  추가된 엣지: {added:,}개")
-print(f"  스킵된 세그먼트: {skipped:,}개")
-print(f"  노드 수: {G.number_of_nodes():,}")
-print(f"  엣지 수: {G.number_of_edges():,}\n")
+print(f"  점수 매핑 성공: {mapped:,}개 엣지 ({mapped/(mapped+fallback)*100:.1f}%)")
+print(f"  기본값 사용:    {fallback:,}개 엣지 ({fallback/(mapped+fallback)*100:.1f}%, {MAX_MATCH_KM}km 초과)")
+print(f"  최종 노드 수:   {G.number_of_nodes():,}")
+print(f"  최종 엣지 수:   {G.number_of_edges():,}\n")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STEP 3: 연결성 분석
+# STEP 4: 연결성 분석
 # ══════════════════════════════════════════════════════════════════════════════
 print("=" * 65)
-print("STEP 3: 연결성 분석")
+print("STEP 4: 연결성 분석")
 print("=" * 65)
 
 components = list(nx.connected_components(G))
@@ -185,55 +185,34 @@ print(f"  최대 컴포넌트 노드 수: {len(largest):,} "
       f"({len(largest)/G.number_of_nodes()*100:.1f}%)")
 print(f"  최대 컴포넌트 엣지 수: {G.subgraph(largest).number_of_edges():,}\n")
 
-# 최대 연결 서브그래프도 함께 저장 (경로 탐색 시 활용)
 G_main = G.subgraph(largest).copy()
-print(f"  G_main (최대 연결 그래프) 노드/엣지: "
-      f"{G_main.number_of_nodes():,} / {G_main.number_of_edges():,}\n")
+print(f"  G_main: {G_main.number_of_nodes():,} 노드 / {G_main.number_of_edges():,} 엣지\n")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STEP 4: 저장
+# STEP 5: 저장
 # ══════════════════════════════════════════════════════════════════════════════
 print("=" * 65)
-print("STEP 4: route_graph.pkl 저장")
+print("STEP 5: route_graph.pkl 저장")
 print("=" * 65)
 
 os.makedirs(MODELS_DIR, exist_ok=True)
-
-# G (전체) + G_main (최대 연결) 함께 저장
-# G(전체) VS G_main(최대 연결) 비교
-# 자전거 도로데이터로 그래프를 만들면 모든 도로가 하나로 이어지지않고 섬처럼 분리된 구간들이 생긴다. 
-# G (전체 그래프)
-# ├── 컴포넌트 A: 서울 도심 (노드 800개) ← 가장 큰 덩어리
-# ├── 컴포넌트 B: 한강변 일부 (노드 50개)
-# ├── 컴포넌트 C: 경기 외곽 (노드 20개)
-# └── 컴포넌트 D: 고립된 도로 (노드 3개)
-
-# G_main은 이 중 가장 큰 덩어리 만 추출한다 G(전체) 지도 시각화, 통계, 모든 도로 표시용
-# G_main 경로 탐색(다익스트라 알고리즘)용 , 연결 안된 섬에서는 경로 탐색 자체가 불가능
-# 경로 탐색시 G_main만 사용한다. 출발지와 도착지가 서로 다른 컴포넌트에 있으면 nx.shortest_path가 에러를 뱉는다.
 
 graph_data = {
     "G":      G,
     "G_main": G_main,
     "meta": {
-        "nodes":      G.number_of_nodes(),
-        "edges":      G.number_of_edges(),
-        "components": len(components),
-        "main_nodes": G_main.number_of_nodes(),
-        "main_edges": G_main.number_of_edges(),
-        "coord_precision": COORD_PRECISION,
+        "source":       "osmnx Seoul bike network",
+        "nodes":        G.number_of_nodes(),
+        "edges":        G.number_of_edges(),
+        "components":   len(components),
+        "main_nodes":   G_main.number_of_nodes(),
+        "main_edges":   G_main.number_of_edges(),
+        "mapped":       mapped,
+        "fallback":     fallback,
+        "max_match_km": MAX_MATCH_KM,
     }
 }
-# [메모] coord_precision은 어떤 의미인가요 ?  
-# coord_precision = 4 는 위경도 좌표를 소수점 몇 자리까지 반올림해서 그래프로 쏠지 결정하는 값이다
-
-# 여기서는 반올림 정밀도 = 거리 허용 오차입니다. 
-# COORD_PRECISION	소수점 자리	허용 오차 (대략)
-# 2	0.01도	~1,100m 
-# 3	0.001도	~111m
-# 4	0.0001도	~11m ← 현재 설정 
-# 값을 높이면 연결성은 좋아지지만 너무 많은 노드가 합쳐져 정확도가 떨어지고 낮추면 연결이 끊기는 섬이 많아 집니다.abs
 
 with open(GRAPH_PATH, "wb") as f:
     pickle.dump(graph_data, f)
