@@ -4,6 +4,11 @@ scikit-learn==1.7.2
 joblib==1.5.3
 matplotlib==3.10.8
 streamlit==1.56.0
+scipy
+
+# Phase 3-5: 경로탐지 그래프
+osmnx
+networkx
 
 # Phase 3-9: 소비 TabNet 모델
 torch>=2.0.0
