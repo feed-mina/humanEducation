@@ -548,8 +548,8 @@ GET /api/weather_forecast
        원인: requests params={}로 전달 시 자동 URL 인코딩 → 공공데이터포털 인증 거부
        해결: url = f"{API_URL}?serviceKey={api_key}" 후 나머지만 params로 전달
   [X] .env 파일 생성 (ASOS_API_KEY 저장) + .gitignore에 추가
-  [ ] fetch_weather_data.py 재실행 → weather_asos_daily.csv 생성 확인
-  [ ] build_weather_lstm.py 실행 → models/dl/weather_lstm.pt 생성
+  [X] fetch_weather_data.py 재실행 → weather_asos_daily.csv 생성 확인 (2026-04-08, 5,480행)
+  [X] build_weather_lstm.py 실행 → models/dl/weather_lstm.pt 생성 (2026-04-08, val_acc=79.43%)
   [ ] (후순위) FastAPI /api/weather_forecast 엔드포인트 작성
   [ ] (후순위) Streamlit 날짜 선택 UI + 예상 날씨 표시 추가
 ```

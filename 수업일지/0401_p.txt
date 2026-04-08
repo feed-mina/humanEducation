@@ -544,7 +544,7 @@ tourist_count       : 1,031행 (62.6%) 에서 1개 이상
    파일 크기 : 171,398 bytes
 
 
-
+curl -o "aihubshell" https://api.aihub.or.kr/api/aihubshell.do
 
 
 
