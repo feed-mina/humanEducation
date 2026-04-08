@@ -3,14 +3,50 @@ build_event_ner.py
 ==================
 이벤트 감지 파이프라인 (Phase 3-7)
 
-# [메모] Zero-shot이 무엇인지 알려주세요 
-#  
+# [메모] Zero-shot이 무엇인지 알려주세요
+# → Zero-shot(제로샷) 이란 모델을 별도로 학습(파인튜닝)하지 않고 바로 사용하는 방식입니다.
+#   일반적으로 ML 모델은 "스포츠 경기" 라는 카테고리를 분류하려면 해당 라벨이 붙은
+#   학습 데이터가 필요합니다. 반면 Zero-shot 은 사전학습된 언어 모델이 이미 언어의
+#   의미를 이해하고 있기 때문에, 카테고리 이름(후보 라벨)만 텍스트로 넘겨주면
+#   "이 문장이 어느 카테고리에 가장 가까운가?" 를 바로 판단합니다.
+#   → 데이터 없이 즉시 사용 가능하지만, 정확도는 파인튜닝 모델보다 낮을 수 있습니다.
+#
 [ 방식 1 ] Zero-shot 분류 (빠른 대안 — 데이터 불필요)
-# [메모] snunlp/KR-FinBert-SC 또는 MoritzLaurer/mDeBERTa-v3-base-mnli-xnli 이 무엇을 가르키는지 알려주세요 
+# [메모] snunlp/KR-FinBert-SC 또는 MoritzLaurer/mDeBERTa-v3-base-mnli-xnli 이 무엇을 가르키는지 알려주세요
+# → 두 모델 모두 HuggingFace에 올라온 사전학습된 언어 모델입니다.
+#
+#   ■ snunlp/KR-FinBert-SC
+#     · 서울대(SNU)가 한국어 금융 뉴스로 학습한 BERT 모델입니다.
+#     · "SC" = Sentence Classification (문장 감성 분류)에 특화되어 있습니다.
+#     · 한국어 전용이라 한국어 이해 능력은 뛰어나지만,
+#       zero-shot 분류를 공식 지원하지 않아 파인튜닝 없이는 사용이 제한됩니다.
+#
+#   ■ MoritzLaurer/mDeBERTa-v3-base-mnli-xnli
+#     · Microsoft의 DeBERTa 구조를 다국어(100개 언어)로 확장한 모델입니다.
+#     · MNLI(영어) + XNLI(다국어) 데이터로 학습되어 zero-shot 분류를 공식 지원합니다.
+#     · "텍스트가 이 카테고리에 해당하는가?" 를 직접 판단하므로 데이터 없이 바로 쓸 수 있습니다.
+#     → 이 프로젝트에서는 mDeBERTa를 사용합니다 (한국어 + zero-shot 동시 지원).
 
   snunlp/KR-FinBert-SC 또는 MoritzLaurer/mDeBERTa-v3-base-mnli-xnli 사용
   → 뉴스 텍스트를 5개 이벤트 유형으로 분류
-# [메모] KLUE-BERT NER 파인튜닝이 무엇인지 알려주세요 그리고 각 라벨이 무엇인지 알려주세요 
+# [메모] KLUE-BERT NER 파인튜닝이 무엇인지 알려주세요 그리고 각 라벨이 무엇인지 알려주세요
+# → KLUE-BERT NER 파인튜닝이란:
+#     KLUE-BERT = 카카오가 한국어 대규모 말뭉치로 학습한 BERT 모델입니다.
+#     NER(Named Entity Recognition) = "개체명 인식" 으로, 문장 속에서
+#     사람 이름, 장소명, 날짜, 이벤트명 등을 자동으로 찾아내는 작업입니다.
+#     파인튜닝(Fine-tuning) = 이미 학습된 KLUE-BERT에 우리 프로젝트 라벨이 붙은
+#     데이터를 추가로 학습시켜서 KRide 전용 NER 모델로 만드는 과정입니다.
+#
+#   라벨 설명 (BIO 태깅 방식):
+#     O       = Outside  → 아무 의미 없는 일반 글자 (이벤트/장소 아님)
+#     B-LOC   = Begin Location  → 장소명의 첫 번째 글자
+#               예) "잠실야구장" → B-LOC(잠), I-LOC(실), I-LOC(야), ...
+#     I-LOC   = Inside Location → 장소명의 두 번째 이후 글자
+#     B-EVT   = Begin Event     → 이벤트명의 첫 번째 글자
+#               예) "콘서트" → B-EVT(콘), I-EVT(서), I-EVT(트)
+#     I-EVT   = Inside Event    → 이벤트명의 두 번째 이후 글자
+#
+#   B/I 구분이 필요한 이유: 연속된 글자 중 어디서 새 단어가 시작하는지 표시하기 위함.
 [ 방식 2 ] KLUE-BERT NER 파인튜닝 (AI Hub 데이터 활용)
   데이터: AI Hub 한국어 다중 이벤트 추출 (dataSetSn=71729)
   라벨: O / B-LOC / I-LOC / B-EVT / I-EVT
@@ -171,14 +207,16 @@ def convert_aihub_to_ner(data_dir: str) -> list:
 
 def build_ner_finetune(data_dir: str):
     """KLUE-BERT NER 파인튜닝"""
-    # [메모] try 밑에서부터 에러가 나는것 같습니다. 
+    # [메모] try 밑에서부터 에러가 나는것 같습니다.
+    # → 원인: transformers 최신 버전(4.30+)에서 AdamW가 transformers에서 제거되었습니다.
+    #   해결: AdamW를 torch.optim 에서 가져오도록 변경합니다.
     try:
         import torch
+        from torch.optim import AdamW                          # ← 수정: torch.optim에서 import
         from torch.utils.data import DataLoader, Dataset
         from transformers import (
             AutoModelForTokenClassification,
             AutoTokenizer,
-            AdamW,
             get_linear_schedule_with_warmup,
         )
     except ImportError:
@@ -223,7 +261,22 @@ def build_ner_finetune(data_dir: str):
             item = self.data[idx]
             tokens = item["tokens"][:MAX_LEN]
             labels = item["labels"][:MAX_LEN]
-# [메모] encoding이 무엇인지 알려주세요 
+# [메모] encoding이 무엇인지 알려주세요
+            # → encoding이란 "텍스트를 모델이 이해할 수 있는 숫자 배열로 변환한 결과물" 입니다.
+            #   tokenizer()를 호출하면 아래 3가지 정보가 딕셔너리 형태로 반환됩니다:
+            #
+            #   ① input_ids      : 각 글자/단어를 모델 어휘사전의 숫자 ID로 변환한 배열
+            #                      예) ["잠","실"] → [12543, 7821, ...]
+            #   ② attention_mask : 실제 토큰(1)과 패딩(0)을 구분하는 마스크
+            #                      예) [1, 1, 1, 0, 0, ...] (뒤쪽 0이 패딩)
+            #   ③ token_type_ids : 문장 A/B 구분용 (단일 문장이면 전부 0)
+            #
+            #   인자 설명:
+            #     is_split_into_words=True → 이미 글자 단위로 나눠진 리스트를 입력받음
+            #     max_length=MAX_LEN       → 최대 128 토큰으로 자르기
+            #     padding="max_length"     → 128 미만이면 [PAD] 토큰으로 채우기
+            #     truncation=True          → 128 초과면 뒤를 잘라내기
+            #     return_tensors="pt"      → PyTorch 텐서 형태로 반환 (pt = pytorch)
             encoding = tokenizer(
                 tokens,
                 is_split_into_words=True,

@@ -4,3 +4,7 @@ scikit-learn==1.7.2
 joblib==1.5.3
 matplotlib==3.10.8
 streamlit==1.56.0
+
+# Phase 3-9: 소비 TabNet 모델
+torch>=2.0.0
+pytorch-tabnet>=4.1.0
