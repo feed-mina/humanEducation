@@ -1,2 +1,5 @@
 .venv
 colab/flower_dataset
+# API 키 파일
+.env
+kride-project/.env
