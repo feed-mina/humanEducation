@@ -532,3 +532,237 @@ weights = {
 - [x] 편의시설 x/y 좌표계 확인 → WGS84(EPSG:4326) 확인됨
 - [x] 자전거도로 필터링 기준 확정 → 서울특별시 + 경기도 (5,319행)
 - [x] road_features.csv Spatial Join 완료 (1,647행, 14컬럼)
+
+---
+
+## 9. 딥러닝(YOLOv8) 서빙 연동 리서치 *(2026-04-08 신규)*
+
+### 9.1 학습 데이터 추천 — 우선순위별
+
+자전거 주행 환경에서 보행자·장애물·차량 탐지를 위한 데이터셋을 우선순위 순으로 정리.
+
+#### 🥇 1순위: AI Hub — 자전거 주행 영상
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **출처** | 한국지능정보사회진흥원(NIA) AI Hub |
+| **URL** | <https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=data&dataSetSn=189> |
+| **데이터 규모** | 영상 약 50시간, 객체 어노테이션 포함 |
+| **라벨 형식** | JSON (COCO 유사) → YOLO txt 변환 필요 |
+| **수집 대상** | 보행자, 이륜차, 차량, 장애물 (한국 도로 환경) |
+| **비용** | 무료 (회원가입 후 다운로드) |
+| **장점** | 한국 자전거도로 실환경 데이터, 프로젝트 도메인 최적 |
+| **단점** | 로그인 및 신청 절차 필요, 용량 클 수 있음 |
+
+**라벨 변환 방법:**
+
+```python
+# AI Hub JSON → YOLO txt 변환 예시
+import json, os
+
+def convert_aihub_to_yolo(json_path, img_w, img_h, class_map):
+    with open(json_path) as f:
+        data = json.load(f)
+    lines = []
+    for ann in data["annotations"]:
+        cls = class_map.get(ann["category_id"], -1)
+        if cls == -1:
+            continue
+        x, y, w, h = ann["bbox"]
+        # YOLO 형식: 중심점 + 정규화
+        cx = (x + w / 2) / img_w
+        cy = (y + h / 2) / img_h
+        nw = w / img_w
+        nh = h / img_h
+        lines.append(f"{cls} {cx:.6f} {cy:.6f} {nw:.6f} {nh:.6f}")
+    return "\n".join(lines)
+
+CLASS_MAP = {1: 0, 2: 1, 3: 2, 4: 3}
+# 1=pedestrian, 2=bicycle, 3=vehicle, 4=obstacle
+```
+
+---
+
+#### 🥈 2순위: Roboflow Universe — bicycle-safety 공개 데이터셋
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **출처** | Roboflow Universe (커뮤니티 공개) |
+| **URL** | <https://universe.roboflow.com/search?q=bicycle+obstacle> |
+| **추천 데이터셋** | `bicycle-safety`, `cyclist-detection`, `road-hazard-detection` |
+| **라벨 형식** | YOLO 형식 직접 export (변환 불필요) |
+| **비용** | 무료 플랜으로 다운로드 가능 |
+| **장점** | 즉시 사용 가능, YOLO 형식 지원, 온라인 augmentation |
+| **단점** | 해외(서양) 도로 환경 중심, 한국 환경과 도메인 차이 존재 |
+
+**다운로드 예시 (Roboflow API):**
+
+```python
+from roboflow import Roboflow
+
+rf = Roboflow(api_key="YOUR_API_KEY")
+project = rf.workspace("workspace-name").project("bicycle-safety")
+dataset = project.version(1).download("yolov8")
+# → data/ 폴더에 images/, labels/, data.yaml 자동 생성
+```
+
+---
+
+#### 🥉 3순위: Open Images v7 — 자전거 관련 클래스
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **출처** | Google Open Images Dataset v7 |
+| **URL** | <https://storage.googleapis.com/openimages/web/index.html> |
+| **관련 클래스** | `Bicycle`, `Person`, `Car`, `Motorcycle`, `Traffic cone` |
+| **라벨 형식** | CSV 바운딩박스 → YOLO 변환 필요 |
+| **비용** | 무료 |
+| **장점** | 대규모(9M 이미지), 다양한 환경, 고품질 어노테이션 |
+| **단점** | 클래스 선택 다운로드 도구 필요, 용량 매우 큼 |
+
+**선택적 다운로드 (FiftyOne 사용):**
+
+```python
+import fiftyone as fo
+import fiftyone.zoo as foz
+
+dataset = foz.load_zoo_dataset(
+    "open-images-v7",
+    split="train",
+    label_types=["detections"],
+    classes=["Bicycle", "Person", "Car", "Traffic cone"],
+    max_samples=3000,
+)
+# YOLO 형식으로 export
+dataset.export(
+    export_dir="./open_images_yolo",
+    dataset_type=fo.types.YOLOv5Dataset,
+)
+```
+
+---
+
+#### 보조 데이터: CCTV 영상 (공공안전데이터)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **출처** | 공공데이터포털 교통안전 CCTV 영상 |
+| **URL** | <https://www.data.go.kr> (검색: 자전거도로 CCTV) |
+| **활용 방법** | 비라벨 영상 → YOLOv8 pseudo-labeling → 학습 데이터 증강 |
+| **비고** | 직접 어노테이션이 없으므로 보조 활용 권장 |
+
+---
+
+### 9.2 데이터셋 비교 요약
+
+| 데이터셋 | 한국 도메인 | 즉시 사용 | 규모 | 라벨 품질 | 추천 용도 |
+| -------- | :---------: | :-------: | ---- | :-------: | --------- |
+| AI Hub 자전거 주행 영상 | ✅ 최적 | ⚠️ 신청 필요 | 중 | ⭐⭐⭐⭐⭐ | 본 프로젝트 메인 |
+| Roboflow bicycle-safety | ❌ 해외 중심 | ✅ 즉시 | 소~중 | ⭐⭐⭐⭐ | AI Hub 다운로드 전 빠른 프로토타입 |
+| Open Images v7 | ❌ 글로벌 | ⚠️ 도구 필요 | 대 | ⭐⭐⭐⭐⭐ | 데이터 보강(augmentation) |
+| CCTV 공공데이터 | ✅ 한국 | ⚠️ 어노테이션 필요 | 중 | ⭐⭐ | pseudo-labeling |
+
+> **권장 전략**: AI Hub 신청 → 승인 대기 중 Roboflow로 프로토타입 학습 → AI Hub 데이터로 파인튜닝 재학습
+
+---
+
+### 9.3 FastAPI 서빙 아키텍처
+
+```text
+[클라이언트 / Spring Boot]
+         │  POST /predict (multipart/form-data: image)
+         ▼
+[FastAPI ml-server :8001]
+  ├── 이미지 디코딩 (PIL / OpenCV)
+  ├── YOLOv8 추론 (best.pt)
+  │     └── detections: [{class, conf, bbox}]
+  ├── danger_score 계산
+  │     = Σ(confidence × DANGER_WEIGHTS[class]) / n
+  └── JSON 응답 반환
+         │
+         ▼
+[Spring Boot] → danger_score → 경로 안전등급 업데이트
+```
+
+**엔드포인트 설계:**
+
+| 메서드 | 경로 | 설명 | 응답 |
+| ------ | ---- | ---- | ---- |
+| `POST` | `/predict` | 이미지 → 객체 탐지 결과 | `{danger_score, detections, time_ms}` |
+| `GET`  | `/health`  | 서버 상태 확인 | `{status: "ok"}` |
+| `GET`  | `/model-info` | 모델 메타데이터 | `{model, classes, trained_at}` |
+
+**danger_score 위험 클래스 가중치:**
+
+| 클래스 | 가중치 | 근거 |
+| ------ | ------ | ---- |
+| `vehicle` | 0.9 | 차량 충돌 시 인명 피해 가장 큼 |
+| `pedestrian` | 0.8 | 자전거-보행자 충돌 빈발 |
+| `obstacle` | 0.7 | 공사 구역, 라바콘 등 낙차 위험 |
+| `bicycle` | 0.4 | 동류 교통수단, 상대적 위험 낮음 |
+
+---
+
+### 9.4 Docker Compose 통합 아키텍처
+
+```yaml
+# docker-compose.yml 최종 구성
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    ports: ["5432:5432"]
+
+  backend:
+    build: ./kride-project
+    ports: ["8080:8080"]
+    depends_on: [db]
+    environment:
+      ML_SERVER_URL: "http://ml-server:8001"
+
+  ml-server:
+    build: ./kride-project/ml-server
+    ports: ["8001:8001"]
+    volumes:
+      - ./kride-project/ml-server/runs:/app/runs
+    # GPU 사용 시 추가:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+```
+
+**서비스 간 통신 흐름:**
+
+```text
+사용자 앱 → Spring Boot(:8080) → ML서버(:8001) → YOLOv8 추론
+               ↕                        ↕
+           PostgreSQL(:5432)    runs/weights/best.pt
+```
+
+---
+
+### 9.5 성능 벤치마크 기준
+
+| 지표 | 목표 | 측정 방법 |
+| ---- | ---- | --------- |
+| mAP50 | > 0.50 | `yolo val` 명령 |
+| mAP50-95 | > 0.30 | 파인튜닝 후 검증 |
+| `/predict` 응답시간 | < 500ms (CPU) | `timeit` 또는 Swagger |
+| 도커 이미지 크기 | < 3GB | `docker images` |
+| 메모리 사용량 | < 4GB | `docker stats` |
+
+---
+
+### 9.6 미결 사항 (딥러닝 서빙)
+
+- [ ] **[P0]** AI Hub 자전거 주행 영상 신청 및 승인 — 승인 후 즉시 다운로드
+- [ ] **[P0]** Roboflow 계정 생성 + bicycle 데이터셋 확보 (프로토타입용)
+- [ ] **[P0]** YOLOv8n 파인튜닝 (mAP50 > 0.50 목표)
+- [ ] **[P0]** FastAPI `/predict` 구현 및 로컬 테스트
+- [ ] **[P1]** Docker Compose에 ml-server 서비스 추가
+- [ ] **[P1]** Spring Boot ↔ ml-server 연동 (RestTemplate/WebClient)
+- [ ] **[P2]** GPU 미사용 환경 최적화 (배치 크기, imgsz 조정)
+- [ ] **[P2]** 모델 경량화 검토 (ONNX export 또는 TorchScript)

@@ -93,12 +93,147 @@ streamlit run kride-project/streamlit_kride.py
 
 ### 2주차: 딥러닝 (YOLOv8) + 서빙 연동
 
-**목표:** 객체 탐지 모델 학습 + FastAPI 서빙 프로토타입
+**목표:** 객체 탐지 모델 학습 + FastAPI 서빙 프로토타입 + Docker 통합
 
-- [ ] AI Hub 자전거 주행 영상 데이터 다운로드 및 라벨 변환
-- [ ] YOLOv8n 파인튜닝 (보행자, 장애물, 이륜차)
-- [ ] FastAPI `/predict` 엔드포인트 구현
-- [ ] Docker Compose로 DB + ML 서버 통합 실행
+#### Day 1 (4/7): 데이터 준비 및 환경 구성
+
+- [ ] **데이터 확보** (아래 우선순위 순)
+  - 1순위: AI Hub `자전거 주행 영상` 다운로드 (로그인 필요, 무료)
+    - URL: https://www.aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=data&dataSetSn=189
+    - 라벨 포맷: JSON → YOLO txt 변환 필요
+  - 2순위: Roboflow `bicycle-safety` 공개 데이터셋 (즉시 다운로드 가능)
+    - URL: https://universe.roboflow.com/search?q=bicycle+obstacle
+    - 라벨 포맷: YOLO 형식 직접 export 가능
+  - 3순위: Open Images v7 subset (`bicycle`, `person`, `vehicle` 클래스)
+    - 도구: `fiftyone` 라이브러리 또는 OIDv4_ToolKit
+- [ ] YOLOv8 환경 설치
+  ```bash
+  pip install ultralytics
+  yolo check  # GPU/CPU 확인
+  ```
+- [ ] 데이터 디렉토리 구성
+  ```text
+  kride-project/ml-server/
+  ├── data/
+  │   ├── images/train/
+  │   ├── images/val/
+  │   ├── labels/train/
+  │   └── labels/val/
+  └── dataset.yaml
+  ```
+
+#### Day 2 (4/8): YOLO 라벨 변환 + 파인튜닝
+
+- [ ] AI Hub JSON → YOLO txt 라벨 변환 스크립트 작성
+  ```python
+  # convert_labels.py
+  # {"bbox": [x,y,w,h]} → "class cx cy nw nh" (정규화)
+  ```
+- [ ] `dataset.yaml` 작성
+  ```yaml
+  path: kride-project/ml-server/data
+  train: images/train
+  val:   images/val
+  nc: 4
+  names: [pedestrian, bicycle, vehicle, obstacle]
+  ```
+- [ ] YOLOv8n 파인튜닝 실행
+  ```bash
+  yolo detect train \
+    model=yolov8n.pt \
+    data=dataset.yaml \
+    epochs=30 imgsz=640 batch=16 \
+    project=kride-project/ml-server/runs
+  ```
+- [ ] 학습 결과 확인: `runs/detect/train/results.csv`, `mAP50` 목표 > 0.5
+
+#### Day 3 (4/9): FastAPI 서빙 구현
+
+- [ ] `ml-server/main.py` 작성
+  ```python
+  # POST /predict — 이미지 업로드 → 탐지 결과 JSON 반환
+  # GET  /health  — 서버 상태 확인
+  # GET  /model-info — 모델 메타 (클래스명, 학습 날짜)
+  ```
+- [ ] 응답 스키마 (`schemas.py`)
+  ```python
+  class Detection(BaseModel):
+      class_name: str
+      confidence: float
+      bbox: list[float]  # [x1,y1,x2,y2]
+      danger_weight: float
+
+  class PredictResponse(BaseModel):
+      danger_score: float  # 탐지 결과 기반 위험도
+      detections: list[Detection]
+      processing_time_ms: float
+  ```
+- [ ] `danger_score` 계산 로직
+  ```python
+  DANGER_WEIGHTS = {"pedestrian": 0.8, "vehicle": 0.9, "obstacle": 0.7, "bicycle": 0.4}
+  danger_score = sum(det.confidence * DANGER_WEIGHTS[det.class_name] for det in detections) / max(len(detections), 1)
+  ```
+- [ ] 로컬 테스트: `uvicorn main:app --reload --port 8001`
+- [ ] Swagger UI (`/docs`) 에서 `/predict` 동작 확인
+
+#### Day 4 (4/10): Docker Compose 통합
+
+- [ ] `ml-server/Dockerfile` 작성
+  ```dockerfile
+  FROM python:3.11-slim
+  RUN pip install ultralytics fastapi uvicorn python-multipart
+  COPY . /app
+  WORKDIR /app
+  CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+  ```
+- [ ] `docker-compose.yml` 업데이트
+  ```yaml
+  services:
+    db:       # PostgreSQL + PostGIS
+    backend:  # Spring Boot (기존)
+    ml-server:  # FastAPI YOLOv8 서버 (신규)
+      build: ./kride-project/ml-server
+      ports: ["8001:8001"]
+      volumes:
+        - ./kride-project/ml-server/runs:/app/runs
+  ```
+- [ ] `docker compose up --build` 실행 후 통합 테스트
+
+#### Day 5 (4/11): Spring Boot ↔ ML 서버 연동 + 문서화
+
+- [ ] Spring Boot → ML 서버 호출 (`RestTemplate` 또는 `WebClient`)
+  ```java
+  // POST http://ml-server:8001/predict
+  // MultipartFile → ByteArrayResource 변환 후 전송
+  ```
+- [ ] ML 서버 응답의 `danger_score` → 경로 안전등급 반영
+- [ ] `kride-project/report/dl_serving_architecture.md` 작성
+- [ ] plan.md / research.md 업데이트
+
+**모델 저장 위치:**
+```text
+kride-project/ml-server/
+├── main.py                    ← FastAPI 앱
+├── schemas.py                 ← 요청/응답 스키마
+├── Dockerfile
+├── requirements.txt
+├── data/                      ← 학습 데이터
+│   ├── images/{train,val}/
+│   └── labels/{train,val}/
+├── dataset.yaml
+└── runs/detect/train/
+    └── weights/
+        ├── best.pt            ← 최종 사용 모델
+        └── last.pt
+```
+
+**평가 목표:**
+
+| 지표 | 목표 | 비고 |
+|------|------|------|
+| mAP50 | > 0.50 | YOLO 파인튜닝 기준 |
+| `/predict` 응답시간 | < 500ms | CPU 기준 |
+| Docker Compose 통합 | ✅ | ml-server + db + backend |
 
 ---
 

@@ -7,7 +7,8 @@
       "Bash(pip list:*)",
       "Bash(jupyter kernelspec:*)",
       "Bash(conda info:*)",
-      "Bash(.venv/Scripts/python -c ':*)"
+      "Bash(.venv/Scripts/python -c ':*)",
+      "WebFetch(domain:aihub.or.kr)"
     ]
   }
 }
