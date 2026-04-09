@@ -128,6 +128,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
         df["day"]        = df["date"].dt.day
         df["day_of_week"] = df["date"].dt.dayofweek
     else:
+        df["date"] = pd.date_range(start="2023-01-01", periods=len(df), freq="D")
         df["month"] = df["day"] = df["day_of_week"] = 0
 
     # 관측소 → 정수 인덱스
@@ -154,31 +155,77 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 
 def make_sequences(df: pd.DataFrame, seq_len: int = SEQ_LEN):
     """
-    시계열 데이터 → (X, y) 시퀀스 생성
+    시계열 데이터 → (X, y, dates) 시퀀스 생성
     X: (N, seq_len, INPUT_SIZE)
     y: (N,) — 다음 날 날씨 라벨
+    dates: (N,) — 예측 날짜 (계절 분할용)
     """
-    # [메모] X. y값에 대해 설명해주세요 
     FEAT_COLS = ["month", "day", "day_of_week", "tavg", "precip", "wspd", "humid", "sgg_idx"]
     for c in FEAT_COLS:
         if c not in df.columns:
             df[c] = 0.0
 
-    X_list, y_list = [], []
+    X_list, y_list, date_list = [], [], []
     for sgg in df["sgg_idx"].unique():
         sub = df[df["sgg_idx"] == sgg].reset_index(drop=True)
+        print(f"  관측소 {sgg}: {len(sub)}행")
         if len(sub) < seq_len + 1:
             continue
         feats  = sub[FEAT_COLS].values.astype(float)
         labels = sub["weather_label"].values
+        dates  = sub["date"].values  # 날짜 추가
         for i in range(len(sub) - seq_len):
             X_list.append(feats[i:i + seq_len])
             y_list.append(labels[i + seq_len])
+            date_list.append(dates[i + seq_len])  # 예측 날짜
 
+    print(f"  X_list 길이: {len(X_list)}")
     if not X_list:
-        return np.array([]), np.array([])
+        return None, None, None
 
-    return np.array(X_list, dtype=np.float32), np.array(y_list, dtype=np.int64)
+    return np.array(X_list, dtype=np.float32), np.array(y_list, dtype=np.int64), np.array(date_list)
+
+def seasonal_split(X, y, dates, train_size=0.7, val_size=0.2, test_size=0.1):
+    """
+    계절별 층화 분할 (Stratified by Season) - Train/Val/Test
+    계절: 0:겨울(12,1,2), 1:봄(3,4,5), 2:여름(6,7,8), 3:가을(9,10,11)
+    """
+    # 날짜를 datetime으로 변환
+    if isinstance(dates[0], np.datetime64):
+        dates = pd.to_datetime(dates)
+    elif isinstance(dates[0], str):
+        dates = pd.to_datetime(dates)
+    
+    seasons = dates.month % 12 // 3  # 계절 인덱스
+    
+    X_tr_list, X_val_list, X_test_list = [], [], []
+    y_tr_list, y_val_list, y_test_list = [], [], []
+    
+    for season in np.unique(seasons):
+        mask = seasons == season
+        X_season = X[mask]
+        y_season = y[mask]
+        
+        n_season = len(X_season)
+        train_end = int(n_season * train_size)
+        val_end = train_end + int(n_season * val_size)
+        
+        X_tr_list.append(X_season[:train_end])
+        X_val_list.append(X_season[train_end:val_end])
+        X_test_list.append(X_season[val_end:])
+        y_tr_list.append(y_season[:train_end])
+        y_val_list.append(y_season[train_end:val_end])
+        y_test_list.append(y_season[val_end:])
+    
+    # 병합
+    X_tr = np.concatenate(X_tr_list, axis=0)
+    X_val = np.concatenate(X_val_list, axis=0)
+    X_test = np.concatenate(X_test_list, axis=0)
+    y_tr = np.concatenate(y_tr_list, axis=0)
+    y_val = np.concatenate(y_val_list, axis=0)
+    y_test = np.concatenate(y_test_list, axis=0)
+    
+    return X_tr, X_val, X_test, y_tr, y_val, y_test
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -236,8 +283,9 @@ def train(data_dir: str):
     print("STEP 2: 시퀀스 생성 + 스케일링")
     print("=" * 65)
 
-    X, y = make_sequences(df, SEQ_LEN)
-    if len(X) == 0:
+    X, y, dates = make_sequences(df, SEQ_LEN)
+    print(f"  make_sequences 결과: X={X}, y={y}, dates={dates}")
+    if X is None:
         print("  ❌ 시퀀스 생성 실패 (데이터 부족 — 관측소당 최소 15일 이상 필요)")
         sys.exit(1)
 # [메모] 여기서 15일 이상 필요하다는 점은 어떻게 알 수 있나요 
@@ -260,18 +308,19 @@ def train(data_dir: str):
     # [메모] joblib.dump는 머신러닝에서 사용하는걸로 알고 있씁니다. joblib.save로 해야 되지 않나요? 
 
 
-    # Train / Val 분할 (80:20)
-    split  = int(N * 0.8)
-    X_tr, X_val = X[:split], X[split:]
-    y_tr, y_val = y[:split], y[split:]
+    # 계절별 층화 분할 (70:20:10)
+    X_tr, X_val, X_test, y_tr, y_val, y_test = seasonal_split(X, y, dates, train_size=0.7, val_size=0.2, test_size=0.1)
+    print(f"  계절별 층화 분할 완료: Train {len(X_tr)}, Val {len(X_val)}, Test {len(X_test)}")
 
     device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"  device: {device}\n")
 
     tr_ds  = TensorDataset(torch.from_numpy(X_tr), torch.from_numpy(y_tr))
     val_ds = TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val))
+    test_ds = TensorDataset(torch.from_numpy(X_test), torch.from_numpy(y_test))
     tr_dl  = DataLoader(tr_ds,  batch_size=BATCH, shuffle=True)
     val_dl = DataLoader(val_ds, batch_size=BATCH)
+    test_dl = DataLoader(test_ds, batch_size=BATCH)
 
     print("=" * 65)
     print("STEP 3: WeatherLSTM 학습")
@@ -331,6 +380,23 @@ def train(data_dir: str):
     print(f"\n  ✅ weather_lstm.pt 저장 → {model_path}")
     print(f"  최고 val_acc: {best_val_acc:.4f}")
 
+    # Test 세트 평가
+    model.eval()
+    y_pred = []
+    y_true = []
+    with torch.no_grad():
+        for xb, yb in test_dl:
+            xb, yb = xb.to(device), yb.to(device)
+            outputs = model(xb)
+            _, preds = torch.max(outputs, 1)
+            y_pred.extend(preds.cpu().numpy())
+            y_true.extend(yb.cpu().numpy())
+    
+    from sklearn.metrics import accuracy_score, f1_score
+    test_acc = accuracy_score(y_true, y_pred)
+    test_f1_macro = f1_score(y_true, y_pred, average='macro')
+    print(f"  Test Acc: {test_acc:.4f}, F1-Macro: {test_f1_macro:.4f}")
+
     # 메타 저장
     meta = {
         "input_size":   INPUT_SIZE,
@@ -339,6 +405,8 @@ def train(data_dir: str):
         "num_classes":  NUM_CLASS,
         "seq_len":      SEQ_LEN,
         "best_val_acc": round(best_val_acc, 4),
+        "test_acc":     round(test_acc, 4),
+        "test_f1_macro": round(test_f1_macro, 4),
         "weather_label": WEATHER_LABEL,
         "weather_penalty": WEATHER_PENALTY,
     }

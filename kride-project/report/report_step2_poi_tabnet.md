@@ -191,6 +191,23 @@ tourism_score_v2 = tourism_score_v1 + (poi_attraction_score - 3.0) * 0.1
 
 ![Tourism Score 비교](charts/15_tourism_score_comparison.png)
 
+### 7-3. Step 3 통합 결과
+
+`build_tourism_model.py` 실행 결과, POI 매력도를 도로 세그먼트에 통합하여 다음과 같은 점수를 생성했습니다.
+
+| 항목 | 값 |
+|------|-----|
+| **road_scored.csv** | `data/raw_ml/road_scored.csv` (1,647개 세그먼트) |
+| **Tourism Score 평균** | **0.088** |
+| **Tourism Score 최대** | **1.000** |
+| **Tourism Score 0점 세그먼트** | **573개 (34.8%)** |
+| **Safety Score 평균** | **0.506** |
+| **Final Score 평균** | **0.338** |
+
+- `road_scored.csv`에는 `tourism_score`, `safety_score`, `final_score`이 추가 저장되었습니다.
+- `final_score`는 **Safety 60% + Tourism 40%** 비율로 가중합한 값입니다.
+- 상위 10개 세그먼트는 `final_score` 기준에서 `0.52~0.69` 구간에 분포합니다.
+
 ---
 
 ## 8. POI 지도 분포
@@ -227,9 +244,10 @@ tourism_score_v2 = tourism_score_v1 + (poi_attraction_score - 3.0) * 0.1
 | **R²** | **0.0796** |
 | **모델 파일** | `models/attraction_regressor.zip` |
 | **POI 파일** | `data/raw_ml/poi_attraction.csv` (8,454개) |
-| **다음 단계** | Tourism Score v2 생성 및 경로 그래프 재빌드 |
+| **Road scored 파일** | `data/raw_ml/road_scored.csv` (1,647개) |
+| **다음 단계** | 경로 그래프 재빌드 및 서비스 연동 |
 
-> POI TabNet 모델은 방문지 매력도를 예측하여 K-Ride의 경로 추천 정확도를 향상시키는 역할을 합니다. 향후 데이터 개선으로 성능 향상이 기대됩니다.
+> POI TabNet 모델은 방문지 매력도를 예측하고, 이를 도로 안전/관광 점수와 결합하여 K-Ride의 경로 추천 품질을 실질적으로 강화합니다. `road_scored.csv`에는 `tourism_score`, `safety_score`, `final_score`가 포함되어 있으며, `build_route_graph.py`를 실행해 최종 경로 그래프를 재생성하세요.
 
 ---
 
