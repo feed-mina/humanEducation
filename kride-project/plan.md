@@ -753,10 +753,11 @@ Task:
   [X] build_attraction_model.py 작성 (2026-04-09)
   [X] build_attraction_model.py 실행 → attraction_regressor.zip 생성 (2026-04-09)
       MAE=0.6558 / R²=0.0662 / best_epoch=31 / POI 8,454개
-  [ ] poi_attraction.csv → road_features.csv Spatial Join 업데이트
-  [ ] road_scored_v2.csv 생성 (tourism_score_v2 컬럼 추가)
-  [ ] route_graph.pkl 재빌드 (tourism_score_v2 반영)
-  [ ] Streamlit 경로 카드에 "관광 매력도" 점수 표시
+  [X] build_tourism_score_v2.py 실행 → road_scored_v2.csv 생성 (2026-04-09)
+      1,647 세그먼트 / 902개 POI 매칭(54.8%) / tourism_score +0.08 / final_score +0.03
+  [X] route_graph.pkl 재빌드 (2026-04-09, v2 점수 반영)
+      172,656 노드 / 238,962 엣지 / 완전 연결 1개 컴포넌트
+  [ ] Streamlit 경로 카드에 "관광 매력도 v2" 점수 표시
 ```
 
 ---
