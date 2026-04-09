@@ -84,7 +84,7 @@ print(f"  유효 행: {len(df):,}개")
 default_safety  = float(df["safety_score"].median())
 default_tourism = float(df["tourism_score"].median())
 default_final   = float(df["final_score"].median())
-print(f"  기본값 — safety: {default_safety:.3f}, tourism: {default_tourism:.3f}, final: {default_final:.3f}")
+print(f"  기본값 - safety: {default_safety:.3f}, tourism: {default_tourism:.3f}, final: {default_final:.3f}")
 
 # KDTree 구성: road_scored 세그먼트의 시작점 좌표
 score_coords = df[["start_lat", "start_lon"]].values
@@ -100,8 +100,9 @@ print("STEP 2: osmnx 서울 자전거 네트워크 다운로드")
 print("=" * 65)
 print("  첫 실행 시 수 분 소요됩니다. 이후 실행은 캐시를 사용합니다.\n")
 
-ox.settings.use_cache = True
-ox.settings.log_console = False
+ox.settings.use_cache = False
+ox.settings.log_console = True
+ox.settings.max_query_area_size = 5000000000  # 5000 sq km (prevent 168 requests)
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 
@@ -115,7 +116,7 @@ else:
     print(f"  바운딩박스: N={north} S={south} E={east} W={west} (서울 고정)")
     print("  OSM 다운로드 중 (1~3분 소요)...")
     G_osm = ox.graph_from_bbox(
-        bbox=(north, south, east, west),
+        bbox=(west, south, east, north),
         network_type="bike",
         simplify=False,   # 단순화 생략 → 수십 배 빠름 (STEP 3에서 직접 재구성)
     )
