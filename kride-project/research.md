@@ -1750,3 +1750,209 @@ Step 3 (전이학습 사전학습용): Mapillary Vistas 다운로드
 | plan.md Phase 6-1 | 로드뷰 API 수집 | AI Hub 신청 + NAVER LABS 보조 |
 | plan.md 딥러닝 Task 6 | 로드뷰 수집 스크립트 | AI Hub 신청 → 다운로드 |
 | research.md 섹션 13 | 로드뷰 수집 예정 | ❌ 불가 표시 + AI Hub 대체 |
+
+---
+
+## 25. 신규 기능 타당성 분석 및 DL 품질 기준 (2026-04-09)
+
+### 25-1. 사용자 프로파일 기반 개인화 경로 추천
+
+#### 기능 개요
+사용자가 키·몸무게·나이·성별·자전거 종류·사는 곳을 입력하면 현재 수도권 경로에서 맞춤형 가중치가 적용된 경로를 추천한다.
+
+#### 타당성 판단: ✅ 높음 (이번주 구현 가능)
+
+| 입력 | 기술 구현 방법 | 데이터/모델 |
+|------|--------------|------------|
+| 나이대 | safety_weight 부스트 (60대+ → +0.2) | 규칙 기반 |
+| 자전거 종류 | BIKE_PROFILES 딕셔너리 가중치 프로파일 | 규칙 기반 |
+| 키·몸무게 | BMI 계산 → 권장 순환 거리 (km) | 수식 기반 |
+| 사는 곳 | 시군구명 → 좌표 → 경로 출발점 설정 | geocoding |
+| 성별 | 참고용 (통계적 선호도 경향) | 규칙 기반 |
+
+#### 이미 보유한 자원
+- `route_graph.pkl`: 120K 노드, 169K 엣지 — 이미 완성
+- `EFFECTIVE_WEIGHTS` 가중치 시스템 — Streamlit에 이미 구현
+- AI Hub `tn_traveller_master`: AGE_GRP, GENDER, TRAVEL_STYL_1~8 — Neural CF 장기 활용 가능
+
+#### 단기 구현 범위 (이번주)
+```text
+Streamlit 사이드바 → "내 프로파일" 섹션:
+  나이대 selectbox + 자전거 종류 selectbox
+  + 키(cm) / 몸무게(kg) number_input
+  + 사는 곳 text_input
+
+경로 탐색 시:
+  프로파일 반영 토글 ON → EFFECTIVE_WEIGHTS 자동 재계산
+  순환 코스 기본 거리 = BMI 기반 권장 거리 자동 설정
+```
+
+#### 장기 구현 (다음 Phase)
+- tn_traveller_master의 TRAVEL_STYL_1~8 임베딩 → Neural Collaborative Filtering
+- 사용자 방문 이력 저장 → 개인화 추천 강화
+
+---
+
+### 25-2. 셀카 → 자전거 패션·용품 추천
+
+#### 기능 개요
+전신 셀카 사진을 찍으면 체형을 분석하여 자전거 의류/용품 사이즈와 스타일을 추천한다.
+
+#### 타당성 판단: ⚠️ 기술적 가능 / 이번주 완전 구현 불가
+
+| 구성 요소 | 기술 | 가능성 | 제약 |
+|----------|------|--------|------|
+| 사진 입력 | `st.camera_input()` | ✅ 즉시 | - |
+| 체형 키포인트 추출 | MediaPipe BlazePose | ✅ 가능 | 정밀도 제한 (2D) |
+| 키/몸무게 직접 추정 | 단일 2D 사진 → 오차 큼 | ⚠️ 참고용 | 깊이 정보 없음 |
+| 사이즈 추천 | 키/몸무게 입력 → 규칙 기반 | ✅ 가능 | 간단 구현 |
+| 패션 스타일 매칭 | CLIP 임베딩 유사도 | ✅ 기술 가능 | 제품 카탈로그 필요 |
+| **제품 카탈로그** | 자전거 의류 DB | ❌ **미보유** | 핵심 선결 조건 |
+
+#### 핵심 판단
+> **제품 카탈로그(최소 100개 이상) 없이는 의미 있는 패션 추천 불가.**
+> 체형 분석 자체는 MediaPipe로 가능하지만, 추천할 제품이 없으면 기능이 성립하지 않는다.
+
+#### 이번주 가능 범위
+- Phase 7 설계 문서화 완료 (plan.md에 반영됨)
+- Phase 7-1 (카탈로그 없이 가능): 키·몸무게 직접 입력 → 표준 사이즈 추천표 출력
+
+#### 착수 선결 조건
+1. 자전거 의류/용품 카탈로그 구축 (쿠팡/무신사 크롤링 또는 수동 작성)
+2. 사이즈 측정 기준 정의 (가슴둘레, 허리, 키 기준 XS~XXL 매핑)
+3. 브랜드별 사이즈 차이 DB
+
+---
+
+### 25-3. DL 모델 품질 기준 — Train/Validation/Test 3분할 의무화
+
+#### 현재 문제점 (2026-04-09 피드백)
+
+| 모델 | 현재 분할 방식 | 문제 |
+|------|--------------|------|
+| consume_regressor | train(80%) / eval_set(20%) | test set 없음, eval=val=test 혼용 |
+| weather_lstm | 유사 구조 | 동일 문제 |
+| attraction_regressor | train(80%) / val(20%) | test set 없음 |
+
+**핵심 문제**: eval_set(validation)으로 early stopping + 성능 보고를 동시에 하면 검증 데이터가 학습에 간접 관여 → 과낙관적 성능 수치
+
+#### 앞으로 모든 DL 모델 필수 기준
+
+```python
+# 표준 3분할 (모든 새 모델 적용)
+X_trainval, X_test, y_trainval, y_test = train_test_split(
+    X, y, test_size=0.15, random_state=42   # test: 15%
+)
+X_train, X_val, y_train, y_val = train_test_split(
+    X_trainval, y_trainval, test_size=0.176, random_state=42  # val: ~15%
+)
+# 결과: train 70% / val 15% / test 15%
+
+# 학습: X_train → 모델 학습, X_val → early stopping
+# 최종 보고: X_test만 사용 (학습 과정에서 절대 미사용)
+```
+
+```text
+보고 형식 (표준):
+  Train MAE: X.XX  |  Val MAE: X.XX  |  Test MAE: X.XX  ← 이 3개 모두 기록
+  Train R²:  X.XX  |  Val R²:  X.XX  |  Test R²:  X.XX
+
+이미지 모델 추가 기준:
+  - Per-class Accuracy 및 Confusion Matrix 필수
+  - 데이터 증강(Augmentation) 코드 포함 필수
+  - 클래스당 최소 500장 이상 확보 후 학습 시작
+```
+
+#### 이미지 DL 현실적 판단
+
+```text
+현재 이미지 DL이 매력적이지 않은 이유:
+  1. road image CNN (Phase 6): 실제 이미지 데이터 없음
+     → AI Hub 자전거도로 데이터셋 신청 전 → 구현 불가
+  2. tourism image (tn_tour_photo): 메타데이터만 있음, 실제 사진 미다운로드
+     → 의미 있는 분류 모델 불가
+
+원칙:
+  - 실제 이미지 없이 더미 데이터로 CNN 구현 = 무의미
+  - 이미지 DL은 "데이터 확보 → 탐색적 분석 → 학습" 순서 준수
+  - 데이터 확보 전에는 설계 문서만 작성
+```
+
+---
+
+### 25-4. 이번주(2026-04-09~11) 실행 계획
+
+| 우선순위 | 작업 | 예상 결과물 | 실행 주체 |
+|---------|------|------------|----------|
+| **1** | `build_attraction_model.py` 실행 | `poi_attraction.csv` 생성 | 사용자 |
+| **2** | Streamlit 사용자 프로파일 UI 추가 | Phase 3-11 Streamlit 코드 | Claude 작성 |
+| **3** | AI Hub 자전거도로 데이터셋 신청 | 승인 대기 | 사용자 |
+| **4** | Phase 7 설계 문서화 | plan.md 업데이트 | 완료 |
+| **5** | `build_visit_sequence_model.py` 착수 | GRU 시퀀스 코드 | Claude 작성 |
+
+> **이번주 포커스**: 개인화 경로 추천 UI + attraction 모델 실행 + 데이터 신청
+
+---
+
+## 26. POI 매력도 TabNet 학습 결과 (2026-04-09)
+
+### 26-1. 학습 결과
+
+| 항목 | 값 |
+|------|-----|
+| **MAE** | 0.6558 (1~5 척도 기준) |
+| **R²** | 0.0662 |
+| **best_epoch** | 31 (early stopping: epoch 43) |
+| 학습 샘플 | 11,491행 |
+| 검증 샘플 | 2,873행 |
+| 생성 POI 수 | 8,454개 |
+| 예측 범위 | 2.81 ~ 5.00 |
+
+### 26-2. 결과 해석
+
+#### R²=0.066이 낮은 이유
+```text
+타겟(attraction_score) 분포가 4.0~5.0에 집중 (평균=4.189, 중앙값=4.3)
+→ 분산 자체가 작아서 R²가 낮게 나오는 구조적 한계
+
+이유: 여행로그 데이터 특성상 방문자들이 자발적으로 간 장소를
+     기록하기 때문에 만족도가 전반적으로 높음 (selection bias)
+```
+
+#### 예측 범위 2.81~5.00의 의미
+```text
+1~2점 구간 데이터가 거의 없어서 모델이 중간값 이상만 예측함.
+tourism_score_v2에 반영 시 차별화보다 "평균 이상 POI 보정" 용도로 활용.
+```
+
+#### 활용 방향 (실용적 관점)
+```text
+R²가 낮아도 POI별 상대적 매력도 순위는 의미 있음.
+- 예측값 2.81인 POI vs 4.90인 POI → 명확한 상대적 차이
+- tourism_score_v2 = 0.7 × 기존점수 + 0.3 × attraction_norm 으로
+  기존 점수에 10~30% 보정값으로만 사용 → 리스크 최소화
+```
+
+### 26-3. 출력 파일
+
+| 파일 | 내용 |
+|------|------|
+| `models/attraction_regressor.zip` | TabNet 가중치 |
+| `models/attraction_scaler.pkl` | StandardScaler |
+| `models/attraction_meta.json` | 메타 (MAE/R²/피처) |
+| `data/raw_ml/poi_attraction.csv` | 8,454개 POI × attraction_score_norm (0~1) |
+
+### 26-4. 다음 단계 (tourism_score_v2 생성)
+
+```text
+현재 상태:
+  poi_attraction.csv: X_COORD, Y_COORD, attraction_score_norm (0~1)
+  road_features.csv:  도로 세그먼트별 좌표 + 기존 tourism_score
+
+다음 작업:
+  1. build_tourism_model.py에 Spatial Join 로직 추가
+     → 각 도로 세그먼트 반경 500m 내 POI attraction_score 평균 계산
+  2. tourism_score_v2 = 0.7 × tourism_score + 0.3 × attraction_mean
+  3. road_scored_v2.csv 저장
+  4. build_route_graph.py 재실행 → route_graph.pkl 갱신
+```

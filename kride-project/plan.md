@@ -749,6 +749,8 @@ regressor.fit(X_train, y_train, eval_set=[(X_val, y_val)])
 ```text
 Task:
   [X] build_attraction_model.py 작성 (2026-04-09)
+  [X] build_attraction_model.py 실행 → attraction_regressor.zip 생성 (2026-04-09)
+      MAE=0.6558 / R²=0.0662 / best_epoch=31 / POI 8,454개
   [ ] poi_attraction.csv → road_features.csv Spatial Join 업데이트
   [ ] road_scored_v2.csv 생성 (tourism_score_v2 컬럼 추가)
   [ ] route_graph.pkl 재빌드 (tourism_score_v2 반영)
@@ -1042,6 +1044,161 @@ Streamlit       FastAPI       (추후) DB
 7. [ ] 이미지 라벨링 확인 (AI Hub 데이터는 라벨 포함 여부 확인 후 필요 시 GPT-4V 보완)
 8. [ ] `build_road_image_model.py` 작성 — EfficientNet-B0 전이학습
 9. [ ] 딥러닝 모델 FastAPI 엔드포인트 추가 (`/api/safety_dl`, `/api/sentiment`)
+
+---
+
+---
+
+## Phase 3-11: 사용자 프로파일 기반 개인화 경로 추천 ← 이번주 (2026-04-09~)
+
+> **목표**: 키·몸무게·나이·성별·자전거 종류·사는곳 입력 → 수도권 경로에서 맞춤 가중치 적용 → 개인화된 A→B·순환 코스 추천
+
+### 기술 판단
+
+| 입력 항목 | 활용 방식 | 구현 위치 |
+|----------|----------|----------|
+| **나이** (AGE_GRP) | 고령(60+) → safety_weight ↑, 젊은층(20~30대) → tourism_weight ↑ | Streamlit 사이드바 |
+| **성별** | 통계 기반 선호도 반영 (참고용) | Streamlit 사이드바 |
+| **자전거 종류** | 로드바이크 → 속도/거리 우선, 시티/하이브리드 → 안전 우선 | 경로 가중치 조정 |
+| **키·몸무게** (BMI) | 적정 주행 거리 자동 계산 (BMI 기반 체력 지수) | 순환 코스 거리 제안 |
+| **사는 곳** | 출발점 자동 설정 (시군구 → 좌표 변환) | 경로 탐색 출발점 |
+
+### 자전거 종류별 가중치 프로파일
+
+```python
+BIKE_PROFILES = {
+    "로드바이크":     {"safety_w": 0.4, "tourism_w": 0.3, "dist_factor": 1.5},
+    "MTB":           {"safety_w": 0.5, "tourism_w": 0.3, "dist_factor": 1.2},
+    "시티/하이브리드": {"safety_w": 0.6, "tourism_w": 0.3, "dist_factor": 1.0},
+    "전기자전거":     {"safety_w": 0.5, "tourism_w": 0.4, "dist_factor": 1.8},
+    "접이식":        {"safety_w": 0.6, "tourism_w": 0.2, "dist_factor": 0.7},
+}
+
+AGE_SAFETY_BOOST = {
+    "10대":  0.0, "20대": 0.0, "30대": 0.0,
+    "40대":  0.05, "50대": 0.1, "60대 이상": 0.2,
+}
+
+# BMI → 권장 순환 거리 (km)
+def recommend_distance(height_cm, weight_kg):
+    bmi = weight_kg / (height_cm / 100) ** 2
+    if bmi < 18.5:   return 15   # 저체중 → 무리 없이
+    elif bmi < 25.0: return 20   # 정상
+    elif bmi < 30.0: return 15   # 과체중
+    else:            return 10   # 비만 → 단거리
+```
+
+### Streamlit UI 변경사항
+
+```text
+사이드바에 "내 프로파일" 섹션 추가:
+  - 나이대 (select: 10대~60대 이상)
+  - 성별 (select: 남/여/미선택)
+  - 자전거 종류 (select: 로드/MTB/시티/전기/접이식)
+  - 키(cm), 몸무게(kg) (number_input)
+  - 사는 곳 (text_input: 시군구명 → 좌표 변환)
+
+경로 탐색 탭:
+  - "내 프로파일 반영" 토글 ON → EFFECTIVE_WEIGHTS 자동 재계산
+  - 순환 코스 거리 슬라이더 default = recommend_distance(height, weight)
+```
+
+### Task
+
+```text
+[ ] streamlit_kride.py에 사용자 프로파일 사이드바 섹션 추가
+[ ] BIKE_PROFILES / AGE_SAFETY_BOOST 가중치 로직 구현
+[ ] BMI 기반 권장 거리 함수 + 순환 코스 자동 반영
+[ ] 사는 곳 → 좌표 변환 (주소 검색 또는 행정구역 매핑)
+[ ] (장기) Neural CF 개인화 모델 (tn_traveller_master TRAVEL_STYL_1~8 활용)
+```
+
+---
+
+## Phase 7: 셀카 → 자전거 패션·용품 추천 ← 다음 Phase (제품 카탈로그 필요)
+
+> **목표**: 전신 셀카 사진 업로드 → 체형 분류 → 자전거 용품 사이즈·스타일 추천
+
+### 기술 판단 (2026-04-09)
+
+| 구성 요소 | 기술 | 가능성 |
+|----------|------|--------|
+| 셀카 입력 | Streamlit `st.camera_input()` | ✅ 즉시 가능 |
+| 체형 추정 | MediaPipe BlazePose (17개 키포인트) | ✅ 가능 (정밀도 제한) |
+| 키·몸무게 정밀 추정 | 단일 2D 사진으로는 오차 큼 | ⚠️ 참고용으로만 |
+| 체형 분류 | 키/몸무게 직접 입력 → 사이즈 추천 | ✅ 규칙 기반 가능 |
+| 패션 스타일 매칭 | CLIP 임베딩 → 제품 이미지 유사도 | ✅ 기술 가능 |
+| **제품 카탈로그** | 자전거 의류/용품 DB (없음) | ❌ **핵심 선결 조건** |
+
+### 단계별 구현 계획
+
+```text
+Phase 7-1 (단기, 카탈로그 없이 가능):
+  - 키·몸무게 직접 입력 → 자전거 헬멧/의류 사이즈 표 추천 (규칙 기반)
+  - 신체 사이즈 기준: XS/S/M/L/XL 매핑 테이블
+
+Phase 7-2 (중기, 카탈로그 구축 필요):
+  - 쿠팡/무신사 자전거 카테고리 제품 크롤링 → 제품 DB
+  - MediaPipe 체형 분류 + CLIP 스타일 매칭 → 상위 5개 추천
+
+Phase 7-3 (장기, 이미지 DL):
+  - EfficientNet 기반 체형 분류 (학습 데이터 필요)
+  - 개인화: 선호 색상·브랜드 히스토리 반영
+```
+
+### 선결 조건
+
+```text
+❌ 현재 구현 불가 이유:
+  1. 제품 카탈로그(DB) 없음
+  2. 체형 → 제품 매핑 규칙 미정의
+  3. 학습용 체형-패션 페어 데이터 없음
+
+→ 이번주: 설계 문서화만 완료
+→ 다음 Phase 착수 조건: 제품 카탈로그 최소 100개 이상 확보
+```
+
+---
+
+## DL 품질 기준 (2026-04-09 신규 적용)
+
+> **피드백 반영**: 앞으로 모든 딥러닝 모델은 Train/Validation/Test 3분할을 명시적으로 구현해야 한다.
+
+### 필수 기준
+
+```python
+# 모든 DL 모델 공통 분할 비율
+from sklearn.model_selection import train_test_split
+
+# 1단계: train+val vs test
+X_trainval, X_test, y_trainval, y_test = train_test_split(
+    X, y, test_size=0.15, random_state=42
+)
+# 2단계: train vs val
+X_train, X_val, y_train, y_val = train_test_split(
+    X_trainval, y_trainval, test_size=0.18, random_state=42  # 전체의 15%
+)
+# 결과: train 70% / val 15% / test 15%
+
+# 최종 성능 리포트: test set 기준으로만 보고
+# val set: 학습 중 early stopping 용도
+# test set: 최종 평가 (학습 중 절대 사용 금지)
+```
+
+### 이미지 DL 품질 기준
+
+```text
+이미지 모델 (EfficientNet, ResNet 등):
+  - 최소 학습 이미지: 클래스당 500장 이상
+  - 데이터 증강 필수: RandomFlip, RandomRotation, ColorJitter
+  - 평가 지표: Accuracy + Confusion Matrix + Per-class F1
+  - 전이학습 활용: ImageNet → Fine-tuning (cold start 방지)
+
+현재 상태:
+  - road image CNN: AI Hub 자전거도로 데이터셋 신청 전 → 구현 불가
+  - tourism image: tn_tour_photo 실제 이미지 미확보 → 구현 불가
+  → 이미지 DL은 데이터 확보 후 진행 (무의미한 더미 구현 금지)
+```
 
 ---
 
