@@ -45,6 +45,7 @@ RAW_DIR     = os.path.join(BASE_DIR, "data", "raw_ml")
 MODELS_DIR  = os.path.join(BASE_DIR, "models")
 SCORED_PATH = os.path.join(RAW_DIR,    "road_scored.csv")
 GRAPH_PATH  = os.path.join(MODELS_DIR, "route_graph.pkl")
+OSM_CACHE   = os.path.join(MODELS_DIR, "osm_bike_cache.graphml")
 
 # road_scored 점수를 OSM 엣지에 매핑할 최대 거리 (km)
 MAX_MATCH_KM = 2.0
@@ -90,8 +91,24 @@ print("  첫 실행 시 수 분 소요됩니다. 이후 실행은 캐시를 사�
 ox.settings.use_cache = True
 ox.settings.log_console = False
 
-G_osm = ox.graph_from_place("Seoul, South Korea", network_type="bike")
-G_osm = ox.convert.to_undirected(G_osm)
+os.makedirs(MODELS_DIR, exist_ok=True)
+
+if os.path.exists(OSM_CACHE):
+    print(f"  캐시 로드: {OSM_CACHE}")
+    G_osm = ox.load_graphml(OSM_CACHE)
+    print("  캐시에서 로드 완료.")
+else:
+    # 서울 행정구역 바운딩박스 (하드코딩 — road_scored 이상치 좌표 방지)
+    north, south, east, west = 37.715, 37.413, 127.185, 126.764
+    print(f"  바운딩박스: N={north} S={south} E={east} W={west} (서울 고정)")
+    print("  OSM 다운로드 중 (1~3분 소요)...")
+    G_osm = ox.graph_from_bbox(
+        bbox=(north, south, east, west),
+        network_type="bike",
+        simplify=False,   # 단순화 생략 → 수십 배 빠름 (STEP 3에서 직접 재구성)
+    )
+    ox.save_graphml(G_osm, OSM_CACHE)
+    print(f"  캐시 저장 완료: {OSM_CACHE}")
 
 print(f"  OSM 노드 수: {G_osm.number_of_nodes():,}")
 print(f"  OSM 엣지 수: {G_osm.number_of_edges():,}\n")

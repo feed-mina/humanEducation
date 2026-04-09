@@ -1942,17 +1942,32 @@ R²가 낮아도 POI별 상대적 매력도 순위는 의미 있음.
 | `models/attraction_meta.json` | 메타 (MAE/R²/피처) |
 | `data/raw_ml/poi_attraction.csv` | 8,454개 POI × attraction_score_norm (0~1) |
 
-### 26-4. 다음 단계 (tourism_score_v2 생성)
+### 26-4. tourism_score_v2 생성 스크립트 (2026-04-09 작성 완료)
+
+`build_tourism_score_v2.py` 작성 완료. 실행 대기 상태.
 
 ```text
-현재 상태:
-  poi_attraction.csv: X_COORD, Y_COORD, attraction_score_norm (0~1)
-  road_features.csv:  도로 세그먼트별 좌표 + 기존 tourism_score
+처리 흐름:
+  road_scored.csv (1,647 세그먼트)
+      + poi_attraction.csv (8,454 POI)
+      → Spatial Join (반경 ≈500m, 경위도 0.005° 박스)
+      → 세그먼트별 attraction_score_norm 평균
+      → tourism_score_v2 = 0.7 × tourism_score + 0.3 × attraction_mean
+      → final_score_v2   = 0.6 × safety_score  + 0.4 × tourism_score_v2
+      → road_scored_v2.csv 저장
 
-다음 작업:
-  1. build_tourism_model.py에 Spatial Join 로직 추가
-     → 각 도로 세그먼트 반경 500m 내 POI attraction_score 평균 계산
-  2. tourism_score_v2 = 0.7 × tourism_score + 0.3 × attraction_mean
-  3. road_scored_v2.csv 저장
-  4. build_route_graph.py 재실행 → route_graph.pkl 갱신
+실행 명령:
+  python kride-project/build_tourism_score_v2.py
+
+다음 단계:
+  build_route_graph.py 재실행 → route_graph.pkl 갱신 (tourism_score_v2 반영)
 ```
+
+### 26-5. 현재까지 파일 현황
+
+| 파일 | 상태 |
+|------|------|
+| `data/raw_ml/poi_attraction.csv` | ✅ 생성 완료 (8,454 POI) |
+| `models/attraction_regressor.zip` | ✅ 생성 완료 (MAE=0.6558, R²=0.0662) |
+| `data/raw_ml/road_scored_v2.csv` | ⏳ 실행 대기 |
+| `models/route_graph.pkl` (v2) | ⏳ road_scored_v2 생성 후 재빌드 필요 |
