@@ -9,6 +9,7 @@ K-Ride 자전거 경로 안전 분석 & 추천 앱
 import math
 import os
 import pickle
+import sys
 
 import joblib
 import numpy as np
@@ -16,6 +17,21 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+
+# .env 로드 (python-dotenv 있으면 사용)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+except ImportError:
+    pass
+
+# weather_kma 임포트 (같은 디렉토리)
+sys.path.insert(0, os.path.dirname(__file__))
+try:
+    from weather_kma import get_weather_weight, get_current_weather
+    HAS_WEATHER = True
+except ImportError:
+    HAS_WEATHER = False
 
 try:
     import folium
@@ -101,6 +117,31 @@ def load_facility():
     except Exception:
         return pd.read_csv(FACILITY_PATH, encoding="cp949")
 
+# ─────────────────────────────────────────────
+# 날씨 API (30분 캐시)
+# ─────────────────────────────────────────────
+WEATHER_ICON = {
+    "맑음":    "☀️",
+    "구름많음": "⛅",
+    "흐림":    "🌥️",
+    "소나기":  "🌦️",
+    "비":      "🌧️",
+    "비/눈":   "🌨️",
+    "눈":      "❄️",
+}
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_weather_cached(lat: float, lon: float, api_key: str):
+    """날씨 API 호출 (30분 캐시)"""
+    if not HAS_WEATHER or not api_key:
+        return None
+    try:
+        w_safety, w_tourism, info = get_weather_weight(lat, lon, api_key=api_key)
+        return w_safety, w_tourism, info
+    except Exception as e:
+        return str(e)
+
+
 def haversine(c1, c2) -> float:
     R = 6371.0
     lat1, lon1 = math.radians(c1[0]), math.radians(c1[1])
@@ -158,6 +199,53 @@ with st.sidebar:
     )
 
     st.divider()
+
+    # ── 날씨 섹션 ─────────────────────────────
+    st.subheader("🌤️ 현재 날씨")
+
+    KMA_KEY = os.environ.get("KMA_API_KEY", "")
+
+    if not HAS_WEATHER:
+        st.info("weather_kma.py 를 찾을 수 없습니다.")
+    elif not KMA_KEY:
+        st.warning("KMA_API_KEY 환경변수가 없습니다.")
+    else:
+        # 기본 위치: 서울 시청
+        w_lat = st.number_input("위도", value=37.5665, format="%.4f", key="w_lat",
+                                help="현재 위치 위도 (기본: 서울 시청)")
+        w_lon = st.number_input("경도", value=126.9780, format="%.4f", key="w_lon",
+                                help="현재 위치 경도 (기본: 서울 시청)")
+
+        weather_auto = st.toggle("날씨 기반 안전 가중치 자동 조정", value=True,
+                                 help="강수확률·풍속에 따라 w_safety를 자동 상향합니다")
+
+        with st.spinner("날씨 조회 중…"):
+            weather_result = fetch_weather_cached(w_lat, w_lon, KMA_KEY)
+
+        if weather_result is None:
+            st.info("날씨 정보를 불러올 수 없습니다.")
+            weather_auto = False
+        elif isinstance(weather_result, str):
+            st.error(f"날씨 오류: {weather_result}")
+            weather_auto = False
+        else:
+            w_s_adj, w_t_adj, winfo = weather_result
+            label = winfo.get("weather_label", "맑음")
+            icon  = WEATHER_ICON.get(label, "🌡️")
+
+            col_w1, col_w2 = st.columns(2)
+            col_w1.metric("날씨", f"{icon} {label}")
+            col_w1.metric("기온", f"{winfo.get('tmp', '-')} °C")
+            col_w2.metric("강수확률", f"{winfo.get('pop', 0)} %")
+            col_w2.metric("풍속", f"{winfo.get('wsd', 0)} m/s")
+
+            if weather_auto:
+                st.caption(
+                    f"⚙️ 자동 보정 → 안전 {w_s_adj:.0%} / 관광 {w_t_adj:.0%}"
+                )
+            st.caption("(30분 캐시)")
+
+    st.divider()
     st.caption(f"데이터: {len(df):,}개 도로 세그먼트")
     st.caption(f"모델 성능  R²={meta['r2_regressor']}  F1={meta['f1_classifier']}")
 
@@ -170,8 +258,23 @@ MODE_WEIGHTS = {
     "tourist":  {"safety": 0.3, "tourism": 0.7},
 }
 
+# 날씨 자동 보정 가중치 결정
+_base = MODE_WEIGHTS[mode].copy()
+try:
+    if (
+        HAS_WEATHER
+        and weather_auto  # noqa: F821 — 사이드바에서 설정됨
+        and isinstance(weather_result, tuple)  # noqa: F821
+    ):
+        _base["safety"]  = float(w_s_adj)   # noqa: F821
+        _base["tourism"] = float(w_t_adj)    # noqa: F821
+except NameError:
+    pass  # weather_auto / weather_result 미정의 시 무시
+
+EFFECTIVE_WEIGHTS = _base
+
 def compute_route_score(row, mode: str) -> float:
-    w = MODE_WEIGHTS[mode]
+    w = EFFECTIVE_WEIGHTS
     return row["safety_score"] * w["safety"] + row["tourism_score"] * w["tourism"]
 
 df["route_score"] = df.apply(compute_route_score, axis=1, mode=mode)
