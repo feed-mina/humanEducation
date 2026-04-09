@@ -1350,32 +1350,47 @@ python kride-project/build_weather_lstm.py
 
 > 주의: API가 62개 컬럼을 반환하나 모델에 사용하는 피처는 8개(기온/강수/풍속/습도/전운량 등)만 추출
 
-#### build_weather_lstm.py 학습 결과
+#### build_weather_lstm.py 학습 결과 (최종 — 계절별 3분할 적용, 2026-04-09 갱신)
 
-| 항목         | 값                                               |
-| ------------ | ------------------------------------------------ |
-| 학습 데이터  | CSV 2개(weather_asos_daily.csv) 병합 → 10,960행 |
-| 전처리 후    | 10,960행 × 67컬럼 (파생 피처 포함)              |
-| 날씨 분포    | 맑음(0): 7,646 / 흐림(1): 826 / 비·눈(2): 2,488 |
-| 시퀀스 shape | X: (10,890, 14, 8) / y: (10,890,)                |
-| 학습 device  | CPU                                              |
+> ⚠️ 초기 결과(val_acc=79.43%)는 train/val 2분할이었음. 이후 `seasonal_split()`으로 **계절별 층화 70/20/10 3분할** + 클래스 가중치(맑음/흐림/비눈) 적용 → 아래가 최종 수치.
 
-##### 학습 곡선 (30 epochs)
+| 항목           | 값 |
+| -------------- | -- |
+| 학습 데이터    | CSV 2개(weather_asos_daily.csv) 병합 → 10,960행 |
+| 전처리 후      | 10,960행 × 67컬럼 (파생 피처 포함) |
+| 날씨 분포      | 맑음(0): 7,646 / 흐림(1): 826 / 비·눈(2): 2,488 |
+| 시퀀스 shape   | X: (10,890, 14, 8) / y: (10,890,) |
+| 분할 방식      | 계절별 층화 분할 (spring/summer/fall/winter 각각 70/20/10) |
+| Train 샘플     | ~7,623 (70%) |
+| Val 샘플       | ~2,178 (20%) |
+| Test 샘플      | ~1,089 (10%) |
+| 학습 device    | CPU |
+| **Test Acc**   | **73.28%** |
+| Best Val Acc   | 최고 val 기준 가중치 저장 후 test 평가 |
+| 출력 파일      | `weather_lstm.pt`, `weather_scaler.pkl`, `weather_meta.json` |
 
-| Epoch | Train Loss | Val Acc |
-| ----- | ---------- | ------- |
-| 1     | 0.7741     | 70.20%  |
-| 5     | 0.5845     | 74.29%  |
-| 10    | 0.5193     | 77.18%  |
-| 15    | 0.4612     | 78.24%  |
-| 20    | 0.4125     | 79.02%  |
-| 25    | 0.3743     | 79.02%  |
-| 30    | 0.3351     | 78.01%  |
+##### 분할 방식 상세
 
-- **최고 val_acc: 79.43%** (early stopping 기준 저장)
-- 출력 파일: `models/dl/weather_lstm.pt`, `weather_scaler.pkl`, `weather_meta.json`
+```python
+def seasonal_split(X, y, dates, train_size=0.7, val_size=0.2, test_size=0.1):
+    seasons = dates.month % 12 // 3   # 겨울=0, 봄=1, 여름=2, 가을=3
+    # 각 계절별로 70/20/10으로 순서 분할 후 병합
+    # → 계절 편향 없이 모든 계절이 train/val/test에 고르게 포함
+```
 
-**결과 해석**: 3-class 분류 기준선(random) 33% 대비 79% 달성. 날씨 분포가 불균형(맑음 70%, 비·눈 23%, 흐림 7%)하므로 클래스별 정밀도는 흐림(1)이 상대적으로 낮을 가능성 있음.
+##### 클래스 불균형 처리
+
+```python
+class_counts = np.bincount(y_tr)
+weights = total_samples / (len(class_counts) * class_counts)
+criterion = nn.CrossEntropyLoss(weight=class_weights)
+# 흐림(7%) 클래스가 과소 예측되는 문제 완화
+```
+
+**결과 해석**:
+- 3-class 기준선(random) 33% 대비 73.28% → 실용적 수준
+- 초기 79.43%보다 낮아진 이유: test set이 학습/검증에 완전히 격리되었기 때문 (올바른 평가)
+- 흐림(1) 클래스는 데이터가 7%뿐이라 F1이 상대적으로 낮을 수 있음 → 향후 데이터 보강으로 개선 가능
 
 ---
 

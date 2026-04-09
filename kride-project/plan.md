@@ -31,7 +31,7 @@
 
 ### 딥러닝 파이프라인 (완료)
 - [X] ASOS 일자료 API 키 발급 + `fetch_weather_data.py` 실행 → `weather_asos_daily.csv` (5,480행)
-- [X] `build_weather_lstm.py` 실행 → `models/dl/weather_lstm.pt` 생성 (val_acc=79.43%)
+- [X] `build_weather_lstm.py` 실행 → `models/dl/weather_lstm.pt` 생성 (test_acc=73.28%, 계절별 그룹 + train/val/test 3분할)
 - [X] `weather_kma.py` 작성 → KMA 단기예보 API 연동 모듈 (실시간 날씨 → safety_score 보정)
 - [X] `build_event_ner.py` 작성 → 이벤트 NER 스크립트 (zero-shot 분류 방식)
 - [X] `build_consume_model.py` 수정 완료 → AI Hub 다중 테이블 자동 머지 (`load_aihub_data()`)
@@ -580,7 +580,9 @@ GET /api/weather_forecast
        해결: url = f"{API_URL}?serviceKey={api_key}" 후 나머지만 params로 전달
   [X] .env 파일 생성 (ASOS_API_KEY 저장) + .gitignore에 추가
   [X] fetch_weather_data.py 재실행 → weather_asos_daily.csv 생성 확인 (2026-04-08, 5,480행)
-  [X] build_weather_lstm.py 실행 → models/dl/weather_lstm.pt 생성 (2026-04-08, val_acc=79.43%)
+  [X] build_weather_lstm.py 실행 → models/dl/weather_lstm.pt 생성
+      test_acc=73.28% / 계절별 층화 3분할(70/20/10) / 클래스 가중치 CrossEntropyLoss 적용
+      ※ 초기 val_acc 79.43%는 test set 미분리 상태였음. 73.28%가 실제 일반화 성능.
   [ ] (후순위) FastAPI /api/weather_forecast 엔드포인트 작성
   [ ] (후순위) Streamlit 날짜 선택 UI + 예상 날씨 표시 추가
 ```
@@ -1012,7 +1014,74 @@ Streamlit       FastAPI       (추후) DB
 
 ---
 
-## Task 순서
+## 전체 진행 현황 (2026-04-09 기준)
+
+### 완료된 작업
+
+| 단계 | 파일 | 결과 |
+|------|------|------|
+| ML 파이프라인 전체 | preprocess_road.py → build_safety_model.py → build_tourism_model.py | road_scored.csv 생성 |
+| 경로 그래프 | build_route_graph.py (osmnx, simplify=False, 서울 bbox) | route_graph.pkl 120,767 노드 / 169,118 엣지, 100% 연결 |
+| 날씨 LSTM | build_weather_lstm.py | weather_lstm.pt, test_acc=73.28%, 계절별 3분할 |
+| 소비 TabNet | build_consume_model.py | consume_regressor.zip, MAE=125,302원 |
+| 이벤트 NER | build_event_ner.py | zero-shot 파이프라인 완성, 데이터 수집 대기 |
+| POI 매력도 TabNet | build_attraction_model.py | poi_attraction.csv (8,454 POI), MAE=0.6558 |
+| tourism_score_v2 스크립트 | build_tourism_score_v2.py | 작성 완료, **실행 대기** |
+| Streamlit 앱 | streamlit_kride.py | Tab 1~4, 날씨 연동, 소비 예측 카드 포함 |
+
+---
+
+## 다음 진행 순서 (즉시 실행 가능한 것부터)
+
+### [사용자 실행] Step A — tourism_score_v2 파이프라인 완성
+
+```bash
+# 1. Spatial Join → road_scored_v2.csv 생성 (30초~2분)
+python kride-project/build_tourism_score_v2.py
+
+# 2. v2 기반 route_graph.pkl 재빌드 (OSM 캐시 있으므로 빠름)
+python kride-project/build_route_graph.py
+```
+
+완료 후 체크:
+```text
+[ ] road_scored_v2.csv 생성 확인 (tourism_score_v2, final_score_v2 컬럼 포함)
+[ ] route_graph.pkl 재빌드 (소스: road_scored_v2.csv, "tourism_score_v2 사용" 메시지 확인)
+```
+
+---
+
+### [Claude 작성] Step B — build_visit_sequence_model.py (GRU 방문지 시퀀스)
+
+```text
+우선순위: 2순위 (데이터 보유, 즉시 구현 가능)
+목표: TRAVEL_ID별 VISIT_ORDER 시퀀스 → 다음 방문지 예측
+모델: Embedding(poi_id, 32) → GRU(64) → Dense(poi_vocab)
+분할: 계절별 또는 TRAVEL_ID 기준 70/15/15 3분할 (DL 품질 기준 준수)
+출력: models/dl/visit_seq_gru.pt, models/dl/poi_encoder.pkl
+```
+
+---
+
+### [Claude 작성] Step C — Streamlit 개인화 경로 추천 UI (Phase 3-11)
+
+```text
+우선순위: 3순위 (route_graph.pkl v2 완성 후)
+목표: 사이드바 "내 프로파일" 섹션 + BIKE_PROFILES 가중치 로직
+변경 파일: streamlit_kride.py
+```
+
+---
+
+### [후순위] Step D — FastAPI 서버 / React 연동
+
+```text
+모든 모델 파이프라인 안정화 후 진행
+```
+
+---
+
+## Task 순서 (원본, 업데이트됨)
 
 1. [X] `preprocess_road.py` 코드 작성
 2. [X] `build_safety_model.py` 코드 작성 (safety_index_v2 + district_danger 반영)
@@ -1022,28 +1091,24 @@ Streamlit       FastAPI       (추후) DB
    - RandomForest R²=0.859 (피처중요도: width_m 0.46 > start_lat 0.34 > start_lon 0.18 > length_km 0.02)
 5. [X] `build_safety_model.py` 실행 → pkl 4개 + district_danger.csv 확인
    - 회귀 R²=0.9539 / 분류 F1-macro=0.9864
-6. [ ] `build_tourism_model.py` 실행 → road_scored.csv 확인
-6-1. [ ] `road_scored.csv`에 `end_lat` / `end_lon` 컬럼 포함 여부 확인
-6-2. [ ] 없을 경우: `build_tourism_model.py`에서 종점 좌표 조인 추가 후 재실행
-7. [ ] `build_route_graph.py` 작성 → `models/route_graph.pkl` 생성
-8. [ ] `streamlit_app/app.py` 작성 (구 단위 필터 + 편의시설 레이어 + 경로 오버레이 + 코스 추천 포함)
-9. [ ] `streamlit_app/requirements.txt` 작성
-10. [ ] Streamlit Cloud 배포 확인
-11. [ ] FastAPI `ml-server/main.py` 작성 (`/api/recommend`, `/api/route`, `/api/course`, `/api/facilities`, `/api/pois`)
-12. [ ] KMA Open API 키 발급 → 날씨 연동 함수 작성
-13. [ ] React 연동 — 네이버 지도 우선 시도
+6. [X] `build_tourism_model.py` 실행 → road_scored.csv 확인 (1,647행 × 19컬럼)
+7. [X] `build_route_graph.py` 작성 및 실행 → `models/route_graph.pkl` 생성
+   - osmnx 서울 bbox(37.413~37.715N, 126.764~127.185E), simplify=False
+   - 120,767 노드 / 169,118 엣지, 연결 컴포넌트 1개(100%)
+8. [X] `streamlit_kride.py` 작성 — Tab 1~4 + 날씨 연동 + 소비 예측 카드
+9. [ ] `build_tourism_score_v2.py` 실행 → `road_scored_v2.csv` 생성 ← **현재 단계**
+10. [ ] `build_route_graph.py` 재실행 → route_graph.pkl v2 (tourism_score_v2 반영)
+11. [ ] `build_visit_sequence_model.py` 작성 및 실행 (GRU 방문지 시퀀스)
+12. [ ] Streamlit 개인화 경로 추천 UI 추가 (Phase 3-11)
+13. [ ] FastAPI `ml-server/main.py` 작성 (후순위)
+14. [ ] React 연동 — 네이버 지도 (후순위)
 
-### 딥러닝 Task (Phase 4~6)
+### 딥러닝 Task (Phase 4~6, 후순위)
 
-1. [ ] 리뷰 데이터 수집 스크립트 작성 (`step5_review_collect.py`)
-2. [ ] `build_sentiment_model.py` 작성 — KLUE-BERT 감성 분석 파이프라인
-3. [ ] `review_sentiment.csv` → road_scored와 Spatial Join → `road_scored_v2.csv`
-4. [ ] `build_safety_model_dl.py` 작성 — TabNet 회귀/분류
-5. [ ] RF + TabNet 앙상블 비교 실험 (R², F1 기록)
-6. [ ] AI Hub 자전거도로 데이터셋 신청 → 승인 후 다운로드 (Naver 로드뷰 대체)
-7. [ ] 이미지 라벨링 확인 (AI Hub 데이터는 라벨 포함 여부 확인 후 필요 시 GPT-4V 보완)
-8. [ ] `build_road_image_model.py` 작성 — EfficientNet-B0 전이학습
-9. [ ] 딥러닝 모델 FastAPI 엔드포인트 추가 (`/api/safety_dl`, `/api/sentiment`)
+1. [ ] 리뷰 데이터 수집 → `build_sentiment_model.py` (KLUE-BERT, 데이터 없음)
+2. [ ] `build_safety_model_dl.py` — TabNet 안전 예측 (RF 앙상블)
+3. [ ] AI Hub 자전거도로 데이터셋 신청 → `build_road_image_model.py` (EfficientNet-B0)
+4. [ ] 딥러닝 모델 FastAPI 엔드포인트 추가
 
 ---
 
