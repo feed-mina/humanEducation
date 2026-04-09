@@ -14,7 +14,7 @@ def render_callback(predictions: dict, video_frame: VideoFrame):
 
 # 인퍼런스 파이프라인 초기화
 pipeline = InferencePipeline.init_with_workflow(
-    api_key="YOUR_ROBOFLOW_API_KEY",      # 여기에 API 키 입력
+    api_key="gRUzTIBQASktRGz6Usxf",      # 여기에 API 키 입력
     workspace_name="minas-workspace-fnwe0", # 워크스페이스 이름
     workflow_id="k-ride-bicycle-safety-pipeline-1775705723209", # 워크플로우 ID
     video_reference="my_bicycle_ride.mp4", # 0으로 설정하면 웹캠 사용
