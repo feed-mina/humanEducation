@@ -1,0 +1,22 @@
+{
+  "feature_cols": [
+    "visit_area_type_cd",
+    "residence_time_min",
+    "sgg_cd",
+    "visit_chc_reason_cd",
+    "visit_order",
+    "x_coord",
+    "y_coord"
+  ],
+  "target_col": "attraction_score",
+  "target_range": [
+    1.0,
+    5.0
+  ],
+  "target_formula": "DGSTFN×0.4 + REVISIT_INTENTION×0.3 + RCMDTN_INTENTION×0.3",
+  "log_transform": false,
+  "mae": 0.6558,
+  "r2": 0.0662,
+  "n_train": 11491,
+  "n_val": 2873
+}

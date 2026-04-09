@@ -285,10 +285,10 @@ def train_tabnet(df: pd.DataFrame):
         X_train=X_tr_sc, y_train=y_tr,
         eval_set=[(X_val_sc, y_val)],
         eval_metric=["mae"],
-        max_epochs=100,
-        patience=15,
-        batch_size=256,
-        virtual_batch_size=128,
+        max_epochs=75,
+        patience=12,
+        batch_size=512,
+        virtual_batch_size=256,
     )
 
     # 성능 평가 (원래 스케일 — 1~5)
