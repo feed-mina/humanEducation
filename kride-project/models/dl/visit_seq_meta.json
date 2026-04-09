@@ -1,0 +1,19 @@
+{
+  "vocab": 9881,
+  "embed_d": 32,
+  "gru_h": 64,
+  "gru_l": 2,
+  "dropout": 0.3,
+  "window": 5,
+  "seq_in": 4,
+  "n_trips_train": 1792,
+  "n_trips_val": 512,
+  "n_trips_test": 256,
+  "n_samples_train": 7747,
+  "n_samples_val": 2271,
+  "n_samples_test": 1218,
+  "best_epoch": 1,
+  "val_acc": 0.0022,
+  "test_acc": 0.0025,
+  "test_top5": 0.0099
+}

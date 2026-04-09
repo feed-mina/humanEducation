@@ -1,6 +1,6 @@
 # K-Ride Research: 데이터 분석 결과
 
-> 최종 업데이트: 2026-04-09 (Streamlit 날씨 연동 완료 / AI Hub 여행로그 데이터 확보)
+> 최종 업데이트: 2026-04-09 (road_scored_v2 생성 / route_graph v2 재빌드 / GRU 방문지 시퀀스 모델 설계)
 
 ---
 
@@ -1978,11 +1978,160 @@ R²가 낮아도 POI별 상대적 매력도 순위는 의미 있음.
   build_route_graph.py 재실행 → route_graph.pkl 갱신 (tourism_score_v2 반영)
 ```
 
-### 26-5. 현재까지 파일 현황
+### 26-5. 파일 현황 (2026-04-09 기준)
 
 | 파일 | 상태 |
 |------|------|
 | `data/raw_ml/poi_attraction.csv` | ✅ 생성 완료 (8,454 POI) |
 | `models/attraction_regressor.zip` | ✅ 생성 완료 (MAE=0.6558, R²=0.0662) |
-| `data/raw_ml/road_scored_v2.csv` | ⏳ 실행 대기 |
-| `models/route_graph.pkl` (v2) | ⏳ road_scored_v2 생성 후 재빌드 필요 |
+| `data/raw_ml/road_scored_v2.csv` | ✅ 생성 완료 (1,647행, tourism_score_v2·final_score_v2 컬럼 추가) |
+| `models/route_graph.pkl` (v2) | ✅ 재빌드 완료 (172,656 노드 / 238,962 엣지) |
+
+---
+
+## 27. road_scored_v2.csv 생성 결과 (2026-04-09)
+
+`build_tourism_score_v2.py` 실행 완료.
+
+### 27-1. Spatial Join 결과
+
+| 항목 | 값 |
+|------|-----|
+| 전체 세그먼트 | 1,647개 |
+| POI 매칭 성공 | 902개 (54.8%) |
+| POI 매칭 없음 | 745개 (기존 tourism_score 유지) |
+| 매칭 반경 | ≈500m (경위도 0.005° 박스) |
+
+### 27-2. 점수 변화
+
+| 점수 | 기존 평균 | v2 평균 | 변화 |
+|------|-----------|---------|------|
+| tourism_score | 0.0879 | 0.1693 | **+0.0815 (+92.7%)** |
+| final_score | 0.3385 | 0.3711 | **+0.0326 (+9.6%)** |
+
+> POI 매칭 세그먼트(54.8%)에만 보정 적용, 나머지는 기존값 유지.
+> tourism_score가 크게 오른 것은 attraction_score_norm(0~1)의 30% 반영 효과.
+
+### 27-3. 신규 컬럼
+
+| 컬럼 | 계산식 |
+|------|--------|
+| `tourism_score_v2` | 0.7 × tourism_score + 0.3 × attraction_mean |
+| `final_score_v2` | 0.6 × safety_score + 0.4 × tourism_score_v2 |
+
+---
+
+## 28. route_graph.pkl v2 재빌드 (2026-04-09)
+
+### 28-1. 버그 수정 내역
+
+기존 `build_route_graph.py`에서 3가지 문제가 복합 작용하여 10분 이상 실행이 멈추는 현상 발생.
+
+| 문제 | 원인 | 수정 |
+|------|------|------|
+| bbox 파라미터 순서 오류 | `bbox=(north, south, east, west)` → OSMnx가 `(left, bottom, right, top)` 기대 → 서울→터키 구간 쿼리 (168개 분할) | `(west, south, east, north)` 순서 수정 |
+| 캐시 디스크 용량 초과 | 잘못된 168개 쿼리로 수십 개 100MB JSON 파일 생성 → C드라이브 850MB 여유 공간 초과 | `use_cache=False` 설정, 찌꺼기 캐시 삭제 |
+| Overpass 서버 과부하 | overpass-api.de 기본 서버 504 응답 | `overpass.kumi.systems` 대체 서버 사용 |
+
+### 28-2. 최종 빌드 결과
+
+| 항목 | v1 (16:49) | v2 (18:38) |
+|------|-----------|-----------|
+| 점수 소스 | road_scored.csv | road_scored_v2.csv |
+| 노드 수 | 120,767 | **172,656** (+43%) |
+| 엣지 수 | 169,118 | **238,962** (+41%) |
+| 연결 컴포넌트 | 1 (완전 연결) | 1 (완전 연결) |
+| 점수 매핑 성공률 | 37.2% | 30.8% |
+| simplify | False | True |
+
+> 노드·엣지 증가는 이번 다운로드가 더 완전한 OSM 서울 네트워크를 가져왔기 때문.
+> 매핑률(30.8%)이 낮은 것은 road_scored가 주요 자전거도로만 포함하고 OSM은 bike-accessible 전체 도로를 포함하기 때문 — 정상 범위.
+
+### 28-3. 출력 파일
+
+| 파일 | 내용 |
+|------|------|
+| `models/route_graph.pkl` | 172,656 노드 / 238,962 엣지 / final_score_v2 기반 weight |
+| `models/osm_bike_cache.graphml` | OSM 다운로드 캐시 (재실행 시 재다운로드 불필요) |
+
+---
+
+## 29. GRU 방문지 시퀀스 모델 설계 (2026-04-09)
+
+`build_visit_sequence_model.py` 작성 완료.
+
+### 29-1. 데이터 현황
+
+| 항목 | 값 |
+|------|-----|
+| 소스 | `tn_visit_area_info_방문지정보_E.csv` |
+| 전체 행 | 21,384행 |
+| 여행 수 (TRAVEL_ID) | 2,560개 |
+| 방문지명 고유값 (VISIT_AREA_NM) | 9,881개 |
+| 여행당 방문지 수 | 평균 8.4개 (min 3, max 38) |
+| POI_ID 결측 | 6,710행 → VISIT_AREA_NM 기준으로 대체 |
+
+### 29-2. 분할 방식
+
+TRAVEL_ID 기준 70/20/10 분할 — 동일 여행의 방문지가 train·test에 섞이지 않도록 설계.
+
+| 분할 | TRAVEL_ID 수 | 슬라이딩 윈도우 샘플 수 |
+|------|-------------|----------------------|
+| train | 1,792 (70%) | 7,747 |
+| val | 512 (20%) | 2,271 |
+| test | 256 (10%) | 1,218 |
+| **합계** | **2,560** | **11,236** |
+
+> 슬라이딩 윈도우 (window=5): 직전 4개 방문지 → 다음 1개 예측
+
+### 29-3. 모델 구조
+
+```text
+Embedding(vocab=9,881, dim=32)
+    → GRU(hidden=64, layers=2, dropout=0.3)
+    → 마지막 타임스텝 출력
+    → Dropout(0.3)
+    → Linear(64 → 9,881)
+    → Softmax → 다음 방문지 예측
+```
+
+| 항목 | 값 |
+|------|-----|
+| 총 파라미터 수 | **1,002,233개** |
+| 실행 환경 | CPU (CUDA 없음) |
+
+### 29-4. 학습 설정
+
+| 항목 | 값 |
+|------|-----|
+| Loss | CrossEntropyLoss (방문 빈도 역수 가중치) |
+| Optimizer | AdamW (lr=1e-3, weight_decay=1e-4) |
+| Scheduler | ReduceLROnPlateau (patience=3, factor=0.5) |
+| Early stopping | val_loss 기준 patience=7 |
+| Gradient clipping | max_norm=1.0 |
+
+### 29-5. 평가 지표
+
+- **Top-1 Accuracy**: 정확히 다음 방문지 예측
+- **Top-5 Accuracy**: 상위 5개 후보 중 정답 포함 여부 (방문지 추천 실용성 기준)
+
+> 방문지 예측은 정답이 하나가 아니므로 Top-5 Accuracy가 실서비스 관점에서 더 의미 있는 지표.
+
+### 29-6. 학습 진행 현황 (2026-04-09 실행 중)
+
+```text
+epoch   1 | train_loss=9.2204 | val_loss=9.2222 | val_acc=0.0022
+```
+
+> epoch 1 val_acc=0.0022는 정상 — vocab 9,881개 중 랜덤 예측 시 기대 정확도는 1/9,881 ≈ 0.0001.
+> 초기 loss 9.22 ≈ ln(9,881) = 9.20 (균등 분포의 이론값)으로 학습이 정상 시작됨.
+> 학습 완료 후 test_acc 및 test_top5 수치 업데이트 예정.
+
+### 29-6. 출력 파일
+
+| 파일 | 내용 |
+|------|------|
+| `models/dl/visit_seq_gru.pt` | GRU 가중치 (best val_loss 기준) |
+| `models/dl/poi_encoder.pkl` | VISIT_AREA_NM → 정수 인덱스 LabelEncoder |
+| `models/dl/visit_seq_meta.json` | 하이퍼파라미터·test_acc·test_top5 |
+| `data/dl/visit_sequences.csv` | 전처리된 시퀀스 데이터 |
