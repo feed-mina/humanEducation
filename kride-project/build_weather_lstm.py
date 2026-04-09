@@ -277,9 +277,17 @@ def train(data_dir: str):
     print("STEP 3: WeatherLSTM 학습")
     print("=" * 65)
 
+    # [핵심] 클래스 불균형 해소를 위한 가중치 (Class Weights) 적용
+    # 맑음(70%), 흐림(7%), 비눈(23%) 불균형으로 인해 흐림 예측이 0건이 되는 문제 해결
+    class_counts = np.bincount(y_tr)
+    total_samples = len(y_tr)
+    weights = total_samples / (len(class_counts) * class_counts)
+    class_weights = torch.FloatTensor(weights).to(device)
+    print(f"  클래스 가중치 적용: 맑음({weights[0]:.2f}), 흐림({weights[1]:.2f}), 비·눈({weights[2]:.2f})\n")
+
     WeatherLSTM = build_model()
     model       = WeatherLSTM().to(device)
-    criterion   = nn.CrossEntropyLoss()
+    criterion   = nn.CrossEntropyLoss(weight=class_weights)
     optimizer   = torch.optim.Adam(model.parameters(), lr=LR)
     scheduler   = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 

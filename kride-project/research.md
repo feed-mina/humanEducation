@@ -568,7 +568,7 @@ df_filtered = df[df["gu_name"].isin(selected_gu)]
 - 타겟: `PAYMENT_AMT_WON` 합계 (mean=₩32,351 / max=₩7,500,000)
 - 피처: 여행 기간, 동반자 수, 시군구 코드, 체류시간, 계절, 요일, 숙박 여부
 
-### WeatherLSTM 상세 결과
+### WeatherLSTM 상세 결과 (2026-04-09 재학습 반영)
 
 ```text
 모델 구조:
@@ -581,8 +581,16 @@ df_filtered = df[df["gu_name"].isin(selected_gu)]
   epochs=30, batch=64, lr=1e-3
   Train:Val = 80:20, best weight 저장
 
-결과:
-  best_val_acc = 79.43%
+클래스 불균형 해결 (중요 표기):
+  초기 학습 시 심각한 클래스 불균형(맑음 70%, 흐림 7%)으로 인해 흐림을 전혀 예측하지
+  못하는 문제(Recall=0) 발견.
+  → CrossEntropyLoss에 역비율 클래스 가중치(맑음 0.48, 흐림 4.59, 비눈 1.43) 적용.
+
+재학습 결과:
+  best_val_acc = 73.28% (클래스 가중치 적용으로 인해 기존 79%에서 현실화됨)
+  Test Accuracy = 64.92%
+  흐림(1) F1-score: 0.00 → 0.08로 향상 (절대수치는 여전히 낮으나, 
+  모델이 다수 클래스만 찍는 꼼수를 멈추고 실제로 학습을 시작했음을 증명하는 건강한 지표)
 
 safety_score 날씨 보정값:
   맑음(0) →  0.0  (보정 없음)
