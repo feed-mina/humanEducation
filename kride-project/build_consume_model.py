@@ -4,15 +4,18 @@ build_consume_model.py
 여행로그 소비 데이터 → TabNet 소비 예측 모델 학습
 
 [ 데이터 준비 ]
-  AI Hub 여행로그(수도권) TL_csv.zip (2.89MB) 다운
-  → data/dl/travel_log/ 에 압축 해제
-  핵심 테이블: TN_ACTIVITY_CONSUME_HIS.csv
+  AI Hub 국내 여행로그(수도권) 데이터
+  경로: data/ai-hub/국내 여행로그 수도권_2023/02.라벨링데이터/
+  필요 테이블:
+    tn_activity_consume_his_활동소비내역_E.csv  ← 활동 소비 (PAYMENT_AMT_WON)
+    tn_travel_여행_E.csv                        ← 여행 기간/목적
+    tn_companion_info_동반자정보_E.csv           ← 동반자 수
+    tn_visit_area_info_방문지정보_E.csv          ← 시군구 코드, 체류시간
 
   ※ 데이터 없을 경우 --use_dummy 플래그로 합성 데이터 사용 가능
 
 [ 실행 ]
   python kride-project/build_consume_model.py
-  python kride-project/build_consume_model.py --data_dir data/dl/travel_log
   python kride-project/build_consume_model.py --use_dummy   ← 데이터 없을 때
 
 [ 출력 ]
@@ -25,7 +28,7 @@ build_consume_model.py
   companion_cnt, season, day_of_week, has_lodging
 
 [ 타겟 ]
-  활동 소비 금액 (원)
+  활동 소비 금액 합계 (원, 여행 단위)
 """
 
 from __future__ import annotations
@@ -54,8 +57,12 @@ except NameError:
     if not os.path.exists(BASE_DIR):
         BASE_DIR = os.getcwd()
 
-DL_DATA_DIR = os.path.join(BASE_DIR, "data", "dl")
-MODELS_DIR  = os.path.join(BASE_DIR, "models")
+DL_DATA_DIR  = os.path.join(BASE_DIR, "data", "dl")
+MODELS_DIR   = os.path.join(BASE_DIR, "models")
+AIHUB_DIR    = os.path.join(
+    BASE_DIR, "data", "ai-hub",
+    "국내 여행로그 수도권_2023", "02.라벨링데이터"
+)
 os.makedirs(DL_DATA_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR,  exist_ok=True)
 
@@ -83,35 +90,93 @@ MONTH_TO_SEASON = {
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 1: 데이터 로드
 # ══════════════════════════════════════════════════════════════════════════════
-def load_travel_log(data_dir: str) -> pd.DataFrame:
-    """AI Hub 여행로그 TN_ACTIVITY_CONSUME_HIS 파싱"""
-    patterns = [
-        os.path.join(data_dir, "**", "TN_ACTIVITY_CONSUME_HIS*.csv"),
-        os.path.join(data_dir, "**", "CONSUME*.csv"),
-        os.path.join(data_dir, "**", "*소비*.csv"),
-        os.path.join(data_dir, "*.csv"),
-    ]
-    files = []
-    for p in patterns:
-        files += glob.glob(p, recursive=True)
-    files = list(dict.fromkeys(files))   # 중복 제거
+def _read_csv(path: str | None) -> pd.DataFrame | None:
+    """인코딩 자동 감지 CSV 로드"""
+    if path is None or not os.path.exists(path):
+        return None
+    for enc in ("utf-8-sig", "utf-8", "cp949"):
+        try:
+            df = pd.read_csv(path, encoding=enc)
+            print(f"  로드: {os.path.basename(path)}  shape={df.shape}")
+            return df
+        except UnicodeDecodeError:
+            continue
+    return None
 
-    if not files:
+
+def _find_csv(directory: str, keyword: str) -> str | None:
+    """디렉토리에서 keyword를 포함하는 첫 번째 CSV 경로 반환"""
+    for fname in os.listdir(directory):
+        if keyword.lower() in fname.lower() and fname.endswith(".csv"):
+            return os.path.join(directory, fname)
+    # 하위 디렉토리까지 재귀 탐색
+    matches = glob.glob(os.path.join(directory, "**", f"*{keyword}*"), recursive=True)
+    csv_matches = [m for m in matches if m.endswith(".csv")]
+    return csv_matches[0] if csv_matches else None
+
+
+def load_aihub_data(data_dir: str) -> pd.DataFrame:
+    """
+    AI Hub 국내 여행로그(수도권) 다중 테이블 → TRAVEL_ID 단위 머지
+
+    머지 결과 컬럼:
+      TRAVEL_ID, TRAVEL_START_YMD, TRAVEL_END_YMD,
+      PAYMENT_AMT_WON (sum), COMPANION_CNT,
+      SGG_CD (첫 방문지), RESIDENCE_TIME_MIN (sum)
+    """
+    # ── 테이블 탐색 ────────────────────────────────────────────────────────────
+    activity  = _read_csv(_find_csv(data_dir, "activity_consume"))
+    travel    = _read_csv(_find_csv(data_dir, "tn_travel_"))   # tn_traveller 제외
+    companion = _read_csv(_find_csv(data_dir, "companion"))
+    visit     = _read_csv(_find_csv(data_dir, "visit_area"))
+
+    if activity is None or travel is None:
+        print("  ❌ 필수 테이블(activity_consume, tn_travel) 없음")
         return pd.DataFrame()
 
-    dfs = []
-    for fpath in files:
-        try:
-            df = pd.read_csv(fpath, encoding="utf-8-sig")
-        except UnicodeDecodeError:
-            try:
-                df = pd.read_csv(fpath, encoding="cp949")
-            except Exception:
-                continue
-        dfs.append(df)
-        print(f"  로드: {os.path.basename(fpath)}  shape={df.shape}")
+    # ── 여행당 활동 소비 합계 ──────────────────────────────────────────────────
+    consume_agg = (
+        activity
+        .groupby("TRAVEL_ID")["PAYMENT_AMT_WON"]
+        .sum()
+        .reset_index(name="PAYMENT_AMT_WON")
+    )
 
-    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    # ── 동반자 수 ──────────────────────────────────────────────────────────────
+    if companion is not None:
+        companion_cnt = (
+            companion.groupby("TRAVEL_ID").size().reset_index(name="COMPANION_CNT")
+        )
+    else:
+        companion_cnt = None
+
+    # ── 방문지: SGG_CD(첫 번째) + 체류시간 합계 ────────────────────────────────
+    if visit is not None:
+        visit_agg = (
+            visit.groupby("TRAVEL_ID")
+            .agg(SGG_CD=("SGG_CD", "first"), RESIDENCE_TIME_MIN=("RESIDENCE_TIME_MIN", "sum"))
+            .reset_index()
+        )
+    else:
+        visit_agg = None
+
+    # ── 숙박 여부: 여행 기간 1박 이상이면 Y ────────────────────────────────────
+    travel = travel.copy()
+    travel["TRAVEL_START_YMD"] = pd.to_datetime(travel["TRAVEL_START_YMD"], errors="coerce")
+    travel["TRAVEL_END_YMD"]   = pd.to_datetime(travel["TRAVEL_END_YMD"],   errors="coerce")
+    travel["LODGING_YN"] = (
+        (travel["TRAVEL_END_YMD"] - travel["TRAVEL_START_YMD"]).dt.days >= 1
+    ).map({True: "Y", False: "N"})
+
+    # ── 머지 ───────────────────────────────────────────────────────────────────
+    merged = travel.merge(consume_agg, on="TRAVEL_ID", how="inner")
+    if companion_cnt is not None:
+        merged = merged.merge(companion_cnt, on="TRAVEL_ID", how="left")
+    if visit_agg is not None:
+        merged = merged.merge(visit_agg, on="TRAVEL_ID", how="left")
+
+    print(f"  머지 완료: {merged.shape[0]:,}행 / {merged.shape[1]}열")
+    return merged
 
 
 def make_dummy_data(n: int = 2000, seed: int = 42) -> pd.DataFrame:
@@ -120,7 +185,7 @@ def make_dummy_data(n: int = 2000, seed: int = 42) -> pd.DataFrame:
     실제 데이터와 동일한 컬럼명으로 생성하여 preprocess()를 그대로 통과.
     """
     rng = np.random.default_rng(seed)
-
+# [메모] default_rng 함수는 어떤건가요 
     # 시작일 생성 (2022~2024 무작위)
     start_days = pd.to_datetime("2022-01-01") + pd.to_timedelta(
         rng.integers(0, 365 * 3, n), unit="D"
@@ -155,12 +220,13 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # ── 컬럼명 매핑 ────────────────────────────────────────────────────────────
     col_map = {}
     candidates = {
-        "sgg_code":      ["TC_SGG_CD", "SGG_CD", "시군구코드", "sgg_cd"],
-        TARGET_COL:      ["CONSUM_AMT", "CONSUME_AMT", "소비금액", "활동소비금액"],
+        "sgg_code":      ["SGG_CD", "TC_SGG_CD", "시군구코드", "sgg_cd"],
+        TARGET_COL:      ["PAYMENT_AMT_WON", "CONSUM_AMT", "CONSUME_AMT", "소비금액"],
         "travel_start":  ["TRAVEL_START_YMD", "START_DT", "여행시작일"],
         "travel_end":    ["TRAVEL_END_YMD",   "END_DT",   "여행종료일"],
-        "companion_cnt": ["ACCOMPANY_CNT", "COMPANION_CNT", "동반자수"],
+        "companion_cnt": ["COMPANION_CNT", "ACCOMPANY_CNT", "동반자수"],
         "has_lodging":   ["LODGING_YN", "숙박여부"],
+        "distance_km":   ["RESIDENCE_TIME_MIN"],   # 체류시간(분) → 거리 proxy
     }
     for key, names in candidates.items():
         for n in names:
@@ -204,10 +270,14 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
         df["day_of_week"]       = 0
         df["season"]            = 1
 
-    # ── 거리 ───────────────────────────────────────────────────────────────────
-    if "distance_km" not in df.columns:
+    # ── 거리 (RESIDENCE_TIME_MIN이 매핑된 경우 km 단위로 변환) ─────────────────
+    df["distance_km"] = pd.to_numeric(df.get("distance_km", pd.Series(dtype=float)),
+                                       errors="coerce")
+    if "distance_km" not in df.columns or df["distance_km"].isna().all():
         df["distance_km"] = 10.0
-    df["distance_km"] = pd.to_numeric(df["distance_km"], errors="coerce").fillna(10.0)
+    else:
+        # RESIDENCE_TIME_MIN(분) → 자전거 평균속도 15km/h 기준 거리 환산
+        df["distance_km"] = (df["distance_km"] / 60 * 15).clip(lower=1.0).fillna(10.0)
 
     # ── 동반자 수 ──────────────────────────────────────────────────────────────
     if "companion_cnt" not in df.columns:
@@ -291,7 +361,7 @@ def train_tabnet(df: pd.DataFrame):
     mae      = mean_absolute_error(actual, pred)
     r2       = r2_score(actual, pred)
     print(f"\n  MAE: {mae:,.0f}원  |  R²: {r2:.4f}")
-
+# [메모] r2_score는 어떤건가요 
     # TabNet 모델 저장 (.zip 자동 생성)
     save_path = os.path.join(MODELS_DIR, "consume_regressor")
     model.save_model(save_path)   # → consume_regressor.zip 생성
@@ -355,6 +425,8 @@ def predict_consume(
         meta = json.load(f)
 
     model = TabNetRegressor()
+    # [메모] TabNetRegressor 함수는 어떤건가요 ? 
+
     model.load_model(model_zip)
 
     with open(scaler_path, "rb") as f:
@@ -382,8 +454,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="소비 TabNet 학습 스크립트")
     parser.add_argument(
         "--data_dir",
-        default=os.path.join(DL_DATA_DIR, "travel_log"),
-        help="AI Hub 여행로그 CSV 디렉토리",
+        default=AIHUB_DIR,
+        help="AI Hub 여행로그 라벨링 데이터 디렉토리 (기본: data/ai-hub/국내 여행로그 수도권_2023/02.라벨링데이터)",
     )
     parser.add_argument(
         "--use_dummy",
@@ -406,11 +478,11 @@ if __name__ == "__main__":
         print("  [더미 모드] 합성 데이터 생성 중...")
         df_raw = make_dummy_data(n=args.dummy_n)
     else:
-        df_raw = load_travel_log(args.data_dir)
+        print(f"  AI Hub 데이터 경로: {args.data_dir}")
+        df_raw = load_aihub_data(args.data_dir)
         if df_raw.empty:
             print(f"  ❌ 데이터 없음: {args.data_dir}")
-            print("  → AI Hub 여행로그(수도권) TL_csv.zip 다운 후 압축 해제하거나,")
-            print("    --use_dummy 플래그로 합성 데이터 학습을 실행하세요.")
+            print("  → --use_dummy 플래그로 합성 데이터 학습을 실행하세요.")
             sys.exit(1)
 
     print(f"  로드 shape: {df_raw.shape}")

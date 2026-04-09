@@ -6,6 +6,7 @@ K-Ride 자전거 경로 안전 분석 & 추천 앱
 실행: streamlit run kride-project/streamlit_kride.py
 """
 
+import datetime
 import math
 import os
 import pickle
@@ -32,6 +33,12 @@ try:
     HAS_WEATHER = True
 except ImportError:
     HAS_WEATHER = False
+
+try:
+    from build_consume_model import predict_consume
+    HAS_CONSUME = True
+except ImportError:
+    HAS_CONSUME = False
 
 try:
     import folium
@@ -140,6 +147,23 @@ def fetch_weather_cached(lat: float, lon: float, api_key: str):
         return w_safety, w_tourism, info
     except Exception as e:
         return str(e)
+
+
+@st.cache_data(show_spinner=False)
+def cached_predict_consume(distance_km: float, travel_duration_h: float,
+                           companion_cnt: int, season: int, day_of_week: int) -> dict | None:
+    """TabNet 소비 예측 (입력 파라미터 기준 캐시)"""
+    if not HAS_CONSUME:
+        return None
+    return predict_consume(
+        sgg_code=0,
+        travel_duration_h=travel_duration_h,
+        distance_km=distance_km,
+        companion_cnt=companion_cnt,
+        season=season,
+        day_of_week=day_of_week,
+        has_lodging=0,
+    )
 
 
 def haversine(c1, c2) -> float:
@@ -514,6 +538,7 @@ with tab4:
             w_s = st.slider("안전 가중치", 0.1, 0.9, 0.6, 0.1, key="r_ws")
             w_t = round(1.0 - w_s, 1)
             st.caption(f"관광 가중치: {w_t}")
+            companion_cnt_r = st.number_input("동반자 수 (본인 포함)", min_value=1, max_value=20, value=1, step=1, key="r_companion")
 
             if st.button("경로 탐색", type="primary"):
                 import networkx as nx_rt
@@ -547,10 +572,25 @@ with tab4:
                     avg_s = safety_sum  / edge_cnt if edge_cnt else 0.0
                     avg_t = tourism_sum / edge_cnt if edge_cnt else 0.0
 
-                    m1, m2, m3 = st.columns(3)
+                    _today = datetime.date.today()
+                    _month = _today.month
+                    _season = 1 if _month in (3,4,5) else 2 if _month in (6,7,8) else 3 if _month in (9,10,11) else 4
+                    _dow = _today.weekday()
+                    _dur_h = round(total_dist / 15, 2)   # 평균 자전거 속도 15 km/h
+                    consume_result = cached_predict_consume(
+                        round(total_dist, 2), _dur_h, int(companion_cnt_r), _season, _dow
+                    )
+
+                    m1, m2, m3, m4 = st.columns(4)
                     m1.metric("총 거리", f"{total_dist:.2f} km")
                     m2.metric("평균 안전 점수", f"{avg_s:.3f}")
                     m3.metric("평균 관광 점수", f"{avg_t:.3f}")
+                    if consume_result and "estimated_cost_krw" in consume_result:
+                        cost_krw = consume_result["estimated_cost_krw"]
+                        m4.metric("예상 지출 (참고)", f"{cost_krw:,} 원",
+                                  help=f"TabNet 추정 (MAE ±{consume_result.get('model_mae_krw',0):,}원 / R²={consume_result.get('model_r2',0):.3f})")
+                    elif not HAS_CONSUME:
+                        m4.metric("예상 지출", "모델 미설치")
 
                     # [메모] folium은 어떤 라이브러리인가요 ? 
                     # folium 지도
@@ -607,6 +647,7 @@ with tab4:
             w_s_c = st.slider("안전 가중치", 0.1, 0.9, 0.6, 0.1, key="c_ws")
             w_t_c = round(1.0 - w_s_c, 1)
             st.caption(f"관광 가중치: {w_t_c}")
+            companion_cnt_c = st.number_input("동반자 수 (본인 포함)", min_value=1, max_value=20, value=1, step=1, key="c_companion")
 
             if st.button("코스 생성", type="primary"):
                 G_work = G_main.copy()
@@ -639,9 +680,22 @@ with tab4:
                             visited.add(nb)
                             stack.append((nb, path + [nb], new_dist))
 
-                m1, m2 = st.columns(2)
+                _today_c = datetime.date.today()
+                _month_c = _today_c.month
+                _season_c = 1 if _month_c in (3,4,5) else 2 if _month_c in (6,7,8) else 3 if _month_c in (9,10,11) else 4
+                _dur_h_c = round(best_dist / 15, 2)
+                course_consume = cached_predict_consume(
+                    round(best_dist, 2), _dur_h_c, int(companion_cnt_c), _season_c, _today_c.weekday()
+                )
+
+                m1, m2, m3 = st.columns(3)
                 m1.metric("생성된 코스 거리", f"{best_dist:.2f} km")
                 m2.metric("경유 노드 수", f"{len(best_course):,}")
+                if course_consume and "estimated_cost_krw" in course_consume:
+                    m3.metric("예상 지출 (참고)", f"{course_consume['estimated_cost_krw']:,} 원",
+                              help=f"TabNet 추정 (MAE ±{course_consume.get('model_mae_krw',0):,}원)")
+                elif not HAS_CONSUME:
+                    m3.metric("예상 지출", "모델 미설치")
 
                 if HAS_FOLIUM and len(best_course) > 1:
                     m = folium.Map(location=[c_lat, c_lon], zoom_start=13)

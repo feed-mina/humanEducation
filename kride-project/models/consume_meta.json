@@ -1,0 +1,23 @@
+{
+  "feature_cols": [
+    "sgg_code",
+    "travel_duration_h",
+    "distance_km",
+    "companion_cnt",
+    "season",
+    "day_of_week",
+    "has_lodging"
+  ],
+  "target_col": "consume_amt",
+  "log_transform": true,
+  "season_label": {
+    "1": "봄",
+    "2": "여름",
+    "3": "가을",
+    "4": "겨울"
+  },
+  "mae_krw": 125302,
+  "r2": 0.0053,
+  "n_train": 2024,
+  "n_val": 506
+}
