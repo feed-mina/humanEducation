@@ -41,11 +41,13 @@ except NameError:
     if not os.path.exists(BASE_DIR):
         BASE_DIR = os.getcwd()
 
-RAW_DIR     = os.path.join(BASE_DIR, "data", "raw_ml")
-MODELS_DIR  = os.path.join(BASE_DIR, "models")
-SCORED_PATH = os.path.join(RAW_DIR,    "road_scored.csv")
-GRAPH_PATH  = os.path.join(MODELS_DIR, "route_graph.pkl")
-OSM_CACHE   = os.path.join(MODELS_DIR, "osm_bike_cache.graphml")
+RAW_DIR       = os.path.join(BASE_DIR, "data", "raw_ml")
+MODELS_DIR    = os.path.join(BASE_DIR, "models")
+SCORED_V2     = os.path.join(RAW_DIR,    "road_scored_v2.csv")
+SCORED_V1     = os.path.join(RAW_DIR,    "road_scored.csv")
+SCORED_PATH   = SCORED_V2 if os.path.exists(SCORED_V2) else SCORED_V1
+GRAPH_PATH    = os.path.join(MODELS_DIR, "route_graph.pkl")
+OSM_CACHE     = os.path.join(MODELS_DIR, "osm_bike_cache.graphml")
 
 # road_scored 점수를 OSM 엣지에 매핑할 최대 거리 (km)
 MAX_MATCH_KM = 2.0
@@ -62,7 +64,17 @@ if not os.path.exists(SCORED_PATH):
     print(f"  ❌ {SCORED_PATH} 없음. build_tourism_model.py를 먼저 실행하세요.")
     sys.exit(1)
 
+print(f"  소스 파일: {os.path.basename(SCORED_PATH)}")
 df = pd.read_csv(SCORED_PATH, encoding="utf-8-sig")
+
+# v2 컬럼이 있으면 우선 사용
+if "tourism_score_v2" in df.columns:
+    df["tourism_score"] = df["tourism_score_v2"]
+    print("  tourism_score_v2 사용 (TabNet 매력도 보정)")
+if "final_score_v2" in df.columns:
+    df["final_score"] = df["final_score_v2"]
+    print("  final_score_v2 사용")
+
 for col in ["start_lat", "start_lon", "safety_score", "tourism_score", "final_score"]:
     df[col] = pd.to_numeric(df[col], errors="coerce")
 df = df.dropna(subset=["start_lat", "start_lon", "safety_score", "tourism_score", "final_score"])
