@@ -748,7 +748,7 @@ regressor.fit(X_train, y_train, eval_set=[(X_val, y_val)])
 
 ```text
 Task:
-  [ ] build_attraction_model.py 작성
+  [X] build_attraction_model.py 작성 (2026-04-09)
   [ ] poi_attraction.csv → road_features.csv Spatial Join 업데이트
   [ ] road_scored_v2.csv 생성 (tourism_score_v2 컬럼 추가)
   [ ] route_graph.pkl 재빌드 (tourism_score_v2 반영)
