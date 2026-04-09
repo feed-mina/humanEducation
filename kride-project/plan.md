@@ -1,6 +1,6 @@
 # K-Ride 개발 계획
 
-> 업데이트: 2026-04-08 (모델 파이프라인 전체 완료 반영)
+> 업데이트: 2026-04-09 (Streamlit 날씨 연동 완료 / AI Hub 여행로그 데이터 확보)
 >
 > 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** → 통합 서비스 (Streamlit → Vercel React 연동)
 >
@@ -34,7 +34,25 @@
 - [X] `build_weather_lstm.py` 실행 → `models/dl/weather_lstm.pt` 생성 (val_acc=79.43%)
 - [X] `weather_kma.py` 작성 → KMA 단기예보 API 연동 모듈 (실시간 날씨 → safety_score 보정)
 - [X] `build_event_ner.py` 작성 → 이벤트 NER 스크립트 (zero-shot 분류 방식)
-- [X] `build_consume_model.py` 작성 → TabNet 소비 예측 스크립트
+- [X] `build_consume_model.py` 수정 완료 → AI Hub 다중 테이블 자동 머지 (`load_aihub_data()`)
+  - 기본 경로: `data/ai-hub/국내 여행로그 수도권_2023/02.라벨링데이터/`
+  - TRAVEL_ID 기준으로 activity_consume + travel + companion + visit_area 4개 테이블 머지
+
+### Streamlit 앱 (부분 완료)
+- [X] Tab 1~4 기본 구현 (안전등급 예측 / 경로 추천 / 데이터 탐색 / 경로 탐색)
+- [X] Tab 4 경로 탐색: A→B 최적 경로 + folium 폴리라인 오버레이
+- [X] Tab 4 순환 코스 생성 + folium 지도
+- [X] 편의시설 마커 레이어 (경로 탐색 시 반경 500m 내 표시)
+- [X] 사이드바 날씨 연동 (2026-04-09)
+  - `KMA_API_KEY` `.env` 자동 로드
+  - 30분 캐시(`@st.cache_data(ttl=1800)`) 날씨 조회
+  - 날씨 아이콘 / 기온 / 강수확률 / 풍속 표시
+  - "날씨 기반 안전 가중치 자동 조정" 토글 → `EFFECTIVE_WEIGHTS` 반영
+
+### 데이터 확보
+- [X] AI Hub 국내 여행로그 수도권_2023 (2026-04-09)
+  - `tn_activity_consume_his` (11,739행) / `tn_travel` (2,560행)
+  - `tn_companion_info` (3,537행) / `tn_visit_area_info` (21,384행)
 
 ---
 
@@ -368,8 +386,9 @@ def get_facilities_on_route(path_coords, facility_df, radius_m=500):
 4. [ ] (후순위) FastAPI `/api/route` 엔드포인트 작성
 5. [ ] (후순위) FastAPI `/api/course` 엔드포인트 작성
 6. [ ] (후순위) FastAPI `/api/facilities` 엔드포인트 작성
-7. [ ] Streamlit 앱에 경로 입력 UI + folium 폴리라인 오버레이 추가
-8. [ ] Streamlit 앱에 편의시설 레이어(토글) 추가
+7. [X] Streamlit 앱에 경로 입력 UI + folium 폴리라인 오버레이 추가 (Tab 4 구현 완료)
+8. [X] Streamlit 앱에 편의시설 마커 레이어 추가 (경로 탐색 결과에 반경 500m 마커 표시)
+9. [ ] Streamlit 독립 편의시설 레이어 토글 (경로 무관하게 전체 지도 위에 표시)
 
 ---
 
@@ -399,8 +418,9 @@ def get_weather_weight(lat, lon):
 ```text
 Task:
   [X] KMA 단기예보 API 연동 모듈 작성 (weather_kma.py) — latlon_to_grid + get_weather_weight 포함
+  [X] KMA_API_KEY .env 저장 + Streamlit 자동 로드 (2026-04-09)
+  [X] Streamlit 앱 사이드바에 현재 날씨 상태 표시 — 날씨 아이콘/기온/강수확률/풍속 + 자동 가중치 조정 토글 (2026-04-09)
   [ ] (후순위) FastAPI /api/recommend, /api/route에 날씨 보정 파라미터 추가
-  [ ] Streamlit 앱 사이드바에 현재 날씨 상태 표시 (맑음/흐림/비)
 ```
 
 > **Phase 3-6 확장**: 단순 API 연동을 넘어 LSTM 시계열 모델로 날씨를 예측하는 방안은 Phase 3-8 참조.
@@ -615,10 +635,16 @@ route_card = {
 
 ```text
   [X] build_consume_model.py 작성 완료 (--use_dummy 플래그로 합성 데이터 대체 가능)
-  [ ] (데이터 필요) 여행로그 TL_csv.zip (2.89MB) 다운 → TN_ACTIVITY_CONSUME_HIS 파싱
-  [ ] build_consume_model.py 실행 → models/consume_regressor.zip 생성
+  [X] AI Hub 여행로그(수도권) 데이터 확보 (2026-04-09)
+      → data/ai-hub/국내 여행로그 수도권_2023/02.라벨링데이터/ (activity: 11,739행)
+  [X] build_consume_model.py 수정 → load_aihub_data() 다중 테이블 머지 지원 (2026-04-09)
+  [X] build_consume_model.py 실행 → models/consume_regressor.zip 생성 (2026-04-09)
+      학습 결과: 2,530행 / best_epoch=51 / MAE=125,302원 / R²=0.0053
+      (R² 낮음 → 소비금액 분산이 크고 특성 수 부족, 향후 특성 추가로 개선 가능)
+  [X] Streamlit 경로 결과 카드에 예상 지출 표시 (2026-04-09)
+      A→B 경로 + 순환 코스 양쪽에 "예상 지출 (참고)" 카드 추가
+      동반자 수 입력 연동, cached_predict_consume() 캐시 래퍼 사용
   [ ] (후순위) FastAPI /api/route 응답에 estimated_cost 필드 추가
-  [ ] Streamlit 경로 결과 카드에 예상 지출 표시
 ```
 
 ---
@@ -654,6 +680,143 @@ route_card = {
    - 예상 지출       /api/course
    - 편의시설        /api/facilities
 ```
+
+---
+
+## Phase 3-10: 관광 딥러닝 고도화 (AI Hub 여행로그 기반) ← 신규 (2026-04-09)
+
+> **목표**: 이미 보유한 AI Hub 여행로그 데이터로 tourism_score를 딥러닝 기반으로 고도화.
+> 현재 tourism_score는 POI 밀도 규칙 기반이며, 실제 방문자 만족도·재방문 의향이 반영되지 않음.
+
+### 현재 tourism_score 한계
+
+```text
+현재 계산식 (build_tourism_model.py):
+  raw = tourist_count × 0.5 + cultural_count × 0.3 + leisure_count × 0.2
+  tourism_score = MinMaxScaler(raw) + facility_bonus (cap 0.1)
+
+문제점:
+  - POI 개수 기반 → 실제 방문자 경험 미반영
+  - 카테고리 가중치가 임의 설정 (0.5/0.3/0.2)
+  - 계절·시간대·인구통계 무시
+```
+
+---
+
+### 3-10-1. POI 매력도 예측 (TabNet) ← 즉시 구현 가능
+
+**데이터**: `tn_visit_area_info_방문지정보_E.csv` (21,384행, 이미 보유)
+
+```text
+타겟 (매력도 점수 합산):
+  DGSTFN          → 만족도 점수
+  REVISIT_INTENTION → 재방문 의향
+  RCMDTN_INTENTION  → 추천 의향
+  → attraction_score = (DGSTFN + REVISIT_INTENTION + RCMDTN_INTENTION) / 3  (정규화)
+
+입력 피처:
+  VISIT_AREA_TYPE_CD  → 방문지 유형 (음식점/관광지/자연 등)
+  RESIDENCE_TIME_MIN  → 체류 시간 (오래 머물수록 매력적)
+  SGG_CD              → 시군구 코드
+  VISIT_CHC_REASON_CD → 방문 선택 이유
+  VISIT_ORDER         → 여행 내 방문 순서 (첫 방문지 vs 마지막)
+  X_COORD, Y_COORD    → 위치 (공간 클러스터링)
+```
+
+```python
+# build_attraction_model.py 핵심 구조
+from pytorch_tabnet.tab_model import TabNetRegressor
+
+# 타겟: 매력도 점수 (0~5 정규화)
+target = "attraction_score"
+
+regressor = TabNetRegressor(n_d=16, n_a=16, n_steps=3)
+regressor.fit(X_train, y_train, eval_set=[(X_val, y_val)])
+
+# 출력: POI좌표 → attraction_score 맵핑
+# → Spatial Join으로 도로 세그먼트 주변 attraction_score 집계
+# → tourism_score_v2 = 0.7 × 기존 tourism_score + 0.3 × attraction_score
+```
+
+```text
+출력 파일:
+  models/attraction_regressor.zip   ← TabNet 가중치
+  models/attraction_scaler.pkl      ← 피처 스케일러
+  data/raw_ml/poi_attraction.csv    ← POI별 attraction_score (X_COORD, Y_COORD 포함)
+  data/raw_ml/road_scored_v2.csv    ← tourism_score_v2 반영 업데이트
+```
+
+```text
+Task:
+  [ ] build_attraction_model.py 작성
+  [ ] poi_attraction.csv → road_features.csv Spatial Join 업데이트
+  [ ] road_scored_v2.csv 생성 (tourism_score_v2 컬럼 추가)
+  [ ] route_graph.pkl 재빌드 (tourism_score_v2 반영)
+  [ ] Streamlit 경로 카드에 "관광 매력도" 점수 표시
+```
+
+---
+
+### 3-10-2. 방문지 시퀀스 추천 (LSTM) ← 순환 코스 고도화
+
+**데이터**: `tn_visit_area_info_방문지정보_E.csv`의 `VISIT_ORDER` 시퀀스
+
+```text
+목표: "이 경로에서 출발하면 다음에 많이 방문하는 POI는?"
+     → 순환 코스 생성 시 "추천 경유지" 자동 삽입
+
+학습 입력:
+  TRAVEL_ID별 VISIT_ORDER 순서로 정렬된 POI 시퀀스
+  예: [강남역 → 코엑스 → 봉은사 → 선릉] → 다음 POI 예측
+
+모델: GRU (시퀀스 짧아서 LSTM보다 가벼움)
+  Embedding(poi_id, 32) → GRU(64) → Dense(poi_vocab_size) → Softmax
+```
+
+```text
+출력 파일:
+  models/dl/visit_seq_gru.pt    ← GRU 가중치
+  models/dl/poi_encoder.pkl     ← POI ID → 인덱스 인코더
+  data/dl/visit_sequences.csv   ← 전처리된 시퀀스 데이터
+```
+
+```text
+Task:
+  [ ] build_visit_sequence_model.py 작성 (GRU 시퀀스 예측)
+  [ ] Streamlit 순환 코스 탭에 "추천 경유지 POI" 표시
+```
+
+---
+
+### 3-10-3. 여행자 스타일 기반 개인화 (후순위)
+
+**데이터**: `tn_traveller_master_여행객 Master_E.csv` (35컬럼)
+
+```text
+활용 가능 피처:
+  GENDER, AGE_GRP, INCOME, HOUSE_INCOME    → 인구통계
+  TRAVEL_STYL_1~8                          → 8가지 여행 스타일 점수
+  TRAVEL_LIKE_SIDO_1~3, TRAVEL_LIKE_SGG_1~3 → 선호 지역
+  TRAVEL_MOTIVE_1~3                        → 여행 동기
+
+모델 방향: Neural CF (사용자 임베딩 + POI 임베딩)
+→ 사용자 스타일 입력 → 맞춤 POI 추천
+→ 경로 선택 시 "나와 비슷한 사람들이 선호한 경로" 표시
+
+난이도: 높음 (사용자 세션 관리 필요)
+우선순위: 후순위 (Phase 5 이후)
+```
+
+---
+
+### 3-10 구현 우선순위 및 일정
+
+| 작업 | 난이도 | 데이터 | 우선순위 |
+|------|--------|--------|----------|
+| POI 매력도 TabNet (3-10-1) | 낮음 | ✅ 보유 | 1순위 |
+| 방문지 시퀀스 GRU (3-10-2) | 중간 | ✅ 보유 | 2순위 |
+| 감성 분석 KLUE-BERT (Phase 4) | 중간 | ❌ 수집 필요 | 3순위 |
+| 여행자 개인화 Neural CF (3-10-3) | 높음 | ✅ 보유 | 4순위 (후순위) |
 
 ---
 
@@ -769,14 +932,30 @@ final_safety = 0.5 * rf_pred + 0.5 * tabnet_pred
 
 ## Phase 6: 딥러닝 — CNN 도로 이미지 분류 (safety_score 보완) ← 3순위
 
-> **목표**: 네이버 로드뷰 이미지를 CNN으로 분류 → 도로 포장 상태·너비·장애물 여부 피처화
+> **목표**: 도로 이미지를 CNN으로 분류 → 도로 포장 상태·너비·장애물 여부 피처화
+
+> ⚠️ **2026-04-09 조사 결과**: 네이버 로드뷰는 이미지 추출용 REST API를 공식 제공하지 않으며 이용약관상 이미지 저장·ML 학습이 금지됨 → **AI Hub 자전거도로 데이터셋으로 대체**
 
 ### 6-1. 데이터 수집
 
 ```text
-수집 방법: 네이버 지도 스트리트뷰(로드뷰) API
-  - road_features.csv의 (start_lat, start_lon) → 파노라마 이미지 요청
-  - 1,647개 좌표 × 1장 = 약 1,647장 (MVP 기준)
+❌ 제외: 네이버 로드뷰
+  - 이미지 추출 REST API 미존재 (JavaScript 뷰어만 제공)
+  - 이용약관: 이미지 저장·AI 학습 목적 사용 금지 (저작권 보호)
+
+✅ 대체 1순위: AI Hub — 자전거도로 주행 데이터 (무료, 신청 후 사용)
+  URL: https://www.aihub.or.kr/aihubdata/data/view.do?dataSetSn=71629
+  - 한국 자전거도로 특화 이미지 (장애물·노면 상태·편의시설 포함)
+  - good/normal/bad 3등급 라벨 구조와 직접 매핑 가능
+  - 공식 정부 AI 학습 데이터셋, 연구 목적 승인 가능성 높음
+
+✅ 대체 2순위: NAVER LABS HD Map Dataset (CC-BY-NC-SA 4.0, 무료)
+  URL: https://hdmap.naverlabs.com/
+  - 서울 지역 (판교·상암·여의도·마곡) 3D 도로 구조 + LiDAR 포함
+  - 비상업적 연구/교육 목적 허용
+
+✅ 대체 3순위: Mapillary Vistas (전이학습 보조용, 즉시 다운로드)
+  - 오픈소스 스트리트뷰 이미지 25,000장, semantic segmentation 라벨
 
 저장 경로: data/dl/roadview_images/
   ├─ good/    ← 포장 양호, 장애물 없음
@@ -813,8 +992,8 @@ model.classifier[1] = nn.Linear(1280, 3)   # 3등급 분류
 
 ```text
 [텍스트 데이터]   [구조화 데이터]         [이미지 데이터]
-리뷰 텍스트        도로 피처 CSV            네이버 로드뷰
-    │                   │                       │
+리뷰 텍스트        도로 피처 CSV       AI Hub 자전거도로 이미지
+    │                   │                (Naver 로드뷰 ❌ 약관)
 KLUE-BERT            TabNet               EfficientNet-B0
 (감성분석)          (안전예측)              (도로상태분류)
     │                   │                       │
@@ -859,8 +1038,8 @@ Streamlit       FastAPI       (추후) DB
 3. [ ] `review_sentiment.csv` → road_scored와 Spatial Join → `road_scored_v2.csv`
 4. [ ] `build_safety_model_dl.py` 작성 — TabNet 회귀/분류
 5. [ ] RF + TabNet 앙상블 비교 실험 (R², F1 기록)
-6. [ ] 네이버 로드뷰 이미지 수집 스크립트 작성
-7. [ ] 이미지 라벨링 (수동 또는 GPT-4V 자동 라벨링)
+6. [ ] AI Hub 자전거도로 데이터셋 신청 → 승인 후 다운로드 (Naver 로드뷰 대체)
+7. [ ] 이미지 라벨링 확인 (AI Hub 데이터는 라벨 포함 여부 확인 후 필요 시 GPT-4V 보완)
 8. [ ] `build_road_image_model.py` 작성 — EfficientNet-B0 전이학습
 9. [ ] 딥러닝 모델 FastAPI 엔드포인트 추가 (`/api/safety_dl`, `/api/sentiment`)
 
