@@ -2117,15 +2117,46 @@ Embedding(vocab=9,881, dim=32)
 
 > 방문지 예측은 정답이 하나가 아니므로 Top-5 Accuracy가 실서비스 관점에서 더 의미 있는 지표.
 
-### 29-6. 학습 진행 현황 (2026-04-09 실행 중)
+### 29-6. 1차 실행 결과 및 분석 (2026-04-09)
 
 ```text
 epoch   1 | train_loss=9.2204 | val_loss=9.2222 | val_acc=0.0022
+epoch   5 | train_loss=7.8372 | val_loss=11.3471 | val_acc=0.0000
+Early stopping at epoch 8 (best=1)
+
+test_acc  = 0.0025  (Top-1)
+test_top5 = 0.0099  (Top-5)
 ```
 
-> epoch 1 val_acc=0.0022는 정상 — vocab 9,881개 중 랜덤 예측 시 기대 정확도는 1/9,881 ≈ 0.0001.
-> 초기 loss 9.22 ≈ ln(9,881) = 9.20 (균등 분포의 이론값)으로 학습이 정상 시작됨.
-> 학습 완료 후 test_acc 및 test_top5 수치 업데이트 예정.
+#### 원인 분석: vocab 과다 (데이터 희소성 문제)
+
+| 항목 | 값 |
+|------|-----|
+| vocab 크기 | 9,881개 |
+| 총 샘플 수 | 11,236개 |
+| 레이블당 평균 샘플 | **1.14개** |
+| 초기 loss | 9.22 ≈ ln(9,881) = 9.20 (균등 분포 이론값 — 학습 미발생) |
+
+> 대부분의 방문지가 데이터에 1~2번만 등장 → 모델이 패턴 학습 불가.
+> epoch 1 이후 val_loss 급등(9.22 → 11.35) → 즉시 overfitting, best=1에서 early stopping.
+
+#### 수정 방향: min_freq 필터링
+
+방문 빈도 3회 미만 방문지를 `<UNK>`로 대체 → vocab 대폭 축소 → 충분한 반복 학습 가능.
+
+```text
+min_freq=3 적용 시 예상:
+  희귀 방문지 → <UNK> 처리
+  vocab: 9,881 → 대폭 감소 (약 1,000~2,000 수준 예상)
+  레이블당 평균 샘플 수 증가 → 일반화 가능
+```
+
+실행:
+```bash
+python kride-project/build_visit_sequence_model.py --min_freq 3
+```
+
+학습 완료 후 test_acc 및 test_top5 수치 업데이트 예정.
 
 ### 29-6. 출력 파일
 

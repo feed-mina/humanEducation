@@ -55,6 +55,8 @@ parser.add_argument("--dropout",  type=float, default=0.3)
 parser.add_argument("--window",   type=int,   default=5,
                     help="슬라이딩 윈도우 크기 (입력 window-1개 → 다음 1개 예측)")
 parser.add_argument("--patience", type=int,   default=7)
+parser.add_argument("--min_freq", type=int,   default=3,
+                    help="최소 방문 빈도 (이하 방문지는 <UNK>로 처리, vocab 축소)")
 args = parser.parse_args()
 
 # ── 경로 설정 ──────────────────────────────────────────────────────────────────
@@ -105,6 +107,15 @@ df = df.sort_values(["TRAVEL_ID", "VISIT_ORDER"]).reset_index(drop=True)
 print(f"  유효 행수: {len(df):,}")
 print(f"  여행 수:   {df['TRAVEL_ID'].nunique():,}")
 print(f"  장소 고유값: {df['VISIT_AREA_NM'].nunique():,}")
+
+# ── min_freq 필터: 희귀 방문지 → <UNK> 처리 ──────────────────────────────────
+freq = df["VISIT_AREA_NM"].value_counts()
+rare = set(freq[freq < args.min_freq].index)
+df["VISIT_AREA_NM"] = df["VISIT_AREA_NM"].apply(
+    lambda x: "<UNK>" if x in rare else x
+)
+print(f"  min_freq={args.min_freq} 필터: {len(rare):,}개 희귀 장소 → <UNK> 처리")
+print(f"  필터 후 고유값: {df['VISIT_AREA_NM'].nunique():,}")
 
 # ── LabelEncoder: 방문지명 → 정수 인덱스 ──────────────────────────────────────
 le = LabelEncoder()
@@ -352,6 +363,7 @@ print(f"  ✅ poi_encoder.pkl → {ENC_PKL}")
 # 메타 저장
 meta = {
     "vocab":        VOCAB,
+    "min_freq":     args.min_freq,
     "embed_d":      args.embed_d,
     "gru_h":        args.gru_h,
     "gru_l":        args.gru_l,
