@@ -1,6 +1,6 @@
 # K-Ride Research: 데이터 분석 결과
 
-> 최종 업데이트: 2026-04-08 (WeatherLSTM 학습 결과 추가)
+> 최종 업데이트: 2026-04-08 (모델 파이프라인 전체 완료 반영)
 
 ---
 
@@ -473,25 +473,24 @@ df_filtered = df[df["gu_name"].isin(selected_gu)]
 4. 관광지/여행 추천
 5. 자전거 이용자 편의 제공
 
-### 목표별 현재 반영 상태
+### 목표별 현재 반영 상태 (2026-04-08 기준)
 
-| 목표               | 반영 여부        | 현재 상태                                     | 보완 방향                         |
-| ------------------ | ---------------- | --------------------------------------------- | --------------------------------- |
-| 안전성             | 완료             | safety_index_v2, RF 모델, TabNet 계획         | 딥러닝 고도화(Phase 5)            |
-| 관광지/여행 추천   | 완료             | tourism_score, POI Spatial Join               | 감성분석 보정(Phase 4)            |
-| 편의 제공          | 부분             | facility_clean.csv 수집, tourism bonus만 반영 | 지도 마커 레이어로 시각화 필요    |
-| 자전거 여행        | 간접             | 도로 세그먼트 점수화로 간접 커버              | 여행 코스 단위 추천 추가 필요     |
-| **경로탐지** | **미반영** | 없음                                          | **Phase 3-5에서 신규 구현** |
+| 목표               | 반영 여부    | 현재 상태                                                        | 보완 방향                      |
+| ------------------ | ------------ | ---------------------------------------------------------------- | ------------------------------ |
+| 안전성             | 완료         | safety_index_v2, RF 모델 (pkl 4개), WeatherLSTM 날씨 보정       | 딥러닝 고도화(Phase 5)         |
+| 관광지/여행 추천   | 완료         | tourism_score, POI Spatial Join, road_scored.csv                | 감성분석 보정(Phase 4)         |
+| 경로탐지           | 완료         | route_graph.pkl (osmnx, 120,775 노드, 완전 연결)                 | Streamlit UI 연동 필요         |
+| 편의 제공          | 부분         | facility_clean.csv 수집, tourism bonus 반영                      | 지도 마커 레이어로 시각화 필요 |
+| 자전거 여행        | 간접         | 도로 세그먼트 점수화 + 경로그래프 준비 완료                      | 여행 코스 UI 추가 필요         |
 
-### 가장 큰 갭 — 경로탐지
+### 남은 갭 — Streamlit UI 연동
 
-현재 문서는 도로 세그먼트 **점수화**에 집중되어 있으며, 출발지 → 목적지 **경로 탐색** 기능이 전혀 없음.
+모델 파이프라인은 모두 완성. 현재 미구현 구간은 **사용자 인터페이스**:
 
-- 도로 세그먼트들이 그래프로 연결되어 있지 않음
-- 사용자가 "A에서 B까지 안전한 자전거 경로"를 요청할 수 없음
-- 여행 코스(순환 루트) 생성 로직 없음
-
-**해결책**: `road_scored.csv`의 세그먼트를 networkx 그래프로 연결하고, Dijkstra 알고리즘으로 최적 경로 탐색 (plan.md Phase 3-5 참조)
+- 경로 입력 UI (출발지/도착지 입력) + folium 폴리라인 오버레이
+- 편의시설 레이어 토글 (공기 주입소, 수리점, 대여소 마커)
+- 날씨 표시 사이드바 (KMA 단기예보 → 현재 날씨 상태)
+- FastAPI 엔드포인트 (`/api/route`, `/api/course` 등) — **후순위**
 
 ### 편의시설 미활용 문제
 
@@ -503,12 +502,67 @@ df_filtered = df[df["gu_name"].isin(selected_gu)]
 
 ### 추가 권장 기능 (plan.md 반영 완료)
 
-| 기능                                       | 우선순위 | 구현 위치 |
-| ------------------------------------------ | -------- | --------- |
-| 경로탐지 (`/api/route`)                  | 필수     | Phase 3-5 |
-| 여행 코스 생성 (`/api/course`)           | 필수     | Phase 3-5 |
-| 편의시설 지도 레이어 (`/api/facilities`) | 권장     | Phase 3-5 |
-| 날씨 연동 (KMA API)                        | 권장     | Phase 3-6 |
+| 기능                                       | 우선순위 | 구현 위치    | 상태   |
+| ------------------------------------------ | -------- | ------------ | ------ |
+| 경로탐지 그래프 구성                       | 필수     | Phase 3-5    | ✅ 완료 |
+| 경로탐지 API (`/api/route`)              | 후순위   | Phase 3-5    | 미완   |
+| 여행 코스 생성 (`/api/course`)           | 후순위   | Phase 3-5    | 미완   |
+| 편의시설 지도 레이어 (`/api/facilities`) | 권장     | Phase 3-5    | 미완   |
+| 날씨 연동 모듈 (weather_kma.py)            | 권장     | Phase 3-6    | ✅ 완료 |
+| WeatherLSTM 학습                           | 권장     | Phase 3-8    | ✅ 완료 |
+
+---
+
+## 15-0. 모델 파이프라인 전체 완료 현황 (2026-04-08)
+
+### 생성된 모델 파일 목록
+
+| 파일                             | 경로                    | 설명                                   | 성능 지표              |
+| -------------------------------- | ----------------------- | -------------------------------------- | ---------------------- |
+| `safety_regressor.pkl`         | `models/`             | RF 안전점수 예측 (연속값 0~1)          | R²=0.9539              |
+| `safety_classifier.pkl`        | `models/`             | RF 위험등급 분류 (0/1/2)               | F1 확인 가능           |
+| `safety_scaler.pkl`            | `models/`             | 추론용 MinMaxScaler                    | -                      |
+| `safety_meta.pkl`              | `models/`             | features, q33/q66, R², F1 메타        | -                      |
+| `tourism_scaler.pkl`           | `models/`             | 관광점수 MinMaxScaler                  | -                      |
+| `route_graph.pkl`              | `models/`             | osmnx 자전거 경로 그래프               | 노드 120,775 / 완전연결 |
+| `weather_lstm.pt`              | `models/dl/`          | WeatherLSTM 날씨 3분류 모델            | val_acc=79.43%         |
+| `weather_scaler.pkl`           | `models/dl/`          | 날씨 피처 StandardScaler               | -                      |
+| `weather_meta.json`            | `models/dl/`          | 모델 구성 + 날씨 보정값                | -                      |
+
+### 데이터 파일 목록
+
+| 파일                      | 경로              | 행 수 | 설명                                      |
+| ------------------------- | ----------------- | ----- | ----------------------------------------- |
+| `road_clean.csv`        | `data/raw_ml/`  | 5,319 | 서울+경기 자전거도로 (시도명 필터)        |
+| `road_clean_v2.csv`     | `data/raw_ml/`  | -     | 시군구명 기반 재전처리 + 복합키 road_id   |
+| `facility_clean.csv`    | `data/raw_ml/`  | 3,368 | 서울시 자전거 편의시설                    |
+| `tour_poi.csv`          | `data/raw_ml/`  | 2,529 | 서울+경기 관광지/문화시설/레저 POI        |
+| `road_features.csv`     | `data/raw_ml/`  | 1,647 | Spatial Join 최종 학습용 (14컬럼)         |
+| `district_danger.csv`   | `data/raw_ml/`  | -     | 서울 구별 위험도 참고 테이블              |
+| `road_scored.csv`       | `data/raw_ml/`  | -     | safety+tourism+final_score 통합 (19컬럼) |
+| `weather_asos_daily.csv`| `data/dl/kma_weather_raw/` | 5,480 | 기상청 ASOS 일별 관측 (서울/경기 5개 관측소) |
+
+### WeatherLSTM 상세 결과
+
+```text
+모델 구조:
+  입력: (시퀀스 길이=14, 피처=8)
+    [월, 일, 요일, 기온_평균, 강수량, 풍속, 습도, 관측소_인덱스]
+  출력: 3분류 (0:맑음 / 1:흐림 / 2:비·눈)
+  LSTM: hidden_size=64, num_layers=2, dropout=0.2
+
+학습 설정:
+  epochs=30, batch=64, lr=1e-3
+  Train:Val = 80:20, best weight 저장
+
+결과:
+  best_val_acc = 79.43%
+
+safety_score 날씨 보정값:
+  맑음(0) →  0.0  (보정 없음)
+  흐림(1) → -0.05 (5% 하향)
+  비·눈(2) → -0.20 (20% 하향)
+```
 
 ---
 

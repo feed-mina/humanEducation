@@ -1,26 +1,40 @@
 # K-Ride 개발 계획
 
-> 업데이트: 2026-04-08
+> 업데이트: 2026-04-08 (모델 파이프라인 전체 완료 반영)
 >
 > 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** → 통합 서비스 (Streamlit → Vercel React 연동)
 >
 > 딥러닝 추가 목표: KLUE-BERT 감성분석·TabNet 안전예측·CNN 도로이미지 분류를 단계적으로 도입해 모델 품질을 향상시킨다.
 >
 > **서비스 목표 (전체)**: 자전거 여행 + 안전성 + 경로탐지 + 관광지/여행 추천 + 자전거 이용자 편의 제공
+>
+> **FastAPI 서버 구현은 후순위** — 모델 파이프라인 완성 후 진행
 
 ---
 
 ## 현재까지 완료된 작업
 
+### 머신러닝 파이프라인 (전체 완료)
 - [X] 자전거도로 데이터 전처리 (`road_clean.csv`)
 - [X] 편의시설 데이터 전처리 (`facility_clean.csv`)
 - [X] 관광 POI 수집 및 정제 (`tour_poi.csv`)
 - [X] Spatial Join → 통합 학습 데이터 생성 (`road_features.csv`)
 - [X] 안전 모델 탐색 (LinearRegression, RandomForest)
 - [X] 데이터 모수 문제 분석 (노선명 PK 불가 / 사고 좌표 없음 / 경기도 xls = 명세서)
-- [X] `preprocess_road.py` 코드 작성 (시군구명 기반 재전처리 + 모델 3개 비교)
-- [X] `build_safety_model.py` 코드 작성 (사고데이터 district_danger 반영, pkl 4개 출력)
+- [X] `preprocess_road.py` 실행 → `road_clean_v2.csv` 생성
+- [X] `build_safety_model.py` 실행 → `safety_regressor.pkl`, `safety_classifier.pkl`, `safety_scaler.pkl`, `safety_meta.pkl` 생성
 - [X] safety_index_v2 설계 완료 (`(1-district_danger)×0.6 + road_attr_score×0.4`)
+- [X] `build_tourism_model.py` 실행 → `tourism_scaler.pkl`, `road_scored.csv` 생성
+
+### 경로탐지 그래프 (완료)
+- [X] `build_route_graph.py` 실행 → `models/route_graph.pkl` 생성 (osmnx, 120,775 노드 / 169,136 엣지, 완전 연결)
+
+### 딥러닝 파이프라인 (완료)
+- [X] ASOS 일자료 API 키 발급 + `fetch_weather_data.py` 실행 → `weather_asos_daily.csv` (5,480행)
+- [X] `build_weather_lstm.py` 실행 → `models/dl/weather_lstm.pt` 생성 (val_acc=79.43%)
+- [X] `weather_kma.py` 작성 → KMA 단기예보 API 연동 모듈 (실시간 날씨 → safety_score 보정)
+- [X] `build_event_ner.py` 작성 → 이벤트 NER 스크립트 (zero-shot 분류 방식)
+- [X] `build_consume_model.py` 작성 → TabNet 소비 예측 스크립트
 
 ---
 
@@ -351,9 +365,9 @@ def get_facilities_on_route(path_coords, facility_df, radius_m=500):
 3. [X] **그래프 단절 문제 해결** — osmnx 기반으로 재설계, 연결 컴포넌트 1개(100%) 달성 (2026-04-08)
    - 원인: 공공 자전거도로 행정 데이터는 교차점 토폴로지 없음 → osmnx(OSM 자전거 네트워크)로 전환
    - 결과: 120,775 노드 / 169,136 엣지, 완전 연결 그래프
-4. [ ] FastAPI `/api/route` 엔드포인트 작성
-5. [ ] FastAPI `/api/course` 엔드포인트 작성
-6. [ ] FastAPI `/api/facilities` 엔드포인트 작성
+4. [ ] (후순위) FastAPI `/api/route` 엔드포인트 작성
+5. [ ] (후순위) FastAPI `/api/course` 엔드포인트 작성
+6. [ ] (후순위) FastAPI `/api/facilities` 엔드포인트 작성
 7. [ ] Streamlit 앱에 경로 입력 UI + folium 폴리라인 오버레이 추가
 8. [ ] Streamlit 앱에 편의시설 레이어(토글) 추가
 
@@ -384,9 +398,8 @@ def get_weather_weight(lat, lon):
 
 ```text
 Task:
-  [ ] KMA Open API 키 발급 (공공데이터포털)
-  [ ] fetch_kma_pop() 함수 작성
-  [ ] FastAPI /api/recommend, /api/route에 날씨 보정 파라미터 추가
+  [X] KMA 단기예보 API 연동 모듈 작성 (weather_kma.py) — latlon_to_grid + get_weather_weight 포함
+  [ ] (후순위) FastAPI /api/recommend, /api/route에 날씨 보정 파라미터 추가
   [ ] Streamlit 앱 사이드바에 현재 날씨 상태 표시 (맑음/흐림/비)
 ```
 
@@ -460,12 +473,10 @@ for evt in events_on_route:
 ### Task (Phase 3-7)
 
 ```text
-  [ ] 이벤트 추출 데이터 (AI Hub) 다운 → NER 학습 데이터 변환
-  [ ] KLUE-BERT NER 파인튜닝 스크립트 작성 (build_event_ner.py)
-  [ ] (빠른 대안) zero-shot 이벤트 분류 함수 작성
-  [ ] Geocoding 파이프라인 구성 (geopy)
-  [ ] FastAPI /api/events 엔드포인트 작성
-  [ ] /api/route 응답에 events_on_route 필드 추가
+  [X] build_event_ner.py 작성 완료 — zero-shot (mDeBERTa) + geopy 파이프라인 포함
+  [ ] (데이터 필요) 이벤트 추출 데이터 (AI Hub) 다운 → 파인튜닝 시 활용
+  [ ] (후순위) FastAPI /api/events 엔드포인트 작성
+  [ ] (후순위) /api/route 응답에 events_on_route 필드 추가
   [ ] Streamlit 이벤트 알림 레이어 추가
 ```
 
@@ -603,10 +614,10 @@ route_card = {
 ### Task (Phase 3-9)
 
 ```text
-  [ ] 여행로그 TL_csv.zip (2.89MB) 다운 → TN_ACTIVITY_CONSUME_HIS 파싱
-  [ ] 소비 예측 TabNet 학습 스크립트 작성 (build_consume_model.py)
-  [ ] 모델 저장: models/consume_regressor.zip
-  [ ] FastAPI /api/route 응답에 estimated_cost 필드 추가
+  [X] build_consume_model.py 작성 완료 (--use_dummy 플래그로 합성 데이터 대체 가능)
+  [ ] (데이터 필요) 여행로그 TL_csv.zip (2.89MB) 다운 → TN_ACTIVITY_CONSUME_HIS 파싱
+  [ ] build_consume_model.py 실행 → models/consume_regressor.zip 생성
+  [ ] (후순위) FastAPI /api/route 응답에 estimated_cost 필드 추가
   [ ] Streamlit 경로 결과 카드에 예상 지출 표시
 ```
 

@@ -5,7 +5,9 @@
       "Bash(python -c \"import docx; print\\('python-docx:', docx.__version__\\)\")",
       "Bash(pip install:*)",
       "Bash(python -c \"import docx; print\\('python-docx OK'\\)\")",
-      "Bash(python generate_report.py)"
+      "Bash(python generate_report.py)",
+      "Read(//c/Users/Samsung/.claude/projects/**)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('kride-project/streamlit_kride.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
