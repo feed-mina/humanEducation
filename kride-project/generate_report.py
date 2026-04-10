@@ -99,14 +99,14 @@ def draw_card(c, x, y, w, h, bg=GRAY_LIGHT, radius=5):
     c.roundRect(x, y, w, h, radius, fill=1, stroke=1)
 
 
-def draw_metric_card(c, x, y, w, h, value, label, color=GREEN_DARK):
+def draw_metric_card(c, x, y, w, h, value, label, color=GREEN_DARK, font_b=20, font_l=8):
     draw_card(c, x, y, w, h, bg=WHITE)
     c.setFillColor(color)
-    c.setFont(FONT_B, 20)
-    c.drawCentredString(x + w / 2, y + h - 34, value)
+    c.setFont(FONT_B, font_b)
+    c.drawCentredString(x + w / 2, y + h - 34 - (font_b - 20)/2, value)
     c.setFillColor(GRAY_MID)
-    c.setFont(FONT_L, 8)
-    c.drawCentredString(x + w / 2, y + h - 50, label)
+    c.setFont(FONT_L, font_l)
+    c.drawCentredString(x + w / 2, y + h - 50 - (font_b - 20)/2 - (font_l - 8)/2, label)
 
 
 def draw_green_box(c, x, y, w, h, text, font_size=9):
@@ -120,16 +120,16 @@ def draw_green_box(c, x, y, w, h, text, font_size=9):
 
 
 def draw_table(c, x, y, headers, rows, col_widths, row_height=18,
-               header_bg=GREEN_DARK, stripe=True):
+               header_bg=GREEN_DARK, stripe=True, font_size_h=10, font_size_d=9.5):
     total_w = sum(col_widths)
     # 헤더
     c.setFillColor(header_bg)
     c.rect(x, y, total_w, row_height, fill=1, stroke=0)
     c.setFillColor(WHITE)
-    c.setFont(FONT_B, 8)
+    c.setFont(FONT_B, font_size_h)
     cx = x
     for h_txt, cw in zip(headers, col_widths):
-        c.drawCentredString(cx + cw / 2, y + 5, h_txt)
+        c.drawCentredString(cx + cw / 2, y + (row_height - font_size_h)/2 + 1, h_txt)
         cx += cw
     # 데이터 행
     for ri, row in enumerate(rows):
@@ -141,10 +141,10 @@ def draw_table(c, x, y, headers, rows, col_widths, row_height=18,
         c.setLineWidth(0.3)
         c.line(x, ry, x + total_w, ry)
         c.setFillColor(GRAY_DARK)
-        c.setFont(FONT_M, 8)
+        c.setFont(FONT_M, font_size_d)
         cx = x
         for cell, cw in zip(row, col_widths):
-            c.drawCentredString(cx + cw / 2, ry + 5, str(cell))
+            c.drawCentredString(cx + cw / 2, ry + (row_height - font_size_d)/2 + 1, str(cell))
             cx += cw
     # 외곽선
     c.setStrokeColor(GREEN_MID)
@@ -316,7 +316,7 @@ def slide_dataset(c):
 
     # 데이터셋 테이블
     draw_table(
-        c, MARGIN + 10, H - 110,
+        c, MARGIN + 10, H - 240,
         ["데이터셋", "규모", "주요 컬럼"],
         [
             ["자전거도로 원본",     "57,418행",   "width_m, length_km, road_type"],
@@ -325,7 +325,7 @@ def slide_dataset(c):
             ["여행자 방문지",       "21,384행",   "TRAVEL_ID, VISIT_AREA_NM"],
             ["OSM 자전거 네트워크", "23만+ 엣지", "서울 전역 topology 보장"],
         ],
-        col_widths=[125, 80, 195], row_height=19,
+        col_widths=[140, 90, 210], row_height=26, font_size_h=12, font_size_d=11
     )
 
     # 통계 카드
@@ -335,32 +335,32 @@ def slide_dataset(c):
         ("2,560",  "여행 ID (trips)",    BLUE_DARK),
         ("1,646",  "POI vocab",          ORANGE),
     ]
-    cw_s, ch_s = 90, 58
-    gap_s = 8
+    cw_s, ch_s = 100, 72
+    gap_s = 10
     total_sw = len(stats) * cw_s + (len(stats) - 1) * gap_s
-    sx = MARGIN + 470
-    sy = H - 112
+    sx = MARGIN + 480
+    sy = H - 280
     for i, (val, lbl, col) in enumerate(stats):
         xi = sx + (i % 2) * (cw_s + gap_s)
         yi = sy - (i // 2) * (ch_s + gap_s)
-        draw_metric_card(c, xi, yi, cw_s, ch_s, val, lbl, col)
+        draw_metric_card(c, xi, yi, cw_s, ch_s, val, lbl, col, font_b=28, font_l=11)
 
     # 전처리 박스
     yb = MARGIN + 42
-    draw_card(c, MARGIN + 10, yb, W - MARGIN * 2 - 20, 52, bg=GREEN_LIGHT)
+    draw_card(c, MARGIN + 10, yb, W - MARGIN * 2 - 20, 80, bg=GREEN_LIGHT)
     c.setFillColor(GREEN_DARK)
-    c.setFont(FONT_B, 9.5)
-    c.drawString(MARGIN + 20, yb + 38, "전처리 핵심 사항")
+    c.setFont(FONT_B, 11)
+    c.drawString(MARGIN + 20, yb + 60, "전처리 핵심 사항")
     pts = [
         "POI_ID 결측(6,710행) → VISIT_AREA_NM 기반 대체",
         "비관광 장소(VISIT_AREA_TYPE_CD ≥ 21) 6,904행 제거 (자택·직장 등)",
         "osmnx KDTree로 OSM 엣지 ↔ road_scored 최근접 매핑 (허용 2km 이내)",
     ]
     px = MARGIN + 20
-    py = yb + 22
+    py = yb + 40
     for pt in pts:
-        draw_bullet(c, px, py, pt, font_size=8.5)
-        py -= 15
+        draw_bullet(c, px, py, pt, font_size=11)
+        py -= 18
 
     c.setFillColor(ORANGE)
     c.roundRect(MARGIN + 10, MARGIN + 10, W - MARGIN * 2 - 20, 24, 4, fill=1, stroke=0)
@@ -375,7 +375,7 @@ def slide_model_arch(c):
     c.rect(0, 0, W, H, fill=1, stroke=0)
     draw_border(c, GREEN_DARK, lw=4)
     draw_page_header(c, "03", "Model Architecture")
-    draw_slide_title(c, "모델 구성 — 4개 모듈 파이프라인",
+    draw_slide_title(c, "모델 구성 - 4개 모듈 파이프라인",
                      "안전 모델 → 관광 모델 → 경로 그래프 → POI 추천")
 
     modules = [
@@ -426,29 +426,29 @@ def slide_model_arch(c):
     ]
 
     mw = (W - MARGIN * 2 - 20) / 4
-    mh = 148
+    mh = 178
     mx = MARGIN + 10
-    my = H - MARGIN - 68 - mh
+    my = H - MARGIN - 168 - mh
 
     for mod in modules:
         # 헤더 영역
         c.setFillColor(mod["color"])
         c.roundRect(mx, my + mh - 44, mw - 8, 44, 5, fill=1, stroke=0)
         c.setFillColor(WHITE)
-        c.setFont(FONT_B, 11)
-        c.drawCentredString(mx + (mw - 8) / 2, my + mh - 22, mod["title"])
-        c.setFont(FONT_L, 7.5)
-        c.drawCentredString(mx + (mw - 8) / 2, my + mh - 35, mod["sub"])
+        c.setFont(FONT_B, 13)
+        c.drawCentredString(mx + (mw - 8) / 2, my + mh - 20, mod["title"])
+        c.setFont(FONT_L, 9.5)
+        c.drawCentredString(mx + (mw - 8) / 2, my + mh - 36, mod["sub"])
         # 내용 카드
         draw_card(c, mx, my, mw - 8, mh - 46, bg=GRAY_LIGHT)
-        ty = my + mh - 62
+        ty = my + mh - 66
         for item in mod["items"]:
             c.setFillColor(mod["color"])
-            c.circle(mx + 9, ty + 3.5, 2, fill=1, stroke=0)
+            c.circle(mx + 9, ty + 4.5, 2.5, fill=1, stroke=0)
             c.setFillColor(GRAY_DARK)
-            c.setFont(FONT_L, 8)
+            c.setFont(FONT_M, 10.5)
             c.drawString(mx + 16, ty, item)
-            ty -= 16
+            ty -= 20
         mx += mw
 
     # 파이프라인 화살표
@@ -456,8 +456,8 @@ def slide_model_arch(c):
     ax = MARGIN + 10 + mw - 13
     for _ in range(3):
         c.setFillColor(GRAY_MID)
-        c.setFont(FONT_B, 14)
-        c.drawString(ax, arrow_y, "→")
+        c.setFont(FONT_B, 20)
+        c.drawString(ax, arrow_y - 2, "→")
         ax += mw
 
     c.setFillColor(ORANGE)
@@ -490,45 +490,45 @@ def slide_performance(c):
         ("0.066", "관광 모델 R²",    BLUE_DARK),
         ("0.126", "POI Recall@5",   ORANGE),
     ]
-    mw_c, mh_c = 136, 66
+    aw_c, ah_c = 136, 68
     gap_c = 10
-    total_mw = len(metrics) * mw_c + (len(metrics) - 1) * gap_c
-    mx_c = (W - total_mw) / 2
-    my_c = H - MARGIN - 58 - mh_c
+    total_aw = len(metrics) * aw_c + (len(metrics) - 1) * gap_c
+    ax_c = (W - total_aw) / 2
+    ay_c = H - MARGIN - 68 - ah_c
     for val, lbl, col in metrics:
-        draw_metric_card(c, mx_c, my_c, mw_c, mh_c, val, lbl, col)
-        mx_c += mw_c + gap_c
+        draw_metric_card(c, ax_c, ay_c, aw_c, ah_c, val, lbl, col, font_b=26, font_l=11)
+        ax_c += aw_c + gap_c
 
     # POI 추천 성능 테이블
-    y_t = my_c - 30
+    y_t = ay_c - 40
     c.setFillColor(GRAY_DARK)
-    c.setFont(FONT_B, 10)
-    c.drawString(MARGIN + 10, y_t + 5, "POI 추천 성능 (test, max_dist=20km)")
+    c.setFont(FONT_B, 12)
+    c.drawString(MARGIN + 10, y_t + 8, "POI 추천 성능 (test, max_dist=20km)")
     draw_table(
-        c, MARGIN + 10, y_t - 12,
+        c, MARGIN + 10, y_t - 28,
         ["모델", "valid_trips", "Recall@5", "Recall@10"],
         [
             ["Co-occurrence v2", "166", "0.1260", "0.1761"],
             ["인기도 베이스라인", "166", "0.0370", "0.0498"],
             ["향상 (↑배수)",     "—",   "× 3.4배", "× 3.5배"],
         ],
-        col_widths=[165, 100, 110, 110], row_height=18,
+        col_widths=[165, 100, 110, 110], row_height=22, font_size_h=12, font_size_d=11
     )
 
     # GRU 실험 결과 테이블
-    y_g = y_t - 100
+    y_g = y_t - 135
     c.setFillColor(GRAY_DARK)
-    c.setFont(FONT_B, 10)
-    c.drawString(MARGIN + 10, y_g + 5, "GRU 시퀀스 모델 실험 (한계 확인 → Co-occurrence 전환)")
+    c.setFont(FONT_B, 12)
+    c.drawString(MARGIN + 10, y_g + 8, "GRU 시퀀스 모델 실험 (한계 확인 → Co-occurrence 전환)")
     draw_table(
-        c, MARGIN + 10, y_g - 12,
+        c, MARGIN + 10, y_g - 28,
         ["실험", "vocab", "train 샘플", "test_top5", "랜덤 기댓값"],
         [
             ["min_freq 없음", "9,881", "7,747", "0.99%", "0.05%"],
             ["min_freq=3",   "1,001", "3,798", "0.46%", "0.50%"],
             ["min_freq=30",  "29",    "1,781", "14.1%", "17.2% ↓ 미달"],
         ],
-        col_widths=[130, 80, 95, 100, 110], row_height=18,
+        col_widths=[130, 80, 95, 100, 110], row_height=22, font_size_h=11, font_size_d=10
     )
 
     yb = MARGIN + 10
@@ -549,11 +549,11 @@ def slide_poi(c):
 
     # 알고리즘 설명
     ax = MARGIN + 10
-    ay = H - MARGIN - 68
-    draw_card(c, ax, ay - 88, 248, 96, bg=GREEN_LIGHT)
+    ay = H - MARGIN - 168
+    draw_card(c, ax, ay - 110, 248, 120, bg=GREEN_LIGHT)
     c.setFillColor(GREEN_DARK)
-    c.setFont(FONT_B, 10)
-    c.drawString(ax + 10, ay - 4, "알고리즘")
+    c.setFont(FONT_B, 13)
+    c.drawString(ax + 10, ay - 2, "알고리즘")
     steps = [
         "① 여행별 방문 장소 집합 구성 (순서 제거)",
         "② 장소 쌍 co-visit 카운트 → co_occ[A][B]",
@@ -561,12 +561,12 @@ def slide_poi(c):
         "④ seed 집합 Jaccard 벡터 합산 → Top-N 반환",
         "⑤ Haversine 거리 필터: 시드 중심 20km 이내",
     ]
-    ty = ay - 22
+    ty = ay - 26
     for step in steps:
         c.setFillColor(GRAY_DARK)
-        c.setFont(FONT_L, 8.5)
+        c.setFont(FONT_M, 10.5)
         c.drawString(ax + 10, ty, step)
-        ty -= 14
+        ty -= 18
 
     # 샘플 추천 결과 3개 카드
     samples = [
@@ -591,27 +591,27 @@ def slide_poi(c):
     ]
     sw = (W - MARGIN * 2 - 268) / 3
     sx = MARGIN + 268
-    sy = H - MARGIN - 68
+    sy = H - MARGIN - 168
 
     for samp in samples:
         c.setFillColor(GREEN_DARK)
-        c.roundRect(sx, sy - 24, sw - 8, 24, 4, fill=1, stroke=0)
+        c.roundRect(sx, sy - 30, sw - 8, 30, 4, fill=1, stroke=0)
         c.setFillColor(WHITE)
-        c.setFont(FONT_B, 9)
-        c.drawCentredString(sx + (sw - 8) / 2, sy - 13, f"seed: {samp['seed']}")
-        draw_card(c, sx, sy - 124, sw - 8, 102, bg=GRAY_LIGHT)
-        ry = sy - 38
+        c.setFont(FONT_B, 11)
+        c.drawCentredString(sx + (sw - 8) / 2, sy - 16, f"seed: {samp['seed']}")
+        draw_card(c, sx, sy - 150, sw - 8, 122, bg=GRAY_LIGHT)
+        ry = sy - 48
         for rank, (name, jac, dist) in enumerate(samp["recs"]):
             c.setFillColor(ACCENT)
-            c.setFont(FONT_B, 8)
+            c.setFont(FONT_B, 10)
             c.drawString(sx + 8, ry, f"#{rank + 1}")
             c.setFillColor(GRAY_DARK)
-            c.setFont(FONT_M, 8.5)
-            c.drawString(sx + 24, ry, name)
+            c.setFont(FONT_B, 10.5)
+            c.drawString(sx + 28, ry, name)
             c.setFillColor(GRAY_MID)
-            c.setFont(FONT_L, 7.5)
-            c.drawString(sx + 8, ry - 11, f"Jaccard={jac}  거리={dist}")
-            ry -= 30
+            c.setFont(FONT_M, 8.5)
+            c.drawString(sx + 8, ry - 13, f"Jaccard={jac}  거리={dist}")
+            ry -= 36
         sx += sw
 
     # 평가 테이블
@@ -657,14 +657,14 @@ def slide_step1_weather_arch(c):
         "LSTM 시계열 피처: 평균기온, 강수량, 상대습도 등 8개 연속 피처",
         "Time Steps: 최근 14일치 기상 상태를 Look-back window로 사용",
     ]
-    py = H - 150
+    py = H - 170
     for pt in pts:
-        draw_bullet(c, MARGIN + 30, py, pt, font_size=10.5)
-        py -= 28
+        draw_bullet(c, MARGIN + 30, py, pt, font_size=12)
+        py -= 32
 
     right_x = W/2 + 20
-    im1 = os.path.join("report", "charts", "01_data_distribution.png")
-    im2 = os.path.join("report", "charts", "06_model_architecture.png")
+    im1 = os.path.join(BASE_DIR, "report", "charts", "01_data_distribution.png")
+    im2 = os.path.join(BASE_DIR, "report", "charts", "06_model_architecture.png")
     if os.path.exists(im1):
         c.drawImage(ImageReader(im1), right_x, H/2 + 10, width=320, height=180, preserveAspectRatio=True, anchor='c')
     if os.path.exists(im2):
@@ -695,14 +695,14 @@ def slide_step1_weather_res(c):
         " -> [흐림/미세비]: 안전점수 -0.05 하향 보정 (노면 적응 단계)",
         " -> [비/눈/얼음]: 안전점수 최대 -0.20 하향 (자전거 기피 경로 형성)"
     ]
-    py = H - 150
+    py = H - 170
     for pt in pts:
-        draw_bullet(c, MARGIN + 30, py, pt, font_size=10)
-        py -= 24
+        draw_bullet(c, MARGIN + 30, py, pt, font_size=12)
+        py -= 32
 
     right_x = W/2 + 20
-    im1 = os.path.join("report", "charts", "03_learning_curve.png")
-    im2 = os.path.join("report", "charts", "04_confusion_matrix.png")
+    im1 = os.path.join(BASE_DIR, "report", "charts", "03_learning_curve.png")
+    im2 = os.path.join(BASE_DIR, "report", "charts", "04_confusion_matrix.png")
     if os.path.exists(im1):
         c.drawImage(ImageReader(im1), right_x, H/2 + 10, width=320, height=180, preserveAspectRatio=True, anchor='c')
     if os.path.exists(im2):
@@ -730,23 +730,23 @@ def slide_step2_poi_arch(c):
         "TabNet 도입: 정형 데이터(위경도, 밀도 등)에서 비선형성을 갖춘 피처 발굴",
         "모델 특성: Attention Mechanism을 이용해 해석 가능한 피처 중요도 도출"
     ]
-    py = H - 150
+    py = H - 170
     for pt in pts:
-        draw_bullet(c, MARGIN + 30, py, pt, font_size=10.2, color=GRAY_DARK)
-        py -= 28
+        draw_bullet(c, MARGIN + 30, py, pt, font_size=12, color=GRAY_DARK)
+        py -= 32
 
     c.setFillColor(ORANGE)
-    c.roundRect(MARGIN + 30, 70, W/2 - MARGIN - 60, 48, 4, fill=1, stroke=0)
+    c.roundRect(MARGIN + 30, 60, W/2 - MARGIN - 40, 60, 4, fill=1, stroke=0)
     c.setFillColor(WHITE)
-    c.setFont(FONT_B, 10.5)
-    c.drawString(MARGIN + 45, 100, "[개념 💡] POI TabNet 구조란?")
-    c.setFont(FONT_M, 10)
+    c.setFont(FONT_B, 12)
+    c.drawString(MARGIN + 45, 102, "[개념 💡] POI TabNet 구조란?")
+    c.setFont(FONT_M, 11)
     c.drawString(MARGIN + 45, 84, "정형 데이터의 규칙(Tree)과 신경망(DNN)의 장점을 결합하여")
-    c.drawString(MARGIN + 45, 73, "가장 똑똑하고 신속하게 관광지 매력도를 예측하는 AI")
+    c.drawString(MARGIN + 45, 70, "가장 똑똑하고 신속하게 관광지 매력도를 예측하는 AI")
 
     right_x = W/2 + 20
-    im1 = os.path.join("report", "charts", "08_poi_target_distribution.png")
-    im2 = os.path.join("report", "charts", "09_tabnet_architecture.png")
+    im1 = os.path.join(BASE_DIR, "report", "charts", "08_poi_target_distribution.png")
+    im2 = os.path.join(BASE_DIR, "report", "charts", "09_tabnet_architecture.png")
     if os.path.exists(im1):
         c.drawImage(ImageReader(im1), right_x, H/2 + 10, width=320, height=180, preserveAspectRatio=True, anchor='c')
     if os.path.exists(im2):
@@ -775,14 +775,14 @@ def slide_step2_poi_res(c):
         " - 모델이 '지역 응집(Clustering)'이 밀집된 곳을 매력적인 관광지로 유추",
         "개선 연계: 딥러닝 타겟 다변화 및 개인화 파생 피처 엔지니어링 집중 필요"
     ]
-    py = H - 150
+    py = H - 170
     for pt in pts:
-        draw_bullet(c, MARGIN + 30, py, pt, font_size=10, color=GRAY_DARK)
-        py -= 28
+        draw_bullet(c, MARGIN + 30, py, pt, font_size=12, color=GRAY_DARK)
+        py -= 32
 
     right_x = W/2 + 20
-    im1 = os.path.join("report", "charts", "10_tabnet_learning_curve.png")
-    im2 = os.path.join("report", "charts", "11_tabnet_feature_importance.png")
+    im1 = os.path.join(BASE_DIR, "report", "charts", "10_tabnet_learning_curve.png")
+    im2 = os.path.join(BASE_DIR, "report", "charts", "11_tabnet_feature_importance.png")
     if os.path.exists(im1):
         c.drawImage(ImageReader(im1), right_x, H/2 + 10, width=320, height=180, preserveAspectRatio=True, anchor='c')
     if os.path.exists(im2):
@@ -811,19 +811,71 @@ def slide_step2_poi_map(c):
         "의도했던 바와 같이 명확한 Tourism 핫스팟이 두껍게 표현됨을 확인",
         "이후 route_graph.pkl 빌드(17만 노드) 완료 후 Streamlit 서빙으로 전환"
     ]
-    py = H - 150
+    py = H - 170
     for pt in pts:
-        draw_bullet(c, MARGIN + 30, py, pt, font_size=10, color=GRAY_DARK)
-        py -= 28
+        draw_bullet(c, MARGIN + 30, py, pt, font_size=12, color=GRAY_DARK)
+        py -= 32
 
     right_x = W/2 + 20
-    im1 = os.path.join("report", "charts", "14_poi_map.png")
-    im2 = os.path.join("report", "charts", "15_tourism_score_comparison.png")
+    im1 = os.path.join(BASE_DIR, "report", "charts", "14_poi_map.png")
+    im2 = os.path.join(BASE_DIR, "report", "charts", "15_tourism_score_comparison.png")
     if os.path.exists(im1):
         c.drawImage(ImageReader(im1), right_x, H/2 + 10, width=320, height=180, preserveAspectRatio=True, anchor='c')
     if os.path.exists(im2):
         c.drawImage(ImageReader(im2), right_x, MARGIN + 10, width=320, height=180, preserveAspectRatio=True, anchor='c')
 
+
+def draw_icon(c, cx, cy, kind):
+    def _poly(pts, fill=1, stroke=0):
+        p = c.beginPath()
+        p.moveTo(pts[0], pts[1])
+        for i in range(2, len(pts), 2):
+            p.lineTo(pts[i], pts[i+1])
+        p.close()
+        c.drawPath(p, fill=fill, stroke=stroke)
+
+    # Vector pictograms
+    c.setLineWidth(2)
+    if kind == "weather":
+        c.setFillColor(HexColor("#3498DB")); c.setStrokeColor(WHITE)
+        c.circle(cx-8, cy-2, 10, fill=1, stroke=0)
+        c.circle(cx+8, cy-2, 8, fill=1, stroke=0)
+        c.circle(cx, cy+6, 12, fill=1, stroke=0)
+    elif kind == "safety":
+        c.setFillColor(HexColor("#2ECC71")); c.setStrokeColor(WHITE)
+        _poly([cx-10, cy+10, cx+10, cy+10, cx+10, cy-5, cx, cy-15, cx-10, cy-5])
+    elif kind == "tourism":
+        c.setFillColor(HexColor("#F1C40F")); c.setStrokeColor(WHITE)
+        c.circle(cx, cy, 12, fill=1, stroke=0); c.setFillColor(WHITE); c.circle(cx, cy, 6, fill=1, stroke=0)
+    elif kind == "routing":
+        c.setStrokeColor(HexColor("#E74C3C")); c.setLineWidth(3)
+        c.line(cx-10, cy-10, cx-4, cy+5); c.line(cx-4, cy+5, cx+4, cy-5); c.line(cx+4, cy-5, cx+10, cy+10)
+        c.setFillColor(HexColor("#E74C3C")); c.circle(cx+10, cy+10, 3, fill=1, stroke=0)
+    elif kind == "poi":
+        c.setFillColor(HexColor("#9B59B6")); c.setStrokeColor(WHITE)
+        c.circle(cx, cy+5, 8, fill=1, stroke=0); _poly([cx-8, cy+5, cx+8, cy+5, cx, cy-12])
+        c.setFillColor(WHITE); c.circle(cx, cy+5, 3, fill=1, stroke=0)
+    elif kind == "vision":
+        c.setFillColor(HexColor("#F39C12"))
+        c.rect(cx-12, cy-8, 24, 16, fill=1, stroke=0); c.setFillColor(WHITE); c.circle(cx, cy, 5, fill=1, stroke=0)
+    elif kind == "data":
+        c.setFillColor(HexColor("#34495E"))
+        c.rect(cx-10, cy-10, 20, 4, fill=1, stroke=0)
+        c.rect(cx-10, cy-2, 20, 4, fill=1, stroke=0)
+        c.rect(cx-10, cy+6, 20, 4, fill=1, stroke=0)
+    elif kind == "user":
+        c.setFillColor(HexColor("#1ABC9C"))
+        c.circle(cx, cy+4, 6, fill=1, stroke=0); _poly([cx-10, cy-10, cx+10, cy-10, cx+6, cy-2, cx-6, cy-2])
+    elif kind == "theme":
+        c.setFillColor(HexColor("#E67E22"))
+        c.circle(cx-5, cy-5, 7, fill=1, stroke=0); c.circle(cx+5, cy+5, 7, fill=1, stroke=0)
+    elif kind == "scale":
+        c.setFillColor(HexColor("#ECF0F1")); c.setStrokeColor(HexColor("#3498DB")); c.setLineWidth(2)
+        c.rect(cx-8, cy-8, 16, 16, fill=1, stroke=1)
+        c.circle(cx, cy, 4, fill=1, stroke=0)
+    elif kind == "loop":
+        c.setStrokeColor(HexColor("#8E44AD")); c.setLineWidth(3)
+        c.line(cx-8, cy-5, cx+8, cy+5); c.line(cx+8, cy-5, cx-8, cy+5)
 
 def slide_demo(c):
     c.setFillColor(WHITE)
@@ -833,29 +885,37 @@ def slide_demo(c):
     draw_slide_title(c, "Streamlit 서비스 구성 및 데모 화면", "5개 탭 구조의 실시간 데모 앱 (Folium 환경 구축 및 카카오/네이버 맵 한계 극복)")
 
     tabs = [
-        ("1. 실시간 날씨 및 기상 연동", "사이드바에 접속 요일, 강수 유무 표시\\n(비/눈 감지 시 경로 패널티 반영)"),
-        ("2. 자전거 안전 도로 분석", "[Tab 1] 안전 등급 회귀 점수(0~1)를\\n초록-빨강 그라데이션으로 시각화"),
-        ("3. 관광 매력도 및 추천", "[Tab 2, 4] TabNet 기반 관광 매력도를\\n도로 위에 렌더링, 핵심 POI 마커 오버레이"),
-        ("4. 자동 최적 경로 제공", "[Tab 3] A출발점 -> B도착점 입력 시\\nDijkstra 기반 안전+관광 결합 최적선 표시"),
-        ("5. 추천 명소 리스트", "[Tab 5] Co-occurrence 모델 탑재\\n목적지 주변 상위 추천 지역/행사 연계 제시")
+        ("1. 날씨 연동", "요일/기상 조회\n비/눈 감지 패널티", "weather"),
+        ("2. 자전거 안전", "[Tab 1] 안전 등급\n노드 색상 그라데이션", "safety"),
+        ("3. 매력도 추천", "[Tab 2, 4] 핫스팟 렌더링\n핵심 POI 오버레이", "tourism"),
+        ("4. 최적 경로", "[Tab 3] A출발 → B도착\nDijkstra 안전 경로", "routing"),
+        ("5. 명소 연계", "[Tab 5] 목적지 주변\n상호 연관 명소 추천", "poi")
     ]
     cw = (W - MARGIN * 2 - 40) / 5
-    ch = 180
+    ch = 140
     cx = MARGIN + 10
     cy = H/2 - 20 - ch/2
 
-    for title, desc in tabs:
+    for title, desc, icon in tabs:
         draw_card(c, cx, cy, cw, ch, bg=GRAY_LIGHT)
+        # title
         c.setFillColor(GREEN_DARK)
-        c.setFont(FONT_B, 11)
-        c.drawString(cx + 10, cy + ch - 25, title)
+        c.setFont(FONT_B, 12)
+        c.drawCentredString(cx + cw/2, cy + ch - 30, title)
+        # line
+        c.setStrokeColor(HexColor("#D0D0D0"))
+        c.setLineWidth(1)
+        c.line(cx+10, cy+ch-40, cx+cw-10, cy+ch-40)
+        # Two-line desc
         c.setFillColor(GRAY_MID)
-        c.setFont(FONT_M, 8.5)
-        tx = cx + 10
-        ty = cy + ch - 45
+        c.setFont(FONT_M, 10.5)
+        ty = cy + ch - 60
         for line in desc.split('\n'):
-            c.drawString(tx, ty, line)
-            ty -= 12
+            c.drawCentredString(cx + cw/2, ty, line)
+            ty -= 16
+        # Pictogram at bottom
+        draw_icon(c, cx + cw/2, cy + 30, icon)
+        
         cx += cw + 10
 
 def slide_insights(c):
@@ -891,30 +951,49 @@ def slide_future(c):
     draw_page_header(c, "10", "Future Work")
     draw_slide_title(c, "아쉬운 점 및 향후 개선 과제", "스케일업 및 고도화 파이프라인 전망치")
 
-    draw_card(c, MARGIN + 10, 40, W - MARGIN * 2 - 20, H - 150, bg=BLUE_LIGHT)
-    
-    pts = [
-        "1. 비전 딥러닝 확대: 사용자가 하늘/구름 사진을 찍으면 실시간 Vision CNN 추론을 날씨 예측 모델에 추가하여 정확도 극대화",
-        "2. 소비예측/관광매력도의 타겟 분산 교정: 모델 예측 정확도 한계 극복을 위한 파생 피처 엔지니어링 및 데이터 확대 수집 필수",
-        "3. 초개인화(Hyper-Personalization) 경로 로직 도입: 성별, 나이, 체질량지수(BMI) 등 사용자 신체 지표를 입력받아 경로 난이도를 자동 조절",
-        "4. 멀티테마 관광망: 단순 '관광점수'에서 벗어나 선호도(자연친화/역사탐방/스포츠/문화전시 등)를 고려한 테마 경로 추출 로직 고도화",
-        "5. 지역 스케일업(Nationwide): 서울 중심 서비스를 경기, 인천 등 메가시티로 확대하고 전국 데이터 구축으로 인프라 확장",
-        "6. 피드백 루프(Continual Learning): 소비자의 '실제 경유 만족도' 및 '사고 위험지역 제보'를 즉각적으로 재학습 파이프라인에 편입하는 선순환 MLOps 구축"
+    # 3x2 Grid View
+    cards = [
+        ("비전 딥러닝 확대", "하늘/구름 실시간 Vision CNN 추론을\n날씨 예측에 융합하여 기상 시너지 극대화", "vision"),
+        ("타겟 분산성 교정", "소비/매력도 예측 정확도 한계 돌파를 위한\n파생 피처 발굴 및 데이터 수집채널 확대", "data"),
+        ("초개인화 경로 로직", "성별·나이·BMI 등 신체 지표를 반영하여\n사용자 수준별 맞춤 경로 난이도 자동 조절", "user"),
+        ("멀티테마 관광망", "단순화된 관광지 점수에서 벗어나\n자연·역사·액티비티 등 취향 테마별 경로 추출", "theme"),
+        ("지역 스케일업", "서울권역 중심의 프로토타입을 넘어\n경기·인천 메가시티 및 전국 자전거망 확대", "scale"),
+        ("피드백 MLOps 구축", "유저 만족도 피드백 및 사고 위험 제보를\n가중치 재학습 파이프라인에 즉각 편입", "loop"),
     ]
-    py = H - 90
-    for pt in pts:
-        c.setFillColor(ORANGE)
-        c.setFont(FONT_B, 12)
-        c.drawString(MARGIN + 30, py, pt[:pt.index(':')+1] if ':' in pt else pt)
+
+    card_w = (W - MARGIN * 2 - 40) / 3
+    card_h = 130
+    start_x = MARGIN + 10
+    start_y = H - 160
+
+    for i, (title, desc, icon) in enumerate(cards):
+        col = i % 3
+        row = i // 3
+        cx = start_x + (col * (card_w + 20))
+        cy = start_y - (row * (card_h + 30))
+
+        # Box background
+        draw_card(c, cx, cy - card_h, card_w, card_h, bg=HexColor("#F8F9F9"))
+        
+        # Header strip
+        c.setFillColor(HexColor("#EBF5FB"))
+        c.roundRect(cx, cy - 40, card_w, 40, 6, fill=1, stroke=0)
+        
+        # Corner icon
+        draw_icon(c, cx + 25, cy - 20, icon)
+        
+        # Title
+        c.setFillColor(BLUE_DARK)
+        c.setFont(FONT_B, 13)
+        c.drawString(cx + 50, cy - 26, f"{i+1}. {title}")
+        
+        # Content body
         c.setFillColor(GRAY_DARK)
-        c.setFont(FONT_M, 11)
-        # Handle wrap
-        desc = pt[pt.index(':')+1:].strip() if ':' in pt else ""
-        if desc:
-            c.drawString(MARGIN + 50, py - 18, desc)
-            py -= 48
-        else:
-            py -= 35
+        c.setFont(FONT_M, 11.5)
+        ty = cy - 75
+        for line in desc.split('\n'):
+            c.drawString(cx + 20, ty, line)
+            ty -= 22
 
 
 def main():
