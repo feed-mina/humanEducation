@@ -363,7 +363,7 @@ with st.sidebar:
     st.divider()
 
     # ── 날씨 섹션 (이슈 E: KMA_KEY 없으면 경고 없이 숨김) ────────────────
-    KMA_KEY = os.environ.get("KMA_API_KEY", "")
+    KMA_KEY = os.environ.get("KMA_API_KEY", os.environ.get("ASOS_API_KEY", ""))
 
     if HAS_WEATHER and KMA_KEY:
         st.subheader("🌤️ 현재 날씨")

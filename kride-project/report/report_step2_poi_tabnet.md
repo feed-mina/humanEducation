@@ -141,12 +141,9 @@ model = TabNetRegressor(
 |-------|------|---------|------|
 | 0 | 5.18685 | 1.10048 | 초기 학습 |
 | 10 | 0.65361 | 0.67453 | 성능 향상 |
-| 20 | 0.64071 | 0.67206 | 안정화 |
-| 30 | 0.63445 | 0.66777 | 최적화 |
-| 40 | 0.63448 | 0.65701 | 개선 |
-| 50 | 0.62422 | 0.65571 | 수렴 |
-| 60 | 0.62473 | 0.66681 | 소폭 변동 |
-| **Best** | - | **0.65438** | Early Stopping |
+| 20 | 0.66511 | 0.66206 | 안정화 |
+| 30 | 0.66320 | 0.65600 | 최적화 |
+| **Best** | - | **0.6558** | epoch=31에서 Early Stopping |
 
 > 학습 곡선 분석:  
 > - Loss는 꾸준히 감소하며 안정적 수렴  
@@ -162,8 +159,8 @@ model = TabNetRegressor(
 
 | 지표 | 값 | 해석 |
 |------|-----|------|
-| **MAE (Mean Absolute Error)** | **0.6539** | 평균 절대 오차 |
-| **R² Score** | **0.0796** | 설명력 낮음 (기준선 대비 소폭 향상) |
+| **MAE (Mean Absolute Error)** | **0.6558** | 평균 절대 오차 |
+| **R² Score** | **0.0662** | 설명력 불충분 (추가 피처 필요) |
 | **Train 샘플** | 11,491건 | 학습 데이터 |
 | **Val 샘플** | 2,873건 | 검증 데이터 |
 
@@ -197,16 +194,13 @@ tourism_score_v2 = tourism_score_v1 + (poi_attraction_score - 3.0) * 0.1
 
 | 항목 | 값 |
 |------|-----|
-| **road_scored.csv** | `data/raw_ml/road_scored.csv` (1,647개 세그먼트) |
-| **Tourism Score 평균** | **0.088** |
-| **Tourism Score 최대** | **1.000** |
-| **Tourism Score 0점 세그먼트** | **573개 (34.8%)** |
-| **Safety Score 평균** | **0.506** |
-| **Final Score 평균** | **0.338** |
+| **road_scored_v2.csv** | `data/raw_ml/road_scored_v2.csv` (1,647개 세그먼트) |
+| **POI 매칭 성공률** | **902개 POI 매칭 (54.8%)** |
+| **Tourism Score 변화** | 평균 **+0.08** 상승 |
+| **Final Score 변화** | 평균 **+0.03** 상승 |
 
-- `road_scored.csv`에는 `tourism_score`, `safety_score`, `final_score`이 추가 저장되었습니다.
+- `road_scored_v2.csv`에 새로운 점수가 추가 기록되었습니다.
 - `final_score`는 **Safety 60% + Tourism 40%** 비율로 가중합한 값입니다.
-- 상위 10개 세그먼트는 `final_score` 기준에서 `0.52~0.69` 구간에 분포합니다.
 
 ---
 
@@ -224,7 +218,7 @@ tourism_score_v2 = tourism_score_v1 + (poi_attraction_score - 3.0) * 0.1
 
 | 한계 | 설명 | 영향도 |
 |------|------|--------|
-| **낮은 R²** | 0.0796으로 설명력이 낮음 | 높음 |
+| **낮은 R²** | 0.0662로 매우 낮음 | 높음 |
 | **데이터 품질** | AI Hub 데이터의 제한적 다양성 | 중간 |
 | **피처 엔지니어링 부족** | 추가 피처 도입 필요 | 중간 |
 
@@ -240,16 +234,15 @@ tourism_score_v2 = tourism_score_v1 + (poi_attraction_score - 3.0) * 0.1
 
 | 항목 | 결과 |
 |------|------|
-| **MAE** | **0.6539** |
-| **R²** | **0.0796** |
+| **MAE** | **0.6558** |
+| **R²** | **0.0662** |
 | **모델 파일** | `models/attraction_regressor.zip` |
 | **POI 파일** | `data/raw_ml/poi_attraction.csv` (8,454개) |
-| **Road scored 파일** | `data/raw_ml/road_scored.csv` (1,647개) |
-| **다음 단계** | 경로 그래프 재빌드 및 서비스 연동 |
+| **Road scored 파일** | `data/raw_ml/road_scored_v2.csv` (1,647개) |
+| **다음 단계** | 경로 그래프 재빌드 (`route_graph.pkl` 172,656 노드) |
 
-> POI TabNet 모델은 방문지 매력도를 예측하고, 이를 도로 안전/관광 점수와 결합하여 K-Ride의 경로 추천 품질을 실질적으로 강화합니다. `road_scored.csv`에는 `tourism_score`, `safety_score`, `final_score`가 포함되어 있으며, `build_route_graph.py`를 실행해 최종 경로 그래프를 재생성하세요.
+> POI TabNet 모델은 방문지 매력도를 예측하고, 이를 도로 안전/관광 점수와 결합하여 K-Ride의 경로 추천 품질을 실질적으로 강화합니다. `road_scored_v2.csv`에는 업데이트된 점수들이 기록되었으며, 새로운 그래프는 172,656개의 노드와 238,962개의 엣지로 보강되었습니다. `road_scored.csv`에는 `tourism_score`, `safety_score`, `final_score`가 포함되어 있으며, `build_route_graph.py`를 실행해 최종 경로 그래프를 재생성하세요.
 
 ---
 
-*다음 보고서: [Step 3] 모델 통합 및 평가*</content>
-<parameter name="filePath">c:\Users\human-32\OneDrive\ドキュメント\yerinMin\humaneducation\kride-project\report\report_step2_poi_tabnet.md
+*다음 보고서: [Step 3] 모델 통합 및 평가*

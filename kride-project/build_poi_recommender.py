@@ -188,7 +188,7 @@ train_tids = set(all_tids[:n_train])
 val_tids   = set(all_tids[n_train : n_train + n_val])
 test_tids  = set(all_tids[n_train + n_val :])
 
-print(f"  TRAVEL_ID — train: {len(train_tids):,} / val: {len(val_tids):,} / test: {len(test_tids):,}")
+print(f"  TRAVEL_ID - train: {len(train_tids):,} / val: {len(val_tids):,} / test: {len(test_tids):,}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
