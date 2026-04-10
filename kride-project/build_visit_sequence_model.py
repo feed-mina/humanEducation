@@ -55,7 +55,7 @@ parser.add_argument("--dropout",  type=float, default=0.3)
 parser.add_argument("--window",   type=int,   default=5,
                     help="슬라이딩 윈도우 크기 (입력 window-1개 → 다음 1개 예측)")
 parser.add_argument("--patience", type=int,   default=7)
-parser.add_argument("--min_freq", type=int,   default=3,
+parser.add_argument("--min_freq", type=int,   default=5,
                     help="최소 방문 빈도 (이하 방문지는 <UNK>로 처리, vocab 축소)")
 args = parser.parse_args()
 
@@ -143,6 +143,15 @@ for tid, grp in df.groupby("TRAVEL_ID"):
 
 print(f"  슬라이딩 윈도우 샘플 수: {len(samples):,} "
       f"(window={WINDOW}, 입력={SEQ_IN}개 → 다음 1개)")
+
+# ── <UNK> 타겟 샘플 제거 ──────────────────────────────────────────────────────
+# 추천 목적상 "다음 방문지 = <UNK>"인 샘플은 학습/평가에서 제외
+unk_idx = int(le.transform(["<UNK>"])[0])
+before  = len(samples)
+samples = [(x, y, tid) for x, y, tid in samples if y != unk_idx]
+print(f"  <UNK> 타겟 제거: {before:,} → {len(samples):,}개 "
+      f"(제거 {before - len(samples):,}개, "
+      f"잔존 {len(samples)/before*100:.1f}%)")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 2: TRAVEL_ID 기준 70 / 20 / 10 분할

@@ -1,0 +1,15 @@
+{
+  "vocab": 1646,
+  "min_trip_freq": 2,
+  "max_dist_km": 20.0,
+  "exclude_type_ge": 21,
+  "n_trips_train": 1775,
+  "n_trips_val": 507,
+  "n_trips_test": 254,
+  "val_recall5": 0.1144,
+  "val_recall10": 0.1699,
+  "test_recall5": 0.126,
+  "test_recall10": 0.1761,
+  "baseline_test_recall5": 0.037,
+  "baseline_test_recall10": 0.0498
+}

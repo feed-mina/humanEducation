@@ -1,0 +1,13 @@
+[theme]
+primaryColor = "#16A34A"
+backgroundColor = "#0F172A"
+secondaryBackgroundColor = "#1E293B"
+textColor = "#F1F5F9"
+font = "sans serif"
+
+[server]
+# 로컬 Windows에서 colorama 충돌 방지 (배포 환경에서는 무시됨)
+fileWatcherType = "auto"
+
+[browser]
+gatherUsageStats = false

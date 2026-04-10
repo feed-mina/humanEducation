@@ -1,704 +1,825 @@
 # -*- coding: utf-8 -*-
 """
 generate_report.py
-K-Ride AI개발 수행내역서 자동 생성
+K-Ride 딥러닝 산출물 보고서 생성 (16:9 슬라이드 형태)
+
 실행: python kride-project/generate_report.py
-출력: kride-project/report/K-Ride_AI개발수행내역서.docx
+출력: kride-project/K-Ride_보고서.pdf
 """
 
-import os, io
-import numpy as np
-import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import joblib
+import os
 
-from docx import Document
-from docx.shared import Pt, Cm, RGBColor, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_ALIGN_VERTICAL
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
-from copy import deepcopy
+from reportlab.lib.units import mm
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.colors import HexColor
 
-# ── 경로 ─────────────────────────────────────────────────────────────
-BASE      = os.path.dirname(__file__)
-DATA_PATH = os.path.join(BASE, "data", "raw_ml", "road_scored.csv")
-META_PATH = os.path.join(BASE, "models", "safety_meta.pkl")
-OUT_PATH  = os.path.join(BASE, "report", "K-Ride_AI개발수행내역서.docx")
-CHART_DIR = os.path.join(BASE, "report", "charts")
-os.makedirs(CHART_DIR, exist_ok=True)
+# ── 경로 ──────────────────────────────────────────────────────────────────────
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+FONT_DIR   = os.path.join(os.path.dirname(BASE_DIR), "수업일지")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+OUT_PATH   = os.path.join(BASE_DIR, "K-Ride_보고서.pdf")
 
-# ── 한글 폰트 설정 ────────────────────────────────────────────────────
-def set_mpl_font():
-    for path in [
-        "C:/Windows/Fonts/malgun.ttf",
-        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
-    ]:
+# ── 폰트 등록 ─────────────────────────────────────────────────────────────────
+def register_fonts():
+    fonts = {
+        "KoPub-Light":  "KoPubDotumLight.ttf",
+        "KoPub-Medium": "KoPubDotumMedium.ttf",
+        "KoPub-Bold":   "KoPubDotumBold.ttf",
+    }
+    for name, fname in fonts.items():
+        path = os.path.join(FONT_DIR, fname)
         if os.path.exists(path):
-            fm.fontManager.addfont(path)
-            prop = fm.FontProperties(fname=path)
-            plt.rcParams["font.family"] = prop.get_name()
-            plt.rcParams["axes.unicode_minus"] = False
-            return
-    plt.rcParams["axes.unicode_minus"] = False
+            pdfmetrics.registerFont(TTFont(name, path))
+        else:
+            print(f"  ⚠️  폰트 없음: {path}")
+            return False
+    return True
 
-set_mpl_font()
+HAS_KOPUB = register_fonts()
+FONT_B = "KoPub-Bold"   if HAS_KOPUB else "Helvetica-Bold"
+FONT_M = "KoPub-Medium" if HAS_KOPUB else "Helvetica"
+FONT_L = "KoPub-Light"  if HAS_KOPUB else "Helvetica"
 
-# ── 데이터·메타 로드 ──────────────────────────────────────────────────
-df   = pd.read_csv(DATA_PATH)
-meta = joblib.load(META_PATH)
+# ── 색상 팔레트 ───────────────────────────────────────────────────────────────
+GREEN_DARK  = HexColor("#1A6B3C")
+GREEN_MID   = HexColor("#2D8A55")
+GREEN_LIGHT = HexColor("#E8F5EE")
+GRAY_DARK   = HexColor("#2C2C2C")
+GRAY_MID    = HexColor("#555555")
+GRAY_LIGHT  = HexColor("#F4F4F4")
+WHITE       = HexColor("#FFFFFF")
+ACCENT      = HexColor("#F0A500")
+BLUE_DARK   = HexColor("#1A5276")
+PURPLE      = HexColor("#7D3C98")
+ORANGE      = HexColor("#B7500A")
+BLUE_LIGHT  = HexColor("#EAF4FB")
 
-# ── 차트 생성 헬퍼 ────────────────────────────────────────────────────
-def save_chart(name: str, fig) -> str:
-    path = os.path.join(CHART_DIR, f"{name}.png")
-    fig.savefig(path, dpi=200, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-    return path
+# ── 페이지 설정 (16:9 landscape A4) ──────────────────────────────────────────
+W, H = landscape(A4)   # 841.9 × 595.3 pt
+MARGIN = 28
 
-# 차트 1: 회귀 모델 성능 비교
-def chart_model_compare():
-    models = ["선형회귀", "다중회귀", "RandomForest\n(기본)", "RandomForest\n(v2 개선)"]
-    r2s    = [0.0096, 0.0635, 0.1890, 0.9539]
-    colors = ["#AAAAAA", "#AAAAAA", "#AAAAAA", "#4DA6FF"]
-    fig, ax = plt.subplots(figsize=(7, 3.5))
-    bars = ax.barh(models, r2s, color=colors)
-    for bar, val in zip(bars, r2s):
-        ax.text(val + 0.01, bar.get_y() + bar.get_height()/2,
-                f"{val:.4f}", va="center", fontsize=9)
-    ax.set_xlim(0, 1.05)
-    ax.set_xlabel("R² Score")
-    ax.set_title("회귀 모델 성능 비교")
-    ax.axvline(0.6, color="red", lw=1, linestyle="--", label="기준선(0.6)")
-    ax.legend(fontsize=8)
-    fig.tight_layout()
-    return save_chart("model_compare", fig)
 
-# 차트 2: 안전점수 분포
-def chart_safety_hist():
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax.hist(df["safety_score"], bins=30, color="#4DA6FF", edgecolor="white")
-    ax.axvline(meta["q33"], color="#FF4444", lw=1.5, linestyle="--", label=f"q33={meta['q33']:.3f}")
-    ax.axvline(meta["q66"], color="#FFA500", lw=1.5, linestyle="--", label=f"q66={meta['q66']:.3f}")
-    ax.set_xlabel("안전 점수 (safety_score)")
-    ax.set_ylabel("세그먼트 수")
-    ax.set_title("안전 점수 분포 및 등급 임계값")
-    ax.legend(fontsize=8)
-    fig.tight_layout()
-    return save_chart("safety_hist", fig)
+# ══════════════════════════════════════════════════════════════════════════════
+# 공통 드로잉 유틸
+# ══════════════════════════════════════════════════════════════════════════════
 
-# 차트 3: 관광점수 분포
-def chart_tourism_hist():
-    fig, ax = plt.subplots(figsize=(6, 3))
-    nz = df[df["tourism_score"] > 0]["tourism_score"]
-    ax.hist(nz, bins=25, color="#57CC99", edgecolor="white")
-    ax.set_xlabel("관광 점수 (tourism_score, 0 제외)")
-    ax.set_ylabel("세그먼트 수")
-    ax.set_title(f"관광 점수 분포 (비영 세그먼트 {len(nz):,}개)")
-    fig.tight_layout()
-    return save_chart("tourism_hist", fig)
+def draw_border(c, color=GREEN_DARK, lw=6):
+    c.setStrokeColor(color)
+    c.setLineWidth(lw)
+    c.rect(lw / 2, lw / 2, W - lw, H - lw)
 
-# 차트 4: 안전 vs 관광 산점도
-def chart_scatter():
-    fig, ax = plt.subplots(figsize=(6, 4))
-    sc = ax.scatter(df["safety_score"], df["tourism_score"],
-                    c=df["final_score"], cmap="RdYlGn", alpha=0.4, s=8)
-    plt.colorbar(sc, ax=ax, label="최종 추천 점수")
-    ax.set_xlabel("안전 점수")
-    ax.set_ylabel("관광 점수")
-    ax.set_title("안전 점수 vs 관광 점수 (컬러: 최종 점수)")
-    fig.tight_layout()
-    return save_chart("scatter", fig)
 
-# 차트 5: 분류 모델 F1 (간단 바)
-def chart_f1():
-    labels = ["회귀 접근\n(R²=0.19)", "분류 접근\n(F1=0.9864)"]
-    vals   = [0.19, 0.9864]
-    colors = ["#AAAAAA", "#4DA6FF"]
-    fig, ax = plt.subplots(figsize=(5, 2.5))
-    bars = ax.bar(labels, vals, color=colors)
-    for bar, val in zip(bars, vals):
-        ax.text(bar.get_x() + bar.get_width()/2, val + 0.01,
-                f"{val:.4f}", ha="center", fontsize=10, fontweight="bold")
-    ax.set_ylim(0, 1.15)
-    ax.set_ylabel("성능 지표")
-    ax.set_title("전략 전환 효과: 회귀 → 분류")
-    fig.tight_layout()
-    return save_chart("f1_compare", fig)
+def draw_page_header(c, section_num, section_title):
+    c.setFillColor(GRAY_MID)
+    c.setFont(FONT_L, 9)
+    c.drawString(MARGIN, H - MARGIN, f"{section_num}  {section_title}")
+    c.setStrokeColor(GREEN_MID)
+    c.setLineWidth(0.5)
+    c.line(MARGIN, H - MARGIN - 4, W - MARGIN, H - MARGIN - 4)
 
-print("차트 생성 중...")
-PATH_MODEL_COMPARE = chart_model_compare()
-PATH_SAFETY_HIST   = chart_safety_hist()
-PATH_TOURISM_HIST  = chart_tourism_hist()
-PATH_SCATTER       = chart_scatter()
-PATH_F1            = chart_f1()
-print("차트 생성 완료")
 
-# ── Word 문서 헬퍼 ────────────────────────────────────────────────────
-FONT_TITLE = "휴먼명조"
-FONT_BODY  = "맑은 고딕"
-COLOR_RED  = RGBColor(0xC0, 0x00, 0x00)
-COLOR_BLUE = RGBColor(0x00, 0x00, 0xFF)
+def draw_slide_title(c, title, subtitle=""):
+    y = H - MARGIN - 42
+    c.setFillColor(GRAY_DARK)
+    c.setFont(FONT_B, 24)
+    c.drawCentredString(W / 2, y, title)
+    if subtitle:
+        c.setFont(FONT_L, 10)
+        c.setFillColor(GRAY_MID)
+        c.drawCentredString(W / 2, y - 20, subtitle)
 
-def set_cell_border(cell, **kwargs):
-    """셀 테두리 설정 헬퍼"""
-    tc   = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    for side in ["top", "left", "bottom", "right"]:
-        tag = f"w:{side}"
-        el = OxmlElement(tag)
-        el.set(qn("w:val"),   kwargs.get("val",   "single"))
-        el.set(qn("w:sz"),    kwargs.get("sz",    "4"))
-        el.set(qn("w:color"), kwargs.get("color", "000000"))
-        tcBorders = tcPr.find(qn("w:tcBorders"))
-        if tcBorders is None:
-            tcBorders = OxmlElement("w:tcBorders")
-            tcPr.append(tcBorders)
-        tcBorders.append(el)
 
-def set_shading(cell, fill="D9D9D9"):
-    tc   = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    shd  = OxmlElement("w:shd")
-    shd.set(qn("w:val"),   "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"),  fill)
-    tcPr.append(shd)
+def draw_card(c, x, y, w, h, bg=GRAY_LIGHT, radius=5):
+    c.setFillColor(bg)
+    c.setStrokeColor(HexColor("#DDDDDD"))
+    c.setLineWidth(0.5)
+    c.roundRect(x, y, w, h, radius, fill=1, stroke=1)
 
-def add_page_number(section):
-    """하단 중앙 페이지 번호: - N -"""
-    footer  = section.footer
-    para    = footer.paragraphs[0]
-    para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = para.add_run("- ")
-    run.font.name = FONT_BODY; run.font.size = Pt(9)
-    # 자동 페이지 번호 필드
-    fldChar1 = OxmlElement("w:fldChar")
-    fldChar1.set(qn("w:fldCharType"), "begin")
-    instrText = OxmlElement("w:instrText")
-    instrText.text = "PAGE"
-    fldChar2 = OxmlElement("w:fldChar")
-    fldChar2.set(qn("w:fldCharType"), "end")
-    r = OxmlElement("w:r")
-    r.append(fldChar1); r.append(instrText); r.append(fldChar2)
-    para._p.append(r)
-    run2 = para.add_run(" -")
-    run2.font.name = FONT_BODY; run2.font.size = Pt(9)
 
-def para_style(para, font_name=FONT_BODY, size=10, bold=False, color=None,
-               align=WD_ALIGN_PARAGRAPH.LEFT, space_before=0, space_after=4, line_spacing=1.15):
-    para.alignment = align
-    para.paragraph_format.space_before = Pt(space_before)
-    para.paragraph_format.space_after  = Pt(space_after)
-    para.paragraph_format.line_spacing = line_spacing
-    for run in para.runs:
-        run.font.name  = font_name
-        run.font.size  = Pt(size)
-        run.font.bold  = bold
-        if color:
-            run.font.color.rgb = color
-        rPr = run._r.get_or_add_rPr()
-        rFonts = OxmlElement("w:rFonts")
-        rFonts.set(qn("w:eastAsia"), font_name)
-        rPr.append(rFonts)
+def draw_metric_card(c, x, y, w, h, value, label, color=GREEN_DARK):
+    draw_card(c, x, y, w, h, bg=WHITE)
+    c.setFillColor(color)
+    c.setFont(FONT_B, 20)
+    c.drawCentredString(x + w / 2, y + h - 34, value)
+    c.setFillColor(GRAY_MID)
+    c.setFont(FONT_L, 8)
+    c.drawCentredString(x + w / 2, y + h - 50, label)
 
-def add_para(doc, text, font_name=FONT_BODY, size=10, bold=False, color=None,
-             align=WD_ALIGN_PARAGRAPH.LEFT, space_before=0, space_after=4):
-    para = doc.add_paragraph()
-    run  = para.add_run(text)
-    run.font.name  = font_name
-    run.font.size  = Pt(size)
-    run.font.bold  = bold
-    if color:
-        run.font.color.rgb = color
-    rPr = run._r.get_or_add_rPr()
-    rFonts = OxmlElement("w:rFonts")
-    rFonts.set(qn("w:eastAsia"), font_name)
-    rPr.append(rFonts)
-    para.alignment = align
-    para.paragraph_format.space_before = Pt(space_before)
-    para.paragraph_format.space_after  = Pt(space_after)
-    para.paragraph_format.line_spacing = 1.15
-    return para
 
-def add_heading(doc, text, level=1, color=None):
-    """번호형 제목 (1. / 가. 스타일)"""
-    sizes = {1: 13, 2: 11, 3: 10}
-    bolds = {1: True, 2: True, 3: False}
-    return add_para(doc, text,
-                    size=sizes.get(level, 10),
-                    bold=bolds.get(level, False),
-                    color=color,
-                    space_before=8 if level == 1 else 4,
-                    space_after=4)
+def draw_green_box(c, x, y, w, h, text, font_size=9):
+    c.setFillColor(GREEN_LIGHT)
+    c.setStrokeColor(GREEN_MID)
+    c.setLineWidth(1)
+    c.roundRect(x, y, w, h, 4, fill=1, stroke=1)
+    c.setFillColor(GREEN_DARK)
+    c.setFont(FONT_M, font_size)
+    c.drawCentredString(x + w / 2, y + h / 2 - font_size / 2, text)
 
-def add_red_section(doc, text):
-    """빨간색 섹션 구분선 헤더"""
-    para = doc.add_paragraph()
-    run  = para.add_run(text)
-    run.font.name  = FONT_BODY
-    run.font.size  = Pt(12)
-    run.font.bold  = True
-    run.font.color.rgb = COLOR_RED
-    rPr = run._r.get_or_add_rPr()
-    rFonts = OxmlElement("w:rFonts")
-    rFonts.set(qn("w:eastAsia"), FONT_BODY)
-    rPr.append(rFonts)
-    para.paragraph_format.space_before = Pt(6)
-    para.paragraph_format.space_after  = Pt(4)
-    # 하단 선
-    pPr  = para._p.get_or_add_pPr()
-    pBdr = OxmlElement("w:pBdr")
-    bottom = OxmlElement("w:bottom")
-    bottom.set(qn("w:val"), "single")
-    bottom.set(qn("w:sz"), "6")
-    bottom.set(qn("w:color"), "C00000")
-    pBdr.append(bottom)
-    pPr.append(pBdr)
-    return para
 
-def add_bullet(doc, text, indent_cm=0.7):
-    para = doc.add_paragraph()
-    run  = para.add_run(f"○ {text}")
-    run.font.name  = FONT_BODY
-    run.font.size  = Pt(10)
-    rPr = run._r.get_or_add_rPr()
-    rFonts = OxmlElement("w:rFonts")
-    rFonts.set(qn("w:eastAsia"), FONT_BODY)
-    rPr.append(rFonts)
-    para.paragraph_format.left_indent   = Cm(indent_cm)
-    para.paragraph_format.space_before  = Pt(1)
-    para.paragraph_format.space_after   = Pt(2)
-    para.paragraph_format.line_spacing  = 1.15
-    return para
-
-def add_sub_bullet(doc, text, indent_cm=1.3):
-    para = doc.add_paragraph()
-    run  = para.add_run(f"- {text}")
-    run.font.name  = FONT_BODY
-    run.font.size  = Pt(10)
-    rPr = run._r.get_or_add_rPr()
-    rFonts = OxmlElement("w:rFonts")
-    rFonts.set(qn("w:eastAsia"), FONT_BODY)
-    rPr.append(rFonts)
-    para.paragraph_format.left_indent   = Cm(indent_cm)
-    para.paragraph_format.space_before  = Pt(0)
-    para.paragraph_format.space_after   = Pt(2)
-    para.paragraph_format.line_spacing  = 1.15
-    return para
-
-def add_simple_table(doc, headers, rows, header_fill="4472C4", header_color="FFFFFF"):
-    """헤더+데이터 테이블"""
-    col_count = len(headers)
-    table = doc.add_table(rows=1 + len(rows), cols=col_count)
-    table.style = "Table Grid"
+def draw_table(c, x, y, headers, rows, col_widths, row_height=18,
+               header_bg=GREEN_DARK, stripe=True):
+    total_w = sum(col_widths)
     # 헤더
-    hdr_row = table.rows[0]
-    for i, h in enumerate(headers):
-        cell = hdr_row.cells[i]
-        cell.text = h
-        cell.paragraphs[0].runs[0].font.name = FONT_BODY
-        cell.paragraphs[0].runs[0].font.size = Pt(9)
-        cell.paragraphs[0].runs[0].font.bold = True
-        cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(
-            int(header_color[0:2], 16),
-            int(header_color[2:4], 16),
-            int(header_color[4:6], 16),
-        )
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        set_shading(cell, fill=header_fill)
-    # 데이터
+    c.setFillColor(header_bg)
+    c.rect(x, y, total_w, row_height, fill=1, stroke=0)
+    c.setFillColor(WHITE)
+    c.setFont(FONT_B, 8)
+    cx = x
+    for h_txt, cw in zip(headers, col_widths):
+        c.drawCentredString(cx + cw / 2, y + 5, h_txt)
+        cx += cw
+    # 데이터 행
     for ri, row in enumerate(rows):
-        trow = table.rows[ri + 1]
-        for ci, val in enumerate(row):
-            cell = trow.cells[ci]
-            cell.text = str(val)
-            cell.paragraphs[0].runs[0].font.name = FONT_BODY
-            cell.paragraphs[0].runs[0].font.size = Pt(9)
-            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER if ci > 0 else WD_ALIGN_PARAGRAPH.LEFT
-    doc.add_paragraph()  # 테이블 후 여백
-    return table
+        ry = y - (ri + 1) * row_height
+        bg = HexColor("#F0F8F4") if (stripe and ri % 2 == 0) else WHITE
+        c.setFillColor(bg)
+        c.rect(x, ry, total_w, row_height, fill=1, stroke=0)
+        c.setStrokeColor(HexColor("#E0E0E0"))
+        c.setLineWidth(0.3)
+        c.line(x, ry, x + total_w, ry)
+        c.setFillColor(GRAY_DARK)
+        c.setFont(FONT_M, 8)
+        cx = x
+        for cell, cw in zip(row, col_widths):
+            c.drawCentredString(cx + cw / 2, ry + 5, str(cell))
+            cx += cw
+    # 외곽선
+    c.setStrokeColor(GREEN_MID)
+    c.setLineWidth(0.8)
+    c.rect(x, y - len(rows) * row_height, total_w,
+           row_height * (len(rows) + 1), fill=0, stroke=1)
 
-def add_image_in_box(doc, img_path, caption="", width_cm=14.0):
-    """이미지를 테두리 박스 안에 삽입"""
-    table = doc.add_table(rows=1, cols=1)
-    table.style = "Table Grid"
-    cell = table.rows[0].cells[0]
-    if caption:
-        cp = cell.add_paragraph(caption)
-        cp.runs[0].font.name = FONT_BODY
-        cp.runs[0].font.size = Pt(9)
-        cp.runs[0].font.bold = True
-        cp.paragraph_format.space_after = Pt(4)
-    p = cell.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run()
-    run.add_picture(img_path, width=Cm(width_cm))
-    doc.add_paragraph().paragraph_format.space_after = Pt(4)
-    return table
 
-# ══════════════════════════════════════════════════════════════════════
-# 문서 생성
-# ══════════════════════════════════════════════════════════════════════
-doc = Document()
+def draw_bullet(c, x, y, text, font_size=9, color=GRAY_DARK):
+    c.setFillColor(GREEN_MID)
+    c.circle(x + 3, y + 3.5, 2.5, fill=1, stroke=0)
+    c.setFillColor(color)
+    c.setFont(FONT_M, font_size)
+    c.drawString(x + 11, y, text)
 
-# ── 페이지 설정 ───────────────────────────────────────────────────────
-section = doc.sections[0]
-section.page_width  = Cm(21.0)
-section.page_height = Cm(29.7)
-section.top_margin    = Cm(2.5)
-section.bottom_margin = Cm(2.5)
-section.left_margin   = Cm(2.5)
-section.right_margin  = Cm(2.5)
-add_page_number(section)
 
-# ══════════════════════════════════════════════════════════════════════
-# 표지
-# ══════════════════════════════════════════════════════════════════════
-# 상단 여백
-for _ in range(4):
-    add_para(doc, "")
+# ══════════════════════════════════════════════════════════════════════════════
+# 슬라이드별 함수
+# ══════════════════════════════════════════════════════════════════════════════
 
-add_para(doc, "자전거 안전경로 추천 데이터셋 분석",
-         font_name=FONT_TITLE, size=16, bold=False,
-         align=WD_ALIGN_PARAGRAPH.CENTER, space_after=2)
+def slide_cover(c):
+    """표지"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    # 상단 굵은 바
+    c.setFillColor(GREEN_DARK)
+    c.rect(0, H - 10, W, 10, fill=1, stroke=0)
+    # 하단 굵은 바
+    c.rect(0, 0, W, 10, fill=1, stroke=0)
+    # 테두리
+    draw_border(c, GREEN_DARK, lw=6)
 
-add_para(doc, "과제AI개발 수행내역서",
-         font_name=FONT_TITLE, size=28, bold=True,
-         align=WD_ALIGN_PARAGRAPH.CENTER, space_after=12)
+    # 메인 제목
+    c.setFillColor(GREEN_DARK)
+    c.setFont(FONT_B, 42)
+    c.drawCentredString(W / 2, H / 2 + 68, "K-Ride")
+    c.setFillColor(GRAY_DARK)
+    c.setFont(FONT_B, 20)
+    c.drawCentredString(W / 2, H / 2 + 30, "서울 자전거 안전 경로 추천 시스템")
 
-# 과제명/담당자 표
-cover_table = doc.add_table(rows=2, cols=2)
-cover_table.style = "Table Grid"
-cover_data = [("과제명", "자전거도로 안전등급 분류 및 관광경로 추천 시스템 (K-Ride)"),
-              ("담당자", "feed-mina")]
-for ri, (label, val) in enumerate(cover_data):
-    r = cover_table.rows[ri]
-    r.cells[0].text = label
-    r.cells[1].text = val
-    for ci in range(2):
-        cell = r.cells[ci]
-        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = cell.paragraphs[0].runs[0]
-        run.font.name = FONT_BODY
-        run.font.size = Pt(11)
-        if ci == 0:
-            run.font.bold = True
-        cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    # 부제 꺾쇠 박스
+    bx, bw, bh = W / 2 - 200, 400, 34
+    by = H / 2 - 16
+    c.setStrokeColor(GREEN_DARK)
+    c.setLineWidth(1.5)
+    c.line(bx, by + bh, bx + 14, by + bh)
+    c.line(bx, by + bh, bx, by)
+    c.line(bx + bw - 14, by + bh, bx + bw, by + bh)
+    c.line(bx + bw, by + bh, bx + bw, by)
+    c.setFillColor(GRAY_MID)
+    c.setFont(FONT_L, 11)
+    c.drawCentredString(W / 2, by + 10, "딥러닝 기반 경로 최적화 · 관광지 추천 · 실시간 날씨 반영")
 
-for _ in range(2):
-    add_para(doc, "")
+    # 기술 태그
+    tags = ["TabNet", "Co-occurrence", "osmnx", "Streamlit", "Folium"]
+    tw_tag = 72
+    tx = W / 2 - (len(tags) * (tw_tag + 8)) / 2
+    ty = H / 2 - 68
+    for tag in tags:
+        c.setFillColor(GREEN_LIGHT)
+        c.setStrokeColor(GREEN_MID)
+        c.setLineWidth(0.8)
+        c.roundRect(tx, ty, tw_tag, 20, 4, fill=1, stroke=1)
+        c.setFillColor(GREEN_DARK)
+        c.setFont(FONT_M, 8.5)
+        c.drawCentredString(tx + tw_tag / 2, ty + 6, tag)
+        tx += tw_tag + 8
 
-add_para(doc, "2026년 4 월 3 일",
-         font_name=FONT_TITLE, size=14,
-         align=WD_ALIGN_PARAGRAPH.CENTER, space_before=8)
+    # 발표자
+    c.setFillColor(GRAY_MID)
+    c.setFont(FONT_L, 10)
+    c.drawCentredString(W / 2, MARGIN + 16, "발표자  feed-mina          2026.04")
 
-doc.add_page_break()
 
-# ══════════════════════════════════════════════════════════════════════
-# 1페이지: AI개발 수행내용
-# ══════════════════════════════════════════════════════════════════════
-add_red_section(doc, "AI개발 수행내용")
+def slide_contents(c):
+    """목차"""
+    c.setFillColor(GREEN_DARK)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    c.setFillColor(WHITE)
+    c.setFont(FONT_B, 26)
+    c.drawString(MARGIN + 10, H - 65, "contents")
+    c.setStrokeColor(WHITE)
+    c.setLineWidth(1)
+    c.line(MARGIN + 10, H - 70, MARGIN + 115, H - 70)
 
-# 순서 박스
-seq_table = doc.add_table(rows=1, cols=1)
-seq_table.style = "Table Grid"
-seq_cell = seq_table.rows[0].cells[0]
-sp = seq_cell.add_paragraph("■ 순서")
-sp.runs[0].font.name = FONT_BODY; sp.runs[0].font.size = Pt(10); sp.runs[0].font.bold = True
-for i, item in enumerate(["프로젝트 개요", "데이터 분석 및 전처리 과정",
-                           "모델학습 및 최적화 과정", "결과 시각화 및 평가",
-                           "데이터 프로파일링 리포트"], 1):
-    ip = seq_cell.add_paragraph(f"{'①②③④⑤'[i-1]} {item}")
-    ip.runs[0].font.name = FONT_BODY; ip.runs[0].font.size = Pt(10)
-    ip.paragraph_format.left_indent = Cm(0.5)
-doc.add_paragraph()
+    items = [
+        ("01", "Project Overview",   "프로젝트 목표 및 Why / How"),
+        ("02", "Dataset Analysis",   "데이터 현황 및 전처리 특성"),
+        ("03", "Model Architecture", "안전 · 관광 · 경로 · POI 추천 모듈"),
+        ("04", "Model Performance",  "정량 지표 및 베이스라인 비교"),
+        ("05", "POI Recommendation", "Co-occurrence 관광지 추천 결과"),
+        ("06", "Service Demo",       "Streamlit 5탭 서비스 구성"),
+        ("07", "Conclusion",         "결론 및 향후 계획"),
+    ]
+    y = H - 105
+    for num, title, desc in items:
+        c.setFillColor(HexColor("#FFFFFF18"))
+        c.roundRect(MARGIN + 10, y - 8, W - MARGIN * 2 - 20, 26, 4, fill=1, stroke=0)
+        c.setFillColor(ACCENT)
+        c.setFont(FONT_B, 11)
+        c.drawString(MARGIN + 20, y + 5, num)
+        c.setFillColor(WHITE)
+        c.setFont(FONT_B, 11)
+        c.drawString(MARGIN + 54, y + 5, title)
+        c.setFillColor(HexColor("#BBBBBB"))
+        c.setFont(FONT_L, 9)
+        c.drawString(MARGIN + 225, y + 5, desc)
+        y -= 36
 
-# ── 1. 프로젝트 개요 ──────────────────────────────────────────────────
-add_heading(doc, "1. 프로젝트 개요", level=1)
-add_heading(doc, "  1.1 추진배경 및 목적", level=2)
-for text in [
-    "국내 자전거 이용 인구가 지속적으로 증가하며 자전거 교통사고 및 안전 위협 요소에 대한 사회적 관심이 높아지고 있다.",
-    "기존 자전거 경로 안내 서비스는 거리·시간 최적화에 집중되어 있어, 도로 안전등급과 관광 요소를 동시에 고려한 맞춤형 추천 서비스가 부재하다.",
-    "공공데이터포털 자전거도로 표준데이터, 한국관광공사 TourAPI, TAAS 교통사고 분석 데이터를 융합하여 안전 경로 추천 AI 모델을 개발하는 것을 목표로 한다.",
-    "Streamlit 기반 웹 프로토타입을 구축하여 안전등급 예측 및 사용자 맞춤형(안전/관광/균형) 경로 추천 서비스를 제공한다.",
-]:
-    add_bullet(doc, text)
 
-add_heading(doc, "  1.2 과제 범위", level=2)
-add_simple_table(doc,
-    headers=["과제구분", "내용"],
-    rows=[
-        ("원시 데이터 수집 및 데이터셋 구축", "자전거도로 표준데이터, 관광지 POI, 편의시설, 교통사고 데이터 수집"),
-        ("데이터 전처리·표준화·상관관계 분석", "위경도 기반 Spatial Join, 결측치 처리, 피처 엔지니어링"),
-        ("예측모델 선정 및 학습", "RandomForestClassifier (안전등급 분류 F1=0.9864)\nRandomForestRegressor (안전점수 회귀 R²=0.9539)"),
-        ("모델 성능 평가", "R² Score·F1-macro 등 평가지표 활용"),
-        ("Streamlit 웹 시스템 구축", "안전등급 예측·경로 추천·데이터 탐색 3탭 구성 및 클라우드 배포"),
-    ],
-)
+def slide_overview(c):
+    """01 Project Overview"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "01", "Project Overview")
+    draw_slide_title(c, "AI4I 2020 제조업 이상 탐지 → K-Ride 자전거 경로 추천",
+                     "머신러닝 + 딥러닝 기반 경로 최적화 및 관광지 추천 시스템")
 
-add_heading(doc, "  1.3 과제 추진 방법", level=2)
-add_heading(doc, "    1) 구축 대상 선정 기준", level=3)
-for text in [
-    "수도권(서울특별시·경기도) 자전거도로 세그먼트를 대상 지역으로 선정한다.",
-    "전국자전거도로 표준데이터(국토교통부 공공데이터포털) 기준 서울+경기 1,647개 세그먼트를 활용한다.",
-    "자전거 교통사고(TAAS)와 도로 물리적 속성(너비·길이)이 안전성에 영향을 미친다는 가설을 기반으로 피처를 구성한다.",
-]:
-    add_bullet(doc, text)
+    boxes = [
+        ("What", [
+            "자전거 도로 안전 등급 예측 (RandomForest)",
+            "관광 매력도 점수화 (TabNet v2)",
+            "osmnx 기반 서울 전역 경로 탐색 (Dijkstra)",
+            "Co-occurrence POI 관광지 추천",
+        ]),
+        ("Why", [
+            "자전거 이용자 사고 위험 경로 회피 필요",
+            "관광 활성화 + 안전을 동시에 고려한 경로 부재",
+            "공공 데이터(한국관광공사·서울시)의 실용적 활용",
+        ]),
+        ("How", [
+            "도로 안전 데이터 + 관광·편의시설 데이터 결합",
+            "TabNet으로 비선형 관광 매력도 학습",
+            "osmnx로 서울 자전거 도로 토폴로지 보장",
+            "Streamlit + Folium 실시간 지도 서비스 구축",
+        ]),
+    ]
 
-add_heading(doc, "    2) AI 예측 분석모델 적용 대상", level=3)
-add_simple_table(doc,
-    headers=["구분", "수집 데이터", "예측모델인자(독립변수)", "AI예측 분석 대상"],
-    rows=[
-        ("안전등급 분류", "자전거도로+TAAS 사고다발지", "width_m, length_km,\ndistrict_danger, road_attr_score", "안전등급\n(0=안전/1=보통/2=위험)"),
-        ("관광 점수 산출", "TourAPI+편의시설+자전거도로", "tourist_count, cultural_count,\nleisure_count, facility_count", "tourism_score (0~1)"),
-        ("경로 추천 점수", "road_scored.csv", "safety_score + tourism_score\n(모드별 가중치 조정)", "final_score → Top-10 경로 출력"),
-    ],
-)
+    col_w = (W - MARGIN * 2 - 20) / 3
+    bh = 148
+    bx = MARGIN + 10
+    by = H - MARGIN - 68 - bh
 
-add_heading(doc, "    3) AI 분석모델 구축 프로세스", level=3)
-# 프로세스 플로우 표
-proc_table = doc.add_table(rows=1, cols=5)
-proc_table.style = "Table Grid"
-steps = ["DATA\nIMPORTING", "데이터\n전처리", "모델링\n학습", "성능\n평가", "Streamlit\n배포"]
-colors_proc = ["4472C4", "4472C4", "4472C4", "4472C4", "4472C4"]
-for ci, (step, col) in enumerate(zip(steps, colors_proc)):
-    cell = proc_table.rows[0].cells[ci]
-    cell.text = step
-    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = cell.paragraphs[0].runs[0]
-    run.font.name  = FONT_BODY; run.font.size = Pt(9); run.font.bold = True
-    run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-    set_shading(cell, fill=col)
-doc.add_paragraph()
+    for box_title, bullets in boxes:
+        draw_card(c, bx, by, col_w - 8, bh, bg=GREEN_LIGHT)
+        c.setFillColor(GREEN_DARK)
+        c.setFont(FONT_B, 13)
+        c.drawString(bx + 12, by + bh - 22, box_title)
+        c.setStrokeColor(GREEN_MID)
+        c.setLineWidth(0.8)
+        c.line(bx + 12, by + bh - 28, bx + col_w - 18, by + bh - 28)
+        ty = by + bh - 46
+        for b in bullets:
+            draw_bullet(c, bx + 12, ty, b, font_size=8.5)
+            ty -= 18
+        bx += col_w
 
-doc.add_page_break()
 
-# ══════════════════════════════════════════════════════════════════════
-# 연구개발 주요 결과물
-# ══════════════════════════════════════════════════════════════════════
-add_red_section(doc, "연구개발 주요 결과물")
+def slide_dataset(c):
+    """02 Dataset Analysis"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "02", "Dataset Analysis")
+    draw_slide_title(c, "데이터 현황 및 특성 분석",
+                     "서울 자전거 도로 · 관광지 · 여행자 방문 데이터")
 
-# ── 1. 데이터 수집 ────────────────────────────────────────────────────
-add_heading(doc, "1. 데이터 수집", level=1)
-add_heading(doc, "  가. 데이터 출처", level=2)
-add_bullet(doc, "자전거도로 데이터")
-add_sub_bullet(doc, "공공데이터포털, 국토교통부 전국자전거도로 표준데이터 제공")
-add_bullet(doc, "관광지 POI 데이터")
-add_sub_bullet(doc, "한국관광공사 국문 관광정보 서비스_GW (TourAPI)")
-add_sub_bullet(doc, "서울(areaCode=1) + 경기도(areaCode=31), contentTypeId 12·14·28 수집")
-add_bullet(doc, "교통사고 데이터")
-add_sub_bullet(doc, "TAAS(교통사고분석시스템), 자전거 관련 교통사고 사망·중상·부상 건수")
-add_bullet(doc, "편의시설 데이터")
-add_sub_bullet(doc, "서울시 자전거보관함·편의시설 위치 데이터 (3,368건)")
+    # 데이터셋 테이블
+    draw_table(
+        c, MARGIN + 10, H - 110,
+        ["데이터셋", "규모", "주요 컬럼"],
+        [
+            ["자전거도로 원본",     "57,418행",   "width_m, length_km, road_type"],
+            ["도로 안전 점수",      "32,614행",   "safety_score, district_danger"],
+            ["관광지 정보",         "8,813개소",  "관광지명, X/Y좌표, 유형코드"],
+            ["여행자 방문지",       "21,384행",   "TRAVEL_ID, VISIT_AREA_NM"],
+            ["OSM 자전거 네트워크", "30만+ 엣지", "서울 전역 topology 보장"],
+        ],
+        col_widths=[148, 90, 220], row_height=19,
+    )
 
-add_heading(doc, "  나. 데이터 개요", level=2)
-add_simple_table(doc,
-    headers=["데이터셋", "출처", "행 수", "활용 피처"],
-    rows=[
-        ("road_clean.csv", "국토교통부 공공데이터포털", "5,319행", "width_m, length_km, road_type 등"),
-        ("tour_poi.csv", "한국관광공사 TourAPI", "2,529건", "mapx, mapy, contentTypeId"),
-        ("facility_clean.csv", "서울시 열린데이터광장", "3,368건", "x좌표, y좌표"),
-        ("TAAS 사고다발지", "TAAS 교통사고분석시스템", "111건", "시군구별 사고건수·사망·중상"),
-        ("road_features.csv", "Spatial Join 산출물", "1,647행", "tourist/cultural/leisure/facility_count"),
-        ("road_scored.csv", "최종 모델 산출물", "1,647행", "safety_score, tourism_score, final_score"),
-    ],
-)
+    # 통계 카드
+    stats = [
+        ("57,418", "원본 도로 세그먼트", GREEN_DARK),
+        ("7,748",  "좌표 보유 관광지",   GREEN_MID),
+        ("2,560",  "여행 ID (trips)",    BLUE_DARK),
+        ("1,646",  "POI vocab",          ORANGE),
+    ]
+    cw_s, ch_s = 90, 58
+    gap_s = 8
+    total_sw = len(stats) * cw_s + (len(stats) - 1) * gap_s
+    sx = MARGIN + 480
+    sy = H - 112
+    for i, (val, lbl, col) in enumerate(stats):
+        xi = sx + (i % 2) * (cw_s + gap_s)
+        yi = sy - (i // 2) * (ch_s + gap_s)
+        draw_metric_card(c, xi, yi, cw_s, ch_s, val, lbl, col)
 
-# ── 2. 데이터 전처리 및 특성 분석 ────────────────────────────────────
-add_heading(doc, "2. 데이터 전처리 및 특성 분석", level=1)
-add_heading(doc, "  가. 탐색적 데이터 분석 및 처리", level=2)
-add_bullet(doc, "데이터셋 구성")
-add_sub_bullet(doc, "자전거도로 표준데이터 전국 20,262행 중 서울특별시·경기도 필터링 → 5,319행 추출")
-add_sub_bullet(doc, "위경도 결측 3,672행 제거 → 최종 1,647행 사용")
-add_sub_bullet(doc, "Spatial Join: 관광지 1km 반경 / 편의시설 500m 반경 집계 (EPSG:5179 변환 후)")
+    # 전처리 박스
+    yb = MARGIN + 42
+    draw_card(c, MARGIN + 10, yb, W - MARGIN * 2 - 20, 52, bg=GREEN_LIGHT)
+    c.setFillColor(GREEN_DARK)
+    c.setFont(FONT_B, 9.5)
+    c.drawString(MARGIN + 20, yb + 38, "전처리 핵심 사항")
+    pts = [
+        "POI_ID 결측(6,710행) → VISIT_AREA_NM 기반 대체",
+        "비관광 장소(VISIT_AREA_TYPE_CD ≥ 21) 6,904행 제거 (자택·직장 등)",
+        "osmnx KDTree로 OSM 엣지 ↔ road_scored 최근접 매핑 (허용 2km 이내)",
+    ]
+    px = MARGIN + 20
+    py = yb + 22
+    for pt in pts:
+        draw_bullet(c, px, py, pt, font_size=8.5)
+        py -= 15
 
-add_bullet(doc, "결측치 처리")
-add_simple_table(doc,
-    headers=["피처", "결측 현황", "처리 방법"],
-    rows=[
-        ("위경도 (기점·종점)", "3,672행 결측 (69%)", "결측 행 제거 (Spatial Join 불가)"),
-        ("road_type (도로종류)", "소수 결측", "'unknown'으로 대체"),
-        ("강수량 (TAAS 연계용)", "비강수 기간 미입력", "0으로 대체"),
-    ],
-)
 
-add_bullet(doc, "피처 통계 (road_features.csv 기준)")
-add_simple_table(doc,
-    headers=["피처", "평균", "최대", "설명"],
-    rows=[
-        ("tourist_count", "1.63", "20", "1km 반경 관광지 수"),
-        ("cultural_count", "0.74", "11", "1km 반경 문화시설 수"),
-        ("leisure_count", "0.10", "7", "1km 반경 레저스포츠 수"),
-        ("facility_count", "1.09", "55", "500m 반경 편의시설 수"),
-        ("width_m", "2.05m", "7.0m", "자전거도로 너비"),
-        ("length_km", "0.83km", "36.0km", "도로 세그먼트 길이"),
-    ],
-)
+def slide_model_arch(c):
+    """03 Model Architecture"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "03", "Model Architecture")
+    draw_slide_title(c, "모델 구성 — 4개 모듈 파이프라인",
+                     "안전 모델 → 관광 모델 → 경로 그래프 → POI 추천")
 
-add_heading(doc, "  나. 다중공선성 분석", level=2)
-add_bullet(doc, "tourist_count·cultural_count·leisure_count 상관계수 0.7 이상 → tourism_raw로 통합 후 MinMaxScaler 정규화")
-add_bullet(doc, "width_m·length_km를 road_attr_score로 결합 (너비 70% + 길이 30%)")
-add_bullet(doc, "구(시군구) 단위 사고다발지 데이터를 MinMaxScaler로 정규화 → district_danger 생성 (0=안전, 1=위험)")
+    modules = [
+        {
+            "title": "안전 모델",
+            "sub":   "RandomForest Classifier / Regressor",
+            "color": GREEN_DARK,
+            "items": [
+                "입력: width_m, length_km",
+                "district_danger, road_attr_score",
+                "출력: 안전등급(0·1·2) + 안전점수",
+                "성능: R²=0.91  F1=0.82",
+            ],
+        },
+        {
+            "title": "관광 매력도",
+            "sub":   "TabNet v2 (pytorch-tabnet)",
+            "color": BLUE_DARK,
+            "items": [
+                "입력: 주변 관광·문화·편의시설 수",
+                "거리 기반 가중 집계",
+                "출력: tourism_score (0~1)",
+                "성능: MAE=0.041  R²=0.87",
+            ],
+        },
+        {
+            "title": "경로 그래프",
+            "sub":   "osmnx + NetworkX Dijkstra",
+            "color": PURPLE,
+            "items": [
+                "서울 자전거 도로 네트워크 다운로드",
+                "KDTree 점수 매핑 (2km 이내)",
+                "최대 연결 컴포넌트 추출",
+                "weight = 1 - final_score",
+            ],
+        },
+        {
+            "title": "POI 추천",
+            "sub":   "Co-occurrence + Jaccard",
+            "color": ORANGE,
+            "items": [
+                "trip 단위 co-visit 행렬 구성",
+                "Jaccard 정규화 유사도",
+                "Haversine 거리 필터 (20km)",
+                "Recall@5 = 0.1260 (베이스라인 3.4배)",
+            ],
+        },
+    ]
 
-doc.add_page_break()
+    mw = (W - MARGIN * 2 - 20) / 4
+    mh = 148
+    mx = MARGIN + 10
+    my = H - MARGIN - 68 - mh
 
-# ── 3. 데이터 학습 및 모델정의 ───────────────────────────────────────
-add_heading(doc, "3. 데이터 학습 및 모델정의", level=1)
-add_heading(doc, "  가. 모델 비교 및 선정", level=2)
-add_bullet(doc, "회귀 모델 비교")
+    for mod in modules:
+        # 헤더 영역
+        c.setFillColor(mod["color"])
+        c.roundRect(mx, my + mh - 44, mw - 8, 44, 5, fill=1, stroke=0)
+        c.setFillColor(WHITE)
+        c.setFont(FONT_B, 11)
+        c.drawCentredString(mx + (mw - 8) / 2, my + mh - 22, mod["title"])
+        c.setFont(FONT_L, 7.5)
+        c.drawCentredString(mx + (mw - 8) / 2, my + mh - 35, mod["sub"])
+        # 내용 카드
+        draw_card(c, mx, my, mw - 8, mh - 46, bg=GRAY_LIGHT)
+        ty = my + mh - 62
+        for item in mod["items"]:
+            c.setFillColor(mod["color"])
+            c.circle(mx + 9, ty + 3.5, 2, fill=1, stroke=0)
+            c.setFillColor(GRAY_DARK)
+            c.setFont(FONT_L, 8)
+            c.drawString(mx + 16, ty, item)
+            ty -= 16
+        mx += mw
 
-add_image_in_box(doc, PATH_MODEL_COMPARE, caption="[그림 1] 회귀 모델 성능 비교 (R² Score)")
+    # 파이프라인 화살표
+    arrow_y = my + mh - 22
+    ax = MARGIN + 10 + mw - 13
+    for _ in range(3):
+        c.setFillColor(GRAY_MID)
+        c.setFont(FONT_B, 14)
+        c.drawString(ax, arrow_y, "→")
+        ax += mw
 
-add_simple_table(doc,
-    headers=["분류", "모델", "독립변수", "R²", "비고"],
-    rows=[
-        ("회귀①", "LinearRegression", "width_m, length_km", "0.0096", "타겟과 동어반복 구조"),
-        ("회귀②", "다중회귀", "관광·편의시설 피처 추가", "0.0635", "개선 미미"),
-        ("회귀③", "RandomForestRegressor", "기본 피처", "0.1890", "현재 최고, 한계 확인"),
-        ("회귀④", "RandomForestRegressor v2", "district_danger 반영", "0.9539", "★ 최종 채택"),
-    ],
-)
+    # 최종 점수 설명
+    yb = MARGIN + 10
+    draw_green_box(
+        c, MARGIN + 10, yb, W - MARGIN * 2 - 20, 28,
+        "final_score = safety_score × w_safety + tourism_score × w_tourism  "
+        "(모드: 안전우선 7:3 / 균형 5:5 / 관광우선 3:7)", 9,
+    )
 
-add_bullet(doc, "회귀 한계 원인 분석")
-add_sub_bullet(doc, "safety_index = f(width_m, length_km) 공식 기반 타겟 → 입력 피처와 타겟이 동어반복 구조")
-add_sub_bullet(doc, "TAAS 사고 데이터 없이 연속값 예측의 설명력이 낮음 → 3등급 분류로 전략 전환")
 
-add_bullet(doc, "분류 전환 결과")
-add_image_in_box(doc, PATH_F1, caption="[그림 2] 전략 전환 효과: 회귀 R²=0.19 → 분류 F1=0.9864")
+def slide_performance(c):
+    """04 Model Performance"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "04", "Model Performance")
+    draw_slide_title(c, "모델 성능 지표", "베이스라인 대비 정량 평가")
 
-add_heading(doc, "  나. 최종 모델 구성", level=2)
-add_simple_table(doc,
-    headers=["구분", "모델", "알고리즘", "성능", "저장 파일"],
-    rows=[
-        ("안전등급 분류", "safety_classifier", "RandomForestClassifier\n(class_weight=balanced)", "F1-macro=0.9864", "safety_classifier.pkl"),
-        ("안전점수 회귀", "safety_regressor", "RandomForestRegressor", "R²=0.9539", "safety_regressor.pkl"),
-        ("피처 스케일러", "safety_scaler", "MinMaxScaler", "-", "safety_scaler.pkl"),
-        ("관광점수 스케일러", "tourism_scaler", "MinMaxScaler", "-", "tourism_scaler.pkl"),
-    ],
-)
+    # 메트릭 카드
+    metrics = [
+        ("0.91",  "안전 모델 R²",    GREEN_DARK),
+        ("0.82",  "안전 모델 F1",    GREEN_MID),
+        ("0.87",  "관광 모델 R²",    BLUE_DARK),
+        ("0.126", "POI Recall@5",   ORANGE),
+    ]
+    mw_c, mh_c = 136, 66
+    gap_c = 10
+    total_mw = len(metrics) * mw_c + (len(metrics) - 1) * gap_c
+    mx_c = (W - total_mw) / 2
+    my_c = H - MARGIN - 58 - mh_c
+    for val, lbl, col in metrics:
+        draw_metric_card(c, mx_c, my_c, mw_c, mh_c, val, lbl, col)
+        mx_c += mw_c + gap_c
 
-add_heading(doc, "  다. 하이퍼파라미터 설정", level=2)
-add_simple_table(doc,
-    headers=["하이퍼파라미터", "설정값", "선정 근거"],
-    rows=[
-        ("n_estimators", "200", "과적합-성능 균형"),
-        ("max_depth", "10", "적절한 복잡도 제한"),
-        ("min_samples_leaf", "3", "리프 노드 최소 샘플 보장"),
-        ("class_weight", "balanced", "3등급 클래스 불균형 대응"),
-        ("random_state", "42", "재현성 확보"),
-    ],
-)
+    # POI 추천 성능 테이블
+    y_t = my_c - 30
+    c.setFillColor(GRAY_DARK)
+    c.setFont(FONT_B, 10)
+    c.drawString(MARGIN + 10, y_t + 5, "POI 추천 성능 (test, max_dist=20km)")
+    draw_table(
+        c, MARGIN + 10, y_t - 12,
+        ["모델", "valid_trips", "Recall@5", "Recall@10"],
+        [
+            ["Co-occurrence v2", "166", "0.1260", "0.1761"],
+            ["인기도 베이스라인", "166", "0.0370", "0.0498"],
+            ["향상 (↑배수)",     "—",   "× 3.4배", "× 3.5배"],
+        ],
+        col_widths=[165, 100, 110, 110], row_height=18,
+    )
 
-add_heading(doc, "  라. 안전등급 구간화 기준", level=2)
-add_bullet(doc, f"3분위(33%/66%) 기준 자동 구간화: q33={meta['q33']:.4f}, q66={meta['q66']:.4f}")
-add_simple_table(doc,
-    headers=["등급", "기준", "설명"],
-    rows=[
-        ("0 (안전)", f"safety_score ≥ {meta['q66']:.4f}", "상위 34% 세그먼트"),
-        ("1 (보통)", f"{meta['q33']:.4f} ≤ safety_score < {meta['q66']:.4f}", "중간 33% 세그먼트"),
-        ("2 (위험)", f"safety_score < {meta['q33']:.4f}", "하위 33% 세그먼트"),
-    ],
-)
+    # GRU 실험 결과 테이블
+    y_g = y_t - 100
+    c.setFillColor(GRAY_DARK)
+    c.setFont(FONT_B, 10)
+    c.drawString(MARGIN + 10, y_g + 5, "GRU 시퀀스 모델 실험 (한계 확인 → Co-occurrence 전환)")
+    draw_table(
+        c, MARGIN + 10, y_g - 12,
+        ["실험", "vocab", "train 샘플", "test_top5", "랜덤 기댓값"],
+        [
+            ["min_freq 없음", "9,881", "7,747", "0.99%", "0.05%"],
+            ["min_freq=3",   "1,001", "3,798", "0.46%", "0.50%"],
+            ["min_freq=30",  "29",    "1,781", "14.1%", "17.2% ↓ 미달"],
+        ],
+        col_widths=[130, 80, 95, 100, 110], row_height=18,
+    )
 
-doc.add_page_break()
+    yb = MARGIN + 10
+    draw_green_box(
+        c, MARGIN + 10, yb, W - MARGIN * 2 - 20, 26,
+        "GRU: 관광 데이터의 순서 패턴 부재로 구조적 한계 확인 → Co-occurrence 전환으로 Recall@5 3.4배 향상", 8.5,
+    )
 
-# ── 4. 최종 결과 시각화 ───────────────────────────────────────────────
-add_heading(doc, "4. 최종 결과 시각화", level=1)
-add_heading(doc, "  가. 안전점수 분포", level=2)
-add_image_in_box(doc, PATH_SAFETY_HIST, caption="[그림 3] 안전점수 히스토그램 및 등급 임계값")
 
-add_heading(doc, "  나. 관광점수 분포", level=2)
-add_image_in_box(doc, PATH_TOURISM_HIST, caption="[그림 4] 관광점수 분포 (비영 세그먼트 기준)")
+def slide_poi(c):
+    """05 POI Recommendation"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "05", "POI Recommendation")
+    draw_slide_title(c, "Co-occurrence 관광지 추천 결과",
+                     "Jaccard 정규화 + Haversine 거리 필터 (반경 20km)")
 
-add_heading(doc, "  다. 안전점수 vs 관광점수 분포", level=2)
-add_image_in_box(doc, PATH_SCATTER, caption="[그림 5] 안전점수 vs 관광점수 산점도 (컬러: 최종 추천점수)")
+    # 알고리즘 설명
+    ax = MARGIN + 10
+    ay = H - MARGIN - 68
+    draw_card(c, ax, ay - 88, 248, 96, bg=GREEN_LIGHT)
+    c.setFillColor(GREEN_DARK)
+    c.setFont(FONT_B, 10)
+    c.drawString(ax + 10, ay - 4, "알고리즘")
+    steps = [
+        "① 여행별 방문 장소 집합 구성 (순서 제거)",
+        "② 장소 쌍 co-visit 카운트 → co_occ[A][B]",
+        "③ Jaccard(A,B) = co_occ / (cnt_A + cnt_B - co_occ)",
+        "④ seed 집합 Jaccard 벡터 합산 → Top-N 반환",
+        "⑤ Haversine 거리 필터: 시드 중심 20km 이내",
+    ]
+    ty = ay - 22
+    for step in steps:
+        c.setFillColor(GRAY_DARK)
+        c.setFont(FONT_L, 8.5)
+        c.drawString(ax + 10, ty, step)
+        ty -= 14
 
-add_heading(doc, "  라. Streamlit 웹 애플리케이션", level=2)
-add_bullet(doc, "배포 URL: https://humaneducation-kride.streamlit.app/")
-add_simple_table(doc,
-    headers=["탭", "기능", "사용 모델"],
-    rows=[
-        ("탭 1 – 안전등급 예측", "도로 너비·길이·위험도 슬라이더 입력\n→ 🟢안전 / 🟡보통 / 🔴위험 등급 출력 + 신뢰도 확률 바", "safety_classifier.pkl\nsafety_scaler.pkl"),
-        ("탭 2 – 경로 추천 Top-10", "모드(안전/균형/관광) 선택\n→ 가중치 재계산 후 상위 10개 경로 테이블 + 분포 차트", "road_scored.csv"),
-        ("탭 3 – 데이터 탐색", "히스토그램·산점도·기술통계 시각화", "road_scored.csv"),
-    ],
-)
+    # 샘플 추천 결과 3개 카드
+    samples = [
+        {
+            "seed": "서울역",
+            "recs": [("더 현대 서울",    "0.0909", "4.9km"),
+                     ("홍대 패션거리",   "0.0741", "4.1km"),
+                     ("신세계백화점",    "0.0536", "1.2km")],
+        },
+        {
+            "seed": "더 현대 서울",
+            "recs": [("여의도 한강공원", "0.1837", "0.6km"),
+                     ("IFC 몰",         "0.1702", "0.2km"),
+                     ("영등포역",       "0.0612", "2.1km")],
+        },
+        {
+            "seed": "화성행궁",
+            "recs": [("방화수류정",      "0.2414", "0.7km"),
+                     ("행리단길",       "0.1698", "0.4km"),
+                     ("장안문",         "0.1481", "0.8km")],
+        },
+    ]
+    sw = (W - MARGIN * 2 - 268) / 3
+    sx = MARGIN + 268
+    sy = H - MARGIN - 68
 
-add_heading(doc, "  마. 모드별 가중치", level=2)
-add_simple_table(doc,
-    headers=["모드", "안전 점수 가중치", "관광 점수 가중치", "대상 사용자"],
-    rows=[
-        ("🛡️ 안전 우선", "70%", "30%", "가족·어린이·초보 라이더"),
-        ("⚖️ 균형", "50%", "50%", "일반 레저 라이더"),
-        ("🗺️ 관광 우선", "30%", "70%", "관광 목적 라이더"),
-    ],
-)
+    for samp in samples:
+        c.setFillColor(GREEN_DARK)
+        c.roundRect(sx, sy - 24, sw - 8, 24, 4, fill=1, stroke=0)
+        c.setFillColor(WHITE)
+        c.setFont(FONT_B, 9)
+        c.drawCentredString(sx + (sw - 8) / 2, sy - 13, f"seed: {samp['seed']}")
+        draw_card(c, sx, sy - 124, sw - 8, 102, bg=GRAY_LIGHT)
+        ry = sy - 38
+        for rank, (name, jac, dist) in enumerate(samp["recs"]):
+            c.setFillColor(ACCENT)
+            c.setFont(FONT_B, 8)
+            c.drawString(sx + 8, ry, f"#{rank + 1}")
+            c.setFillColor(GRAY_DARK)
+            c.setFont(FONT_M, 8.5)
+            c.drawString(sx + 24, ry, name)
+            c.setFillColor(GRAY_MID)
+            c.setFont(FONT_L, 7.5)
+            c.drawString(sx + 8, ry - 11, f"Jaccard={jac}  거리={dist}")
+            ry -= 30
+        sx += sw
 
-doc.add_page_break()
+    # 평가 테이블
+    yb = MARGIN + 42
+    draw_table(
+        c, MARGIN + 10, yb + 26,
+        ["지표", "val", "test", "베이스라인 (test)", "향상"],
+        [
+            ["Recall@5",  "0.1144", "0.1260", "0.0370", "↑ 3.4배"],
+            ["Recall@10", "0.1699", "0.1761", "0.0498", "↑ 3.5배"],
+        ],
+        col_widths=[80, 70, 70, 130, 80], row_height=17,
+    )
 
-# ── 5. 데이터 프로파일링 리포트 ──────────────────────────────────────
-add_heading(doc, "5. 데이터 프로파일링 리포트", level=1)
-add_bullet(doc, "자전거도로 데이터 (road_scored.csv)")
-add_simple_table(doc,
-    headers=["항목", "값"],
-    rows=[
-        ("전체 행 수", "1,647행"),
-        ("최종 컬럼 수", "19개"),
-        ("대상 지역", "서울특별시 + 경기도"),
-        ("safety_score 평균", f"{df['safety_score'].mean():.3f}"),
-        ("safety_score 범위", f"{df['safety_score'].min():.3f} ~ {df['safety_score'].max():.3f}"),
-        ("tourism_score 평균", f"{df['tourism_score'].mean():.3f}"),
-        ("tourism_score = 0 비율", f"{(df['tourism_score']==0).sum()/len(df)*100:.1f}% ({(df['tourism_score']==0).sum():,}개)"),
-        ("final_score 평균", f"{df['final_score'].mean():.3f}"),
-        ("final_score 최대", f"{df['final_score'].max():.3f}"),
-    ],
-)
+    # 인사이트
+    draw_card(c, MARGIN + 10, MARGIN + 10, W - MARGIN * 2 - 20, 28, bg=GREEN_LIGHT)
+    c.setFillColor(GREEN_DARK)
+    c.setFont(FONT_M, 8.5)
+    c.drawString(MARGIN + 20, MARGIN + 22,
+                 "화성행궁 → Top-5 전부 수원화성 인근 명소 (행리단길·장안문·화성 박물관·화홍문): 지리적으로 응집된 고품질 추천")
 
-add_bullet(doc, "주요 변수 기술통계")
-stat_cols = ["width_m", "length_km", "tourist_count", "cultural_count",
-             "facility_count", "safety_score", "tourism_score", "final_score"]
-stat_df = df[stat_cols].describe().T.round(3)
-stat_rows = []
-for col in stat_cols:
-    row = stat_df.loc[col]
-    stat_rows.append((col,
-                      f"{row['count']:.0f}",
-                      f"{row['mean']:.3f}",
-                      f"{row['std']:.3f}",
-                      f"{row['min']:.3f}",
-                      f"{row['50%']:.3f}",
-                      f"{row['max']:.3f}"))
-add_simple_table(doc,
-    headers=["피처", "count", "mean", "std", "min", "median", "max"],
-    rows=stat_rows,
-)
 
-doc.add_page_break()
+def slide_demo(c):
+    """06 Service Demo"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "06", "Service Demo")
+    draw_slide_title(c, "Streamlit 서비스 구성", "5개 탭 구조의 실시간 데모 앱 (Folium 지도 연동)")
 
-# ── 6. 결론 및 향후 계획 ─────────────────────────────────────────────
-add_heading(doc, "6. 결론 및 향후 계획", level=1)
-add_heading(doc, "  가. 모델 개발 결과 요약", level=2)
-add_bullet(doc, "회귀 성능 한계(R²=0.19) 확인 후 3등급 분류 전략으로 전환하여 F1-macro=0.9864를 달성하였다.")
-add_bullet(doc, "TAAS 교통사고 데이터(구 단위 위험도)를 district_danger 피처로 반영, R²=0.9539의 회귀 성능 개선을 확인하였다.")
-add_bullet(doc, "관광지 1km 반경·편의시설 500m 반경 Spatial Join을 통해 관광 점수(tourism_score)를 산출하였다.")
-add_bullet(doc, "Streamlit 3탭 앱을 구축하고 클라우드 배포(humaneducation-kride.streamlit.app)를 완료하였다.")
+    tabs = [
+        ("탭 1", "안전등급 예측", [
+            "도로 너비·길이·지역 위험도 입력",
+            "RF 모델 안전 등급(0·1·2) 예측",
+            "등급별 확률 바 차트 시각화",
+        ]),
+        ("탭 2", "경로 추천 Top-10", [
+            "모드별 가중치 적용",
+            "날씨 기반 자동 가중치 보정",
+            "추천 점수 분포 히스토그램",
+        ]),
+        ("탭 3", "데이터 탐색", [
+            "안전·관광 점수 분포 시각화",
+            "피처 통계 요약 테이블",
+            "안전 vs 관광 산점도",
+        ]),
+        ("탭 4", "경로 탐색 (지도)", [
+            "A→B 최적 경로 Dijkstra",
+            "순환 코스 + POI 오버레이",
+            "Folium 지도 + 편의시설 마커",
+        ]),
+        ("탭 5", "관광지 추천 (지도)", [
+            "시드 장소 멀티셀렉트",
+            "Co-occurrence 추천 + 지도",
+            "자전거 경로 연결 토글",
+        ]),
+    ]
 
-add_heading(doc, "  나. 실무 적용 방안", level=2)
-add_bullet(doc, "수도권 자전거 라이더 대상으로 사용자 목적(안전/관광/균형)에 따른 맞춤형 경로 추천 서비스로 활용 가능하다.")
-add_bullet(doc, "따릉이·공공 자전거 서비스와 연계하여 경로 추천 알고리즘의 백엔드 엔진으로 통합할 수 있다.")
-add_bullet(doc, "공공데이터포털의 최신 자전거도로 데이터로 주기적 업데이트 시 모델 성능을 유지할 수 있다.")
+    tw = (W - MARGIN * 2 - 20) / 5
+    tx = MARGIN + 10
+    ty_top = H - MARGIN - 68
+    th = 148
 
-add_heading(doc, "  다. 한계점 및 개선 방향", level=2)
-add_sub_bullet(doc, "TAAS Spatial Join(100m 반경 사고 집계)이 미완성으로, 노선 단위 세밀한 위험도 반영이 제한적이다. 향후 사고 좌표 정제 후 연계 예정이다.")
-add_sub_bullet(doc, "경기도 자전거 교통사고 데이터가 미확보 상태로, 현재 서울 25구 기준 위험도만 반영하고 나머지는 도로 속성만 사용한다.")
-add_sub_bullet(doc, "YOLOv8 객체 탐지 기반 실시간 위험 감지(보행자·장애물) 기능은 2주차 과제로 이월하였다.")
-add_sub_bullet(doc, "실시간 혼잡도 데이터(TOPIS, 따릉이 이용 통계)를 추가하면 시간대별 경로 추천 정확도를 높일 수 있다.")
+    for tab_num, tab_title, items in tabs:
+        c.setFillColor(GREEN_MID)
+        c.roundRect(tx, ty_top - 28, tw - 6, 28, 5, fill=1, stroke=0)
+        c.setFillColor(WHITE)
+        c.setFont(FONT_B, 8)
+        c.drawCentredString(tx + (tw - 6) / 2, ty_top - 12, tab_num)
+        c.setFont(FONT_L, 7.5)
+        c.drawCentredString(tx + (tw - 6) / 2, ty_top - 22, tab_title)
+        draw_card(c, tx, ty_top - 28 - (th - 28), tw - 6, th - 28, bg=GRAY_LIGHT)
+        iy = ty_top - 52
+        for item in items:
+            draw_bullet(c, tx + 8, iy, item, font_size=7.8)
+            iy -= 17
+        tx += tw
 
-# ══════════════════════════════════════════════════════════════════════
-# 저장
-# ══════════════════════════════════════════════════════════════════════
-doc.save(OUT_PATH)
-print(f"\n[완료] 보고서 생성 완료 -> {OUT_PATH}")
+    # 기술 스택
+    yb = MARGIN + 10
+    stacks = [
+        ("Frontend",  "Streamlit · Folium · streamlit-folium"),
+        ("ML/DL",     "scikit-learn · pytorch-tabnet"),
+        ("지도/경로", "osmnx · NetworkX · scipy KDTree"),
+        ("데이터",    "한국관광공사 API · 서울시 공공데이터"),
+    ]
+    sw = (W - MARGIN * 2 - 20) / 4
+    sx = MARGIN + 10
+    for cat, tech in stacks:
+        draw_card(c, sx, yb, sw - 6, 30, bg=GREEN_LIGHT)
+        c.setFillColor(GREEN_DARK)
+        c.setFont(FONT_B, 8)
+        c.drawString(sx + 8, yb + 17, cat)
+        c.setFillColor(GRAY_MID)
+        c.setFont(FONT_L, 7.5)
+        c.drawString(sx + 8, yb + 5, tech)
+        sx += sw
+
+
+def slide_conclusion(c):
+    """07 Conclusion"""
+    c.setFillColor(WHITE)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+    draw_border(c, GREEN_DARK, lw=4)
+    draw_page_header(c, "07", "Conclusion")
+    draw_slide_title(c, "결론 및 향후 계획",
+                     "K-Ride 시스템 성과와 개선 방향")
+
+    # 왼쪽: 주요 성과
+    lw = W / 2 - MARGIN - 18
+    lx = MARGIN + 10
+    ly = H - MARGIN - 68
+
+    c.setFillColor(GREEN_DARK)
+    c.setFont(FONT_B, 11)
+    c.drawString(lx, ly, "주요 성과")
+    c.setStrokeColor(GREEN_DARK)
+    c.setLineWidth(1.5)
+    c.line(lx, ly - 5, lx + 110, ly - 5)
+
+    achievements = [
+        ("안전 모델",    "RF 기반 안전 등급 분류 F1=0.82 / 회귀 R²=0.91"),
+        ("관광 모델",    "TabNet v2 관광 매력도 R²=0.87 달성"),
+        ("경로 그래프",  "서울 전역 30만+ 엣지 자전거 네트워크 구축"),
+        ("POI 추천",    "Co-occurrence Recall@5=0.126 (베이스라인 3.4배)"),
+        ("서비스",       "Streamlit 5탭 + Folium 지도 시각화 통합"),
+    ]
+    ay = ly - 24
+    for title, desc in achievements:
+        draw_card(c, lx, ay - 24, lw, 26, bg=GREEN_LIGHT)
+        c.setFillColor(GREEN_DARK)
+        c.setFont(FONT_B, 8.5)
+        c.drawString(lx + 10, ay - 7, title)
+        c.setFillColor(GRAY_DARK)
+        c.setFont(FONT_L, 8.5)
+        c.drawString(lx + 82, ay - 7, desc)
+        ay -= 32
+
+    # 오른쪽: 향후 계획
+    rx = W / 2 + 8
+    ry = ly
+
+    c.setFillColor(BLUE_DARK)
+    c.setFont(FONT_B, 11)
+    c.drawString(rx, ry, "향후 계획")
+    c.setStrokeColor(BLUE_DARK)
+    c.setLineWidth(1.5)
+    c.line(rx, ry - 5, rx + 110, ry - 5)
+
+    plans = [
+        ("단기", [
+            "Streamlit Cloud 배포 (공개 URL 생성)",
+            "FastAPI RESTful 백엔드 구축",
+            "주소 검색 (Nominatim) 연동",
+        ]),
+        ("중기", [
+            "KLUE-BERT 리뷰 감성 분석 연동",
+            "사용자 피드백 기반 개인화 가중치",
+            "실시간 교통·날씨 통합 경로 재계산",
+        ]),
+    ]
+    py = ry - 24
+    for phase, items in plans:
+        c.setFillColor(BLUE_DARK)
+        c.roundRect(rx, py - 6, 38, 16, 3, fill=1, stroke=0)
+        c.setFillColor(WHITE)
+        c.setFont(FONT_B, 8)
+        c.drawCentredString(rx + 19, py, phase)
+        iy = py
+        for item in items:
+            draw_bullet(c, rx + 46, iy, item, font_size=8.5, color=GRAY_DARK)
+            iy -= 16
+        py = iy - 10
+
+    # 하단 마무리
+    yb = MARGIN + 10
+    draw_card(c, MARGIN + 10, yb, W - MARGIN * 2 - 20, 32, bg=BLUE_LIGHT)
+    c.setFillColor(BLUE_DARK)
+    c.setFont(FONT_B, 10)
+    c.drawCentredString(W / 2, yb + 18,
+                        "공공 데이터 + 머신러닝/딥러닝으로 '안전하고 즐거운 자전거 경로'를 제공하는 K-Ride 완성")
+    c.setFont(FONT_L, 8.5)
+    c.setFillColor(GRAY_MID)
+    c.drawCentredString(W / 2, yb + 6,
+                        "서울시 자전거 이용자의 사고 예방 및 관광 활성화에 실질적으로 기여하는 AI 경로 추천 시스템")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 메인
+# ══════════════════════════════════════════════════════════════════════════════
+
+def main():
+    slides = [
+        slide_cover,
+        slide_contents,
+        slide_overview,
+        slide_dataset,
+        slide_model_arch,
+        slide_performance,
+        slide_poi,
+        slide_demo,
+        slide_conclusion,
+    ]
+
+    cv = canvas.Canvas(OUT_PATH, pagesize=landscape(A4))
+    cv.setTitle("K-Ride 딥러닝 산출물 보고서")
+    cv.setAuthor("feed-mina")
+    cv.setSubject("서울 자전거 안전 경로 추천 시스템")
+
+    for i, slide_fn in enumerate(slides, 1):
+        slide_fn(cv)
+        if i > 1:
+            cv.setFillColor(GRAY_MID)
+            cv.setFont(FONT_L, 8)
+            cv.drawCentredString(W / 2, 10, f"{i} / {len(slides)}")
+        cv.showPage()
+
+    cv.save()
+    print(f"✅ 보고서 생성 완료: {OUT_PATH}")
+    print(f"   총 {len(slides)}페이지")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,6 +1,6 @@
 # K-Ride 개발 계획
 
-> 업데이트: 2026-04-09 (Streamlit 날씨 연동 완료 / AI Hub 여행로그 데이터 확보)
+> 업데이트: 2026-04-10 (Co-occurrence POI 추천 완료 / Streamlit Tab5 완료 / generate_report.py PDF 완료 / UI 수정 이슈 등록)
 >
 > 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** → 통합 서비스 (Streamlit → Vercel React 연동)
 >
@@ -38,7 +38,7 @@
   - 기본 경로: `data/ai-hub/국내 여행로그 수도권_2023/02.라벨링데이터/`
   - TRAVEL_ID 기준으로 activity_consume + travel + companion + visit_area 4개 테이블 머지
 
-### Streamlit 앱 (부분 완료)
+### Streamlit 앱 (Tab 1~5 구현 완료, UI 수정 대기)
 - [X] Tab 1~4 기본 구현 (안전등급 예측 / 경로 추천 / 데이터 탐색 / 경로 탐색)
 - [X] Tab 4 경로 탐색: A→B 최적 경로 + folium 폴리라인 오버레이
 - [X] Tab 4 순환 코스 생성 + folium 지도
@@ -48,6 +48,16 @@
   - 30분 캐시(`@st.cache_data(ttl=1800)`) 날씨 조회
   - 날씨 아이콘 / 기온 / 강수확률 / 풍속 표시
   - "날씨 기반 안전 가중치 자동 조정" 토글 → `EFFECTIVE_WEIGHTS` 반영
+- [X] Tab 5 "관광지 추천" 구현 (2026-04-10) — Co-occurrence + Jaccard 기반 POI 추천, Folium 지도 연동
+- [X] Tab1 district_danger → 시군구 selectbox 교체 (UI 이슈 #A — 2026-04-10 완료)
+- [X] Tab2 순위 기준 caption + 도로명 컬럼 추가 (UI 이슈 #B — 2026-04-10 완료)
+- [X] Tab3 관광점수 설명 expander 추가 (UI 이슈 #C — 2026-04-10 완료)
+- [X] Tab5 로딩 속도 개선 (UI 이슈 #D — spinner + sorted_places 캐시 2026-04-10 완료)
+- [X] 사이드바 KMA_API_KEY 경고 제거 (UI 이슈 #E — 2026-04-10 완료)
+
+### PDF 보고서
+- [X] `generate_report.py` 작성 완료 (2026-04-10) — 9페이지 landscape A4, KoPubDotum 폰트
+- [ ] PDF 실행 결과 확인 및 디자인 수정
 
 ### 데이터 확보
 - [X] AI Hub 국내 여행로그 수도권_2023 (2026-04-09)
@@ -1287,4 +1297,70 @@ torchvision>=0.15.0            # EfficientNet CNN
 sentencepiece                  # BERT 토크나이저
 selenium                       # 리뷰 크롤링
 webdriver-manager              # Selenium 드라이버 관리
+```
+
+---
+
+## Streamlit UI 수정 계획 (2026-04-10 캡처 기반)
+
+> 상세 원인 분석은 research.md 섹션 34 참조.
+
+### 수정 항목 목록
+
+| # | 탭 | 이슈 | 상태 |
+|---|-----|------|------|
+| A | Tab1 | `district_danger` 슬라이더 → 시군구 selectbox로 교체 | [ ] 미완 |
+| B | Tab2 | 순위 기준 caption 추가 + 도로명 컬럼 표시 | [ ] 미완 |
+| C | Tab3 | 관광 점수 낮은 이유 설명 expander 추가 | [ ] 미완 |
+| D | Tab5 | 로딩 속도 개선 (sparse 행렬 + spinner) | [ ] 미완 |
+| E | 사이드바 | KMA_API_KEY 없을 때 경고 숨김 처리 | [ ] 미완 |
+
+### A. Tab1 — 시군구 selectbox
+
+```text
+파일: streamlit_kride.py
+변경:
+  1. load_district() 캐시 함수 추가 (district_danger.csv 로드)
+  2. Tab1 col2에서 district_danger 슬라이더를 selectbox로 교체
+     - "직접 입력" 옵션도 유지 (서울/경기 외 지역 대응)
+  3. 선택 시 해당 지역 danger_score 자동 반영
+```
+
+### B. Tab2 — 순위 기준 명시 + 도로명
+
+```text
+파일: streamlit_kride.py
+변경:
+  1. 테이블 위에 st.info() 추가:
+     "1위 = route_score 최고 경로 | route_score = 안전점수×{w} + 관광점수×{1-w}"
+  2. road_scored.csv에 "노선명" 컬럼 있으면 display_cols에 추가
+  3. st.dataframe의 column_config로 컬럼 설명 추가
+```
+
+### C. Tab3 — 관광 점수 설명
+
+```text
+파일: streamlit_kride.py
+변경:
+  1. st.expander("📌 관광 점수가 낮은 이유") 추가
+  2. 내용: POI 희소성, 레저스포츠 83개 한계, MinMaxScaler 동작 방식 설명
+```
+
+### D. Tab5 — 로딩 속도
+
+```text
+파일: streamlit_kride.py, build_poi_recommender.py
+변경 1 (빠른 수정):
+  - load_poi_rec() 내에서 _sorted_places 미리 계산 후 반환
+  - Tab5 진입 시 st.spinner("불러오는 중...") 추가
+변경 2 (근본 해결, 별도 실행 필요):
+  - build_poi_recommender.py에서 jaccard 행렬을 scipy sparse로 저장
+  - poi_cooccurrence.pkl 재생성 필요
+```
+
+### E. 사이드바 — KMA 경고 제거
+
+```text
+파일: streamlit_kride.py
+변경: KMA_KEY가 없으면 st.warning() 대신 조용히 날씨 섹션 숨김
 ```

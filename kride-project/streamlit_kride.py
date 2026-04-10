@@ -12,6 +12,18 @@ import os
 import pickle
 import sys
 
+# ── Hugging Face Hub 연동 ─────────────────────────────────────────────────────
+# Streamlit Cloud에서 모델 파일 자동 다운로드
+# 로컬에 파일이 있으면 로컬 우선 사용 (개발 환경 호환)
+try:
+    from huggingface_hub import hf_hub_download
+    HAS_HF = True
+except ImportError:
+    HAS_HF = False
+
+# ★ 본인의 HF Hub 레포 ID로 변경하세요 (upload_to_hf.py 실행 시 --repo 인자와 동일)
+HF_REPO_ID = os.environ.get("HF_REPO_ID", "")
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -85,11 +97,37 @@ set_korean_font()
 # ─────────────────────────────────────────────
 # 경로 설정
 # ─────────────────────────────────────────────
-BASE_DIR      = os.path.dirname(__file__)
-MODELS_DIR    = os.path.join(BASE_DIR, "models")
-DATA_PATH     = os.path.join(BASE_DIR, "data", "raw_ml", "road_scored.csv")
-GRAPH_PATH    = os.path.join(MODELS_DIR, "route_graph.pkl")
-FACILITY_PATH = os.path.join(BASE_DIR, "data", "raw_ml", "facility_clean.csv")
+BASE_DIR        = os.path.dirname(__file__)
+MODELS_DIR      = os.path.join(BASE_DIR, "models")
+DATA_PATH       = os.path.join(BASE_DIR, "data", "raw_ml", "road_scored.csv")
+GRAPH_PATH      = os.path.join(MODELS_DIR, "route_graph.pkl")
+FACILITY_PATH   = os.path.join(BASE_DIR, "data", "raw_ml", "facility_clean.csv")
+POI_REC_PATH    = os.path.join(MODELS_DIR, "poi_cooccurrence.pkl")
+POI_META_PATH   = os.path.join(MODELS_DIR, "poi_rec_meta.json")
+DISTRICT_PATH   = os.path.join(BASE_DIR, "data", "raw_ml", "district_danger.csv")
+
+
+def _hf_path(local_path: str, hf_filename: str) -> str:
+    """
+    로컬 파일이 있으면 그대로 반환.
+    없으면 HF Hub에서 다운로드 후 캐시 경로 반환.
+    HF_REPO_ID 미설정 시 로컬 경로 그대로 반환 (FileNotFoundError 자연 발생).
+    """
+    if os.path.exists(local_path):
+        return local_path
+    if not HAS_HF or not HF_REPO_ID:
+        return local_path  # HF 미설정 → 로컬 없으면 로드 시 오류 발생
+    try:
+        token = os.environ.get("HF_TOKEN") or st.secrets.get("HF_TOKEN", None)
+        return hf_hub_download(
+            repo_id=HF_REPO_ID,
+            filename=hf_filename,
+            repo_type="dataset",
+            token=token,
+        )
+    except Exception as e:
+        st.warning(f"HF Hub 다운로드 실패 ({hf_filename}): {e}")
+        return local_path
 
 # ─────────────────────────────────────────────
 # 리소스 로드 (캐시)
@@ -102,27 +140,84 @@ def load_models():
     meta    = joblib.load(os.path.join(MODELS_DIR, "safety_meta.pkl"))
     return clf, reg, scaler, meta
 
-@st.cache_data
-def load_data():
-    return pd.read_csv(DATA_PATH)
+@st.cache_resource
+def load_models():
+    """안전 모델 4개 로드 (로컬 없으면 HF Hub에서 다운로드)"""
+    clf    = joblib.load(_hf_path(os.path.join(MODELS_DIR, "safety_classifier.pkl"), "models/safety_classifier.pkl"))
+    reg    = joblib.load(_hf_path(os.path.join(MODELS_DIR, "safety_regressor.pkl"),  "models/safety_regressor.pkl"))
+    scaler = joblib.load(_hf_path(os.path.join(MODELS_DIR, "safety_scaler.pkl"),     "models/safety_scaler.pkl"))
+    meta   = joblib.load(_hf_path(os.path.join(MODELS_DIR, "safety_meta.pkl"),       "models/safety_meta.pkl"))
+    return clf, reg, scaler, meta
 
 @st.cache_resource
 def load_graph():
-    """route_graph.pkl 로드 (없으면 None 반환)"""
-    if not HAS_NX or not os.path.exists(GRAPH_PATH):
+    """route_graph.pkl 로드 (로컬 없으면 HF Hub에서 다운로드)"""
+    if not HAS_NX:
         return None, None
-    with open(GRAPH_PATH, "rb") as f:
+    path = _hf_path(GRAPH_PATH, "models/route_graph.pkl")
+    if not os.path.exists(path):
+        return None, None
+    with open(path, "rb") as f:
         data = pickle.load(f)
     return data.get("G_main"), data.get("meta", {})
 
+@st.cache_resource
+def load_poi_rec():
+    """poi_cooccurrence.pkl + poi_rec_meta.json 로드 (로컬 없으면 HF Hub에서 다운로드)
+    sorted_places 를 캐시 안에서 미리 계산 -> 매 렌더링 argsort 비용 제거 (이슈 D)
+    """
+    import json
+    path = _hf_path(POI_REC_PATH, "models/poi_cooccurrence.pkl")
+    if not os.path.exists(path):
+        return None, {}
+    with open(path, "rb") as f:
+        rec_data = pickle.load(f)
+    meta_poi = {}
+    meta_path = _hf_path(POI_META_PATH, "models/poi_rec_meta.json")
+    if os.path.exists(meta_path):
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta_poi = json.load(f)
+    # 미리 인기도 순 정렬 (좌표 있는 장소만)
+    _p2i  = rec_data["place2idx"]
+    _plat = rec_data["place_lat"]
+    _plon = rec_data["place_lon"]
+    _pcnt = rec_data["place_cnt"]
+    _i2p  = {v: k for k, v in _p2i.items()}
+    rec_data["sorted_places"] = [
+        _i2p[i]
+        for i in np.argsort(_pcnt)[::-1]
+        if not (np.isnan(_plat[i]) or np.isnan(_plon[i]))
+    ]
+    rec_data["idx2place"] = _i2p
+    return rec_data, meta_poi
+
+@st.cache_data
+def load_data():
+    """road_scored.csv 로드 (로컬 없으면 HF Hub에서 다운로드)"""
+    path = _hf_path(DATA_PATH, "data/road_scored.csv")
+    return pd.read_csv(path)
+
 @st.cache_data
 def load_facility():
-    if not os.path.exists(FACILITY_PATH):
+    """facility_clean.csv 로드 (로컬 없으면 HF Hub에서 다운로드)"""
+    path = _hf_path(FACILITY_PATH, "data/facility_clean.csv")
+    if not os.path.exists(path):
         return None
     try:
-        return pd.read_csv(FACILITY_PATH, encoding="utf-8-sig")
+        return pd.read_csv(path, encoding="utf-8-sig")
     except Exception:
-        return pd.read_csv(FACILITY_PATH, encoding="cp949")
+        return pd.read_csv(path, encoding="cp949")
+
+@st.cache_data
+def load_district():
+    """district_danger.csv 로드 (로컬 없으면 HF Hub에서 다운로드) (이슈 A)"""
+    path = _hf_path(DISTRICT_PATH, "data/district_danger.csv")
+    if not os.path.exists(path):
+        return None
+    try:
+        return pd.read_csv(path, encoding="utf-8-sig")
+    except Exception:
+        return pd.read_csv(path, encoding="cp949")
 
 # ─────────────────────────────────────────────
 # 날씨 API (30분 캐시)
@@ -174,14 +269,57 @@ def haversine(c1, c2) -> float:
     a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     return R * 2 * math.asin(math.sqrt(a))
 
+SGG_COORDS = {
+    # 서울 25개구
+    "종로구": (37.5735, 126.9790), "중구":    (37.5641, 126.9979), "용산구":   (37.5311, 126.9810),
+    "성동구": (37.5637, 127.0367), "광진구":  (37.5384, 127.0826), "동대문구": (37.5744, 127.0396),
+    "중랑구": (37.6063, 127.0926), "성북구":  (37.5894, 127.0167), "도봉구":   (37.6688, 127.0470),
+    "노원구": (37.6560, 126.9495), "은평구":  (37.6026, 126.9291), "서대문구": (37.5794, 126.9368),
+    "마포구": (37.5663, 126.9014), "양천구":  (37.5270, 126.8561), "강서구":   (37.5509, 126.8496),
+    "구로구": (37.4954, 126.8874), "영등포구":(37.5150, 126.9066), "동작구":   (37.4965, 126.9518),
+    "관악구": (37.4784, 126.9516), "서초구":  (37.4836, 127.0327), "강남구":   (37.5173, 127.0473),
+    "송파구": (37.5145, 127.1066), "강동구":  (37.5301, 127.1238),
+    # 경기 주요 시
+    "수원시": (37.2636, 127.0286), "하남시":  (37.5398, 127.2149), "성남시":   (37.4138, 127.1327),
+    "안양시": (37.3943, 126.9568), "부천시":  (37.5034, 126.7660), "시흥시":   (37.3800, 126.8030),
+    "광명시": (37.4794, 126.8644), "고양시":  (37.6584, 126.8320), "의정부시": (37.7382, 127.0337),
+    "파주시": (37.7598, 126.9800), "구리시":  (37.5943, 127.1397), "남양주시": (37.6347, 127.2143),
+    "김포시": (37.6152, 126.7155), "양주시":  (37.7852, 127.0456), "가평군":   (37.8316, 127.5099),
+    "이천시": (37.2724, 127.4347), "양평군":  (37.4917, 127.4879),
+}
+
 def nearest_node(graph, lat, lon):
     target = (lat, lon)
     return min(graph.nodes, key=lambda n: haversine(n, target))
 
+
+
+
+def _guess_sgg_name(lat: float, lon: float) -> str:
+    """차중 좌표로 가장 가까운 구(구) 이름 반환 (haversine 기반)"""
+    best_name, best_dist = "한국", float("inf")
+    for name, (slat, slon) in SGG_COORDS.items():
+        d = haversine((lat, lon), (slat, slon))
+        if d < best_dist:
+            best_dist, best_name = d, name
+    return best_name
+
+
+@st.cache_data
+def build_location_names(data: pd.DataFrame) -> pd.Series:
+    """데이터프레임의 start_lat/start_lon 에서 구 이름 추론 (\ucee8 \ub370이터 1회 실행 \ud6c4 \ucee8 \uce90시)"""
+    return data.apply(
+        lambda r: _guess_sgg_name(r["start_lat"], r["start_lon"]),
+        axis=1,
+    )
+
 clf, reg, scaler, meta = load_models()
 df = load_data()
+
 G_main, graph_meta = load_graph()
 df_facility = load_facility()
+district_df = load_district()
+poi_rec_data, poi_rec_meta = load_poi_rec()
 
 FEATURES      = meta["features"]          # ['width_m', 'length_km', 'district_danger', 'road_attr_score']
 DANGER_LABEL  = {0: "안전", 1: "보통", 2: "위험"}
@@ -224,16 +362,11 @@ with st.sidebar:
 
     st.divider()
 
-    # ── 날씨 섹션 ─────────────────────────────
-    st.subheader("🌤️ 현재 날씨")
-
+    # ── 날씨 섹션 (이슈 E: KMA_KEY 없으면 경고 없이 숨김) ────────────────
     KMA_KEY = os.environ.get("KMA_API_KEY", "")
 
-    if not HAS_WEATHER:
-        st.info("weather_kma.py 를 찾을 수 없습니다.")
-    elif not KMA_KEY:
-        st.warning("KMA_API_KEY 환경변수가 없습니다.")
-    else:
+    if HAS_WEATHER and KMA_KEY:
+        st.subheader("🌤️ 현재 날씨")
         # 기본 위치: 서울 시청
         w_lat = st.number_input("위도", value=37.5665, format="%.4f", key="w_lat",
                                 help="현재 위치 위도 (기본: 서울 시청)")
@@ -306,7 +439,7 @@ df["route_score"] = df.apply(compute_route_score, axis=1, mode=mode)
 # ─────────────────────────────────────────────
 # 탭
 # ─────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs(["🔍 안전등급 예측", "📍 경로 추천 Top-10", "📊 데이터 탐색", "🗺️ 경로 탐색"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔍 안전등급 예측", "📍 경로 추천 Top-10", "📊 데이터 탐색", "🗺️ 경로 탐색", "🏛️ 관광지 추천"])
 
 
 # ══════════════════════════════════════════════
@@ -331,11 +464,36 @@ with tab1:
         )
 
     with col2:
-        district_danger = st.slider(
-            "구(시군구) 위험도",
-            min_value=0.0, max_value=1.0, value=0.25, step=0.05,
-            help="해당 지역의 자전거 사고 발생 위험도 (0=안전, 1=위험)"
-        )
+        # ── 이슈 A: district_danger.csv 로드 → 시군구 selectbox 교체 ──────
+        if district_df is not None and ("sigungu" in district_df.columns or "시군구명" in district_df.columns):
+            _sgg_col = "sigungu" if "sigungu" in district_df.columns else "시군구명"
+            _sgg_names = ["직접 입력"] + district_df[_sgg_col].dropna().tolist()
+            _sgg_sel = st.selectbox(
+                "시·군·구 선택",
+                _sgg_names,
+                help="지역을 선택하면 해당 위험도가 자동 반영됩니다.",
+            )
+            if _sgg_sel == "직접 입력":
+                district_danger = st.slider(
+                    "구(시군구) 위험도",
+                    min_value=0.0, max_value=1.0, value=0.25, step=0.05,
+                    help="해당 지역의 자전거 사고 발생 위험도 (0=안전, 1=위험)"
+                )
+            else:
+                _danger_val = district_df.loc[
+                    district_df[_sgg_col] == _sgg_sel, "danger_score"
+                ].values
+                district_danger = float(_danger_val[0]) if len(_danger_val) else 0.25
+                st.metric(
+                    "해당 지역 위험도", f"{district_danger:.3f}",
+                    help="build_safety_model.py 가 계산한 구별 사고 위험 점수"
+                )
+        else:
+            district_danger = st.slider(
+                "구(시군구) 위험도",
+                min_value=0.0, max_value=1.0, value=0.25, step=0.05,
+                help="해당 지역의 자전거 사고 발생 위험도 (0=안전, 1=위험)"
+            )
 
         # road_attr_score는 너비·길이로 자동 계산
         width_norm  = min(width_m  / 6.0, 1.0)
@@ -380,9 +538,12 @@ with tab2:
         "tourist":  "🗺️ 관광 우선",
     }[mode]
     st.header(f"경로 추천 Top-10  —  {mode_label} 모드")
-    st.caption(
-        f"가중치: 안전 {MODE_WEIGHTS[mode]['safety']*100:.0f}% / "
-        f"관광 {MODE_WEIGHTS[mode]['tourism']*100:.0f}%"
+
+    # ── 이슈 B: 순위 기준 설명 추가 ──────────────────────────────────────
+    st.info(
+        f"📊 **순위 기준**: `route_score = 안전점수 × {EFFECTIVE_WEIGHTS['safety']:.1f} + "
+        f"관광점수 × {EFFECTIVE_WEIGHTS['tourism']:.1f}`  "
+        f"| **1위가 현재 모드({mode_label})에서 가장 추천되는 경로입니다.**"
     )
 
     top10 = (
@@ -392,7 +553,26 @@ with tab2:
     )
     top10.index += 1  # 1-based rank
 
-    display_cols = {
+    # ── 경로 위치명 컬럼 생성: 구명 + 도로유형 조합 ─────────────────────────
+    _loc_names = build_location_names(df.sort_values("route_score", ascending=False).head(10).reset_index(drop=True))
+    _road_types = df.sort_values("route_score", ascending=False).head(10)["road_type"].reset_index(drop=True)
+    _road_type_short = {
+        "자전거전용도로":       "전용",
+        "자전거보행자겸용도로":  "겸용",
+        "자전거우선도로":       "우선",
+        "자전거전용차로":       "전용차로",
+    }
+    top10["경로 위치"] = [
+        f"{_loc_names.iloc[i]} "
+        f"{_road_type_short.get(str(_road_types.iloc[i]), '자전거도로')}"
+        for i in range(len(top10))
+    ]
+
+    # ── 이슈 B + 이름표시: 경로 위치 컬럼 맨 앞에 추가 ─────────────────────
+    display_cols = {"경로 위치": "경로 위치"}
+    if "노선명" in df.columns:
+        display_cols["노선명"] = "도로명"
+    display_cols.update({
         "route_score":    "추천 점수",
         "safety_score":   "안전 점수",
         "tourism_score":  "관광 점수",
@@ -403,15 +583,37 @@ with tab2:
         "facility_count": "편의시설 수",
         "start_lat":      "시작 위도",
         "start_lon":      "시작 경도",
-    }
+    })
 
-    display_df = top10[list(display_cols.keys())].rename(columns=display_cols)
+    _top10_cols = [c for c in display_cols.keys() if c in top10.columns]
+    display_df = top10[_top10_cols].rename(columns=display_cols)
 
     # 수치 포맷
     for col in ["추천 점수", "안전 점수", "관광 점수"]:
-        display_df[col] = display_df[col].map("{:.4f}".format)
+        if col in display_df.columns:
+            display_df[col] = display_df[col].map("{:.4f}".format)
 
-    st.dataframe(display_df, width="stretch")
+    # ── 이슈 B: column_config 로 hover 설명 추가 ─────────────────────────
+    _col_cfg = {
+        "경로 위치": st.column_config.TextColumn(
+            "경로 위치",
+            help="출발 좌표 기준 가장 가까운 행정구역 + 도로 유형",
+        ),
+        "추천 점수": st.column_config.TextColumn(
+            "추천 점수",
+            help=f"route_score = 안전 × {EFFECTIVE_WEIGHTS['safety']:.1f} + 관광 × {EFFECTIVE_WEIGHTS['tourism']:.1f}",
+        ),
+        "관광지 수": st.column_config.NumberColumn(
+            "관광지 수", help="도로 1km 반경 내 관광지 개수"
+        ),
+        "문화시설 수": st.column_config.NumberColumn(
+            "문화시설 수", help="도로 1km 반경 내 문화시설 개수"
+        ),
+        "편의시설 수": st.column_config.NumberColumn(
+            "편의시설 수", help="도로 1km 반경 내 편의시설(공기주입소 등) 개수"
+        ),
+    }
+    st.dataframe(display_df, column_config=_col_cfg, use_container_width=True)
 
     # 추천 점수 분포 (전체 vs Top10)
     st.subheader("추천 점수 분포")
@@ -437,8 +639,31 @@ with tab3:
     m1.metric("전체 세그먼트", f"{len(df):,}")
     m2.metric("안전 점수 평균", f"{df['safety_score'].mean():.3f}")
     m3.metric("관광 점수 평균", f"{df['tourism_score'].mean():.3f}")
-    m4.metric("관광점수 0 비율",
-              f"{(df['tourism_score']==0).sum()/len(df)*100:.1f}%")
+    _zero_pct = (df["tourism_score"] == 0).sum() / len(df) * 100
+    m4.metric("관광점수 0 비율", f"{_zero_pct:.1f}%")
+
+    # ── 이슈 C: 관광 점수가 낮은 이유 설명 ───────────────────────────────
+    with st.expander("📌 관광 점수 평균이 낮은 이유 (정상 동작)"):
+        _tour_mean = df["tourism_score"].mean()
+        _safe_mean = df["safety_score"].mean()
+        st.markdown(f"""
+        > **안전 점수 평균 {_safe_mean:.3f} vs 관광 점수 평균 {_tour_mean:.3f}** — 이 차이는 정상입니다.
+
+        관광 점수(`tourism_score`)는 도로 세그먼트 **1km 반경 내 POI 밀도**를
+        `MinMaxScaler`로 정규화한 값입니다.
+
+        | 원인 | 내용 |
+        |------|------|
+        | POI 희소 분포 | 전체 POI 2,529개가 1,647개 세그먼트에 희소하게 배치 |
+        | 레저스포츠 POI 부족 | 전체 83개 (경기도 타임아웃으로 미수집) |
+        | MinMaxScaler 특성 | 관광지 없는 {_zero_pct:.1f}% 세그먼트 → 점수 **0** 으로 수렴 |
+
+        **평균 {_tour_mean:.3f}은 정상 결과입니다.**  
+        관광지 인근 경로만 높은 점수를 받는 구조이며, `route_score`에서는
+        안전 점수와 합산되어 경로 추천에 활용됩니다.
+
+        > **근본 개선 방향**: 경기도 레저스포츠 POI 재수집 + 반경 2km 확대 시 분포 개선 가능.
+        """)
 
     st.divider()
 
@@ -709,7 +934,307 @@ with tab4:
                         icon=folium.Icon(color="blue", icon="home"),
                         tooltip="시작/종료",
                     ).add_to(m)
+
+                    # 코스 주변 POI 추천 오버레이
+                    if poi_rec_data is not None:
+                        _p2i  = poi_rec_data["place2idx"]
+                        _jac  = poi_rec_data["jaccard"]
+                        _plat = poi_rec_data["place_lat"]
+                        _plon = poi_rec_data["place_lon"]
+                        _pcnt = poi_rec_data["place_cnt"]
+                        _i2p  = {v: k for k, v in _p2i.items()}
+                        VOCAB = len(_p2i)
+                        # 코스 경유 노드 중심 계산
+                        _course_lats = [n[0] for n in best_course]
+                        _course_lons = [n[1] for n in best_course]
+                        _cx = float(np.mean(_course_lats))
+                        _cy = float(np.mean(_course_lons))
+                        # 인기도 기준 Top-5 (코스 경로 중심 20km 이내)
+                        _scores = _pcnt.copy().astype(float)
+                        for j in range(VOCAB):
+                            if np.isnan(_plat[j]) or np.isnan(_plon[j]):
+                                _scores[j] = -1.0
+                            elif haversine((_cx, _cy), (float(_plat[j]), float(_plon[j]))) > 20.0:
+                                _scores[j] = -1.0
+                        _top_poi_idx = np.argsort(_scores)[::-1][:5]
+                        poi_layer = folium.FeatureGroup(name="주변 관광지 추천 Top-5")
+                        for rank, pidx in enumerate(_top_poi_idx):
+                            if _scores[pidx] < 0:
+                                continue
+                            plat_v, plon_v = float(_plat[pidx]), float(_plon[pidx])
+                            pname = _i2p.get(pidx, f"POI-{pidx}")
+                            folium.Marker(
+                                location=[plat_v, plon_v],
+                                icon=folium.Icon(color="orange", icon="star"),
+                                tooltip=f"#{rank+1} {pname}",
+                                popup=folium.Popup(
+                                    f"<b>{pname}</b><br>방문 빈도: {int(_scores[pidx])}회",
+                                    max_width=200,
+                                ),
+                            ).add_to(poi_layer)
+                        poi_layer.add_to(m)
+                        folium.LayerControl().add_to(m)
+
                     st_folium(m, width=700, height=450)
                 elif not HAS_FOLIUM:
                     st.info("지도 표시를 위해 folium을 설치하세요: `pip install folium streamlit-folium`")
                     st.write("코스 노드 수:", len(best_course))
+
+
+# ══════════════════════════════════════════════
+# 탭 5: 관광지 추천 & 지도
+# ══════════════════════════════════════════════
+with tab5:
+    st.header("관광지 추천")
+
+    if poi_rec_data is None:
+        st.warning(
+            "poi_cooccurrence.pkl이 없습니다.  \n"
+            "`python kride-project/build_poi_recommender.py` 를 먼저 실행하세요."
+        )
+    else:
+        # ── 이슈 D: 로딩 스피너 (첫 진입 시 사용자 피드백) + 캐시 활용 ──────
+        with st.spinner("관광지 추천 모델 데이터 준비 중…"):
+            # 캐시에서 미리 계산된 값 사용 (매 렌더링 argsort 제거)
+            _p2i_t5      = poi_rec_data["place2idx"]
+            _jac_t5      = poi_rec_data["jaccard"]
+            _plat_t5     = poi_rec_data["place_lat"]
+            _plon_t5     = poi_rec_data["place_lon"]
+            _pcnt_t5     = poi_rec_data["place_cnt"]
+            _i2p_t5      = poi_rec_data.get("idx2place") or {v: k for k, v in _p2i_t5.items()}
+            VOCAB_T5     = len(_p2i_t5)
+            _sorted_places = poi_rec_data.get("sorted_places") or [
+                _i2p_t5[i]
+                for i in np.argsort(_pcnt_t5)[::-1]
+                if not (np.isnan(_plat_t5[i]) or np.isnan(_plon_t5[i]))
+            ]
+
+        # 성능 지표 (메타 파일)
+        if poi_rec_meta:
+            mc1, mc2, mc3, mc4 = st.columns(4)
+            mc1.metric("vocab 크기", f"{poi_rec_meta.get('vocab', VOCAB_T5):,}개")
+            mc2.metric("test Recall@5",  f"{poi_rec_meta.get('test_recall5',  0):.4f}")
+            mc3.metric("test Recall@10", f"{poi_rec_meta.get('test_recall10', 0):.4f}")
+            mc4.metric("베이스라인 @5",  f"{poi_rec_meta.get('baseline_recall5', 0):.4f}")
+            st.caption("Co-occurrence + Jaccard 정규화 | VISIT_AREA_TYPE_CD < 21 관광지만")
+        st.divider()
+
+        # ── 입력 컬럼 ─────────────────────────────────
+        col_input, col_map = st.columns([1, 2])
+
+        with col_input:
+            st.subheader("시드(방문) 장소 선택")
+            seed_sel = st.multiselect(
+                "이미 방문했거나 기준이 될 장소 (1개 이상)",
+                options=_sorted_places,
+                default=_sorted_places[:1],
+                help="인기도 순으로 정렬됨. 여러 장소 선택 가능.",
+            )
+            max_dist_sel = st.slider("추천 반경 (km)", 5, 50, 20, 5, key="poi_dist")
+            top_n_sel    = st.slider("추천 개수",       3, 20, 10, 1, key="poi_topn")
+            show_route   = st.toggle(
+                "추천 장소 → 자전거 경로 연결",
+                value=False,
+                help="route_graph.pkl이 있을 때 추천 장소를 순서대로 Dijkstra로 연결합니다.",
+                disabled=(G_main is None),
+            )
+            run_btn = st.button("추천 실행", type="primary", key="poi_run")
+
+        # ── 추천 함수 (인라인) ──────────────────────────
+        def _poi_recommend(seed_places, top_n, max_dist_km):
+            """Co-occurrence Jaccard 기반 추천. seed 좌표 중심 max_dist_km 이내 필터."""
+            seed_idx = [_p2i_t5[p] for p in seed_places if p in _p2i_t5]
+            exclude  = set(seed_places)
+
+            # 시드 중심 좌표
+            lats = [float(_plat_t5[i]) for i in seed_idx if not np.isnan(_plat_t5[i])]
+            lons = [float(_plon_t5[i]) for i in seed_idx if not np.isnan(_plon_t5[i])]
+            center_lat = float(np.mean(lats)) if lats else None
+            center_lon = float(np.mean(lons)) if lons else None
+
+            if not seed_idx:
+                scores = _pcnt_t5.copy().astype(float)
+            else:
+                scores = np.array(_jac_t5[seed_idx].sum(axis=0)).flatten()
+
+            for j in range(VOCAB_T5):
+                if _i2p_t5.get(j) in exclude:
+                    scores[j] = -1.0
+                    continue
+                if np.isnan(_plat_t5[j]) or np.isnan(_plon_t5[j]):
+                    scores[j] = -1.0
+                    continue
+                if center_lat is not None and max_dist_km > 0:
+                    d = haversine(
+                        (center_lat, center_lon),
+                        (float(_plat_t5[j]), float(_plon_t5[j])),
+                    )
+                    if d > max_dist_km:
+                        scores[j] = -1.0
+
+            top_idx = np.argsort(scores)[::-1][:top_n]
+            results = []
+            for i in top_idx:
+                if scores[i] < 0:
+                    continue
+                plat_v = float(_plat_t5[i])
+                plon_v = float(_plon_t5[i])
+                dist_km = (
+                    haversine((center_lat, center_lon), (plat_v, plon_v))
+                    if center_lat is not None else None
+                )
+                results.append({
+                    "장소":       _i2p_t5[i],
+                    "Jaccard":    round(float(scores[i]), 4),
+                    "거리(km)":   round(dist_km, 1) if dist_km is not None else "-",
+                    "lat":        plat_v,
+                    "lon":        plon_v,
+                })
+            return results
+
+        # ── 실행 결과 ──────────────────────────────────
+        if run_btn:
+            if not seed_sel:
+                st.warning("시드 장소를 1개 이상 선택해 주세요.")
+            else:
+                recs = _poi_recommend(seed_sel, top_n_sel, max_dist_sel)
+
+                with col_input:
+                    st.divider()
+                    if recs:
+                        st.success(f"추천 결과 {len(recs)}개")
+                        rec_df = pd.DataFrame(recs)[["장소", "Jaccard", "거리(km)"]]
+                        rec_df.index += 1
+                        st.dataframe(rec_df, width="stretch")
+                    else:
+                        st.info(f"반경 {max_dist_sel}km 이내 추천 결과가 없습니다. 반경을 늘려 보세요.")
+
+                with col_map:
+                    if not HAS_FOLIUM:
+                        st.info("`pip install folium streamlit-folium` 설치 필요")
+                    else:
+                        # 중심 좌표 계산 (시드 + 추천 전체)
+                        all_lats, all_lons = [], []
+                        for p in seed_sel:
+                            if p in _p2i_t5:
+                                i = _p2i_t5[p]
+                                if not np.isnan(_plat_t5[i]):
+                                    all_lats.append(float(_plat_t5[i]))
+                                    all_lons.append(float(_plon_t5[i]))
+                        for r in recs:
+                            all_lats.append(r["lat"])
+                            all_lons.append(r["lon"])
+                        map_center = (
+                            [float(np.mean(all_lats)), float(np.mean(all_lons))]
+                            if all_lats else [37.5665, 126.9780]
+                        )
+                        m5 = folium.Map(location=map_center, zoom_start=12)
+
+                        # 시드 마커 (초록)
+                        seed_layer = folium.FeatureGroup(name="시드 장소")
+                        for p in seed_sel:
+                            if p not in _p2i_t5:
+                                continue
+                            i = _p2i_t5[p]
+                            if np.isnan(_plat_t5[i]):
+                                continue
+                            folium.Marker(
+                                location=[float(_plat_t5[i]), float(_plon_t5[i])],
+                                icon=folium.Icon(color="green", icon="flag"),
+                                tooltip=p,
+                                popup=folium.Popup(f"<b>[시드] {p}</b>", max_width=200),
+                            ).add_to(seed_layer)
+                        seed_layer.add_to(m5)
+
+                        # 추천 마커 (빨강, 크기 = Jaccard 비례)
+                        rec_layer = folium.FeatureGroup(name="추천 관광지")
+                        if recs:
+                            max_jac = max(r["Jaccard"] for r in recs) or 1.0
+                            for rank, r in enumerate(recs):
+                                radius = 8 + int(r["Jaccard"] / max_jac * 14)
+                                dist_txt = f"{r['거리(km)']} km" if r["거리(km)"] != "-" else ""
+                                folium.CircleMarker(
+                                    location=[r["lat"], r["lon"]],
+                                    radius=radius,
+                                    color="#DC2626",
+                                    fill=True,
+                                    fill_color="#FCA5A5",
+                                    fill_opacity=0.8,
+                                    tooltip=f"#{rank+1} {r['장소']} (Jaccard={r['Jaccard']:.4f})",
+                                    popup=folium.Popup(
+                                        f"<b>#{rank+1} {r['장소']}</b><br>"
+                                        f"Jaccard: {r['Jaccard']:.4f}<br>"
+                                        f"거리: {dist_txt}",
+                                        max_width=220,
+                                    ),
+                                ).add_to(rec_layer)
+                                # 순번 텍스트 마커
+                                folium.Marker(
+                                    location=[r["lat"], r["lon"]],
+                                    icon=folium.DivIcon(
+                                        html=f'<div style="font-size:11px;font-weight:bold;'
+                                             f'color:#DC2626;text-shadow:1px 1px 0 #fff">#{rank+1}</div>',
+                                        icon_size=(30, 20),
+                                        icon_anchor=(0, 10),
+                                    ),
+                                ).add_to(rec_layer)
+                        rec_layer.add_to(m5)
+
+                        # 자전거 경로 연결 (route_graph 사용)
+                        if show_route and G_main is not None and recs:
+                            import networkx as nx_poi
+                            waypoints = []
+                            for p in seed_sel:
+                                if p in _p2i_t5:
+                                    i = _p2i_t5[p]
+                                    if not np.isnan(_plat_t5[i]):
+                                        waypoints.append((float(_plat_t5[i]), float(_plon_t5[i])))
+                            for r in recs[:5]:  # 상위 5개만 경유
+                                waypoints.append((r["lat"], r["lon"]))
+
+                            route_layer = folium.FeatureGroup(name="자전거 경로")
+                            route_total_km = 0.0
+                            for wi in range(len(waypoints) - 1):
+                                sn = nearest_node(G_main, waypoints[wi][0],    waypoints[wi][1])
+                                en = nearest_node(G_main, waypoints[wi+1][0], waypoints[wi+1][1])
+                                try:
+                                    seg_nodes = nx_poi.shortest_path(G_main, sn, en, weight="weight")
+                                    seg_coords = [[n[0], n[1]] for n in seg_nodes]
+                                    seg_km = sum(
+                                        G_main[seg_nodes[k]][seg_nodes[k+1]].get("length_km",
+                                            haversine(seg_nodes[k], seg_nodes[k+1]))
+                                        for k in range(len(seg_nodes) - 1)
+                                    )
+                                    route_total_km += seg_km
+                                    folium.PolyLine(
+                                        seg_coords, color="#7C3AED", weight=3, opacity=0.75,
+                                        tooltip=f"구간 {wi+1}→{wi+2} ({seg_km:.1f} km)",
+                                    ).add_to(route_layer)
+                                except Exception:
+                                    pass
+                            route_layer.add_to(m5)
+                            if route_total_km > 0:
+                                st.caption(f"자전거 경로 총 거리 (추정): {route_total_km:.1f} km")
+
+                        folium.LayerControl().add_to(m5)
+                        st_folium(m5, width="100%", height=520)
+        else:
+            with col_map:
+                # 버튼 누르기 전 기본 지도 (서울 중심)
+                if HAS_FOLIUM:
+                    m5_default = folium.Map(location=[37.5665, 126.9780], zoom_start=11)
+                    # 전체 관광지 히트맵 대신 인기 Top-20 마커 표시
+                    from folium.plugins import MarkerCluster
+                    cluster = MarkerCluster(name="인기 관광지 Top-20")
+                    for i in np.argsort(_pcnt_t5)[::-1][:20]:
+                        if np.isnan(_plat_t5[i]) or np.isnan(_plon_t5[i]):
+                            continue
+                        folium.CircleMarker(
+                            location=[float(_plat_t5[i]), float(_plon_t5[i])],
+                            radius=6, color="#2563EB", fill=True,
+                            fill_opacity=0.7,
+                            tooltip=_i2p_t5.get(i, ""),
+                        ).add_to(cluster)
+                    cluster.add_to(m5_default)
+                    folium.LayerControl().add_to(m5_default)
+                    st_folium(m5_default, width="100%", height=520)

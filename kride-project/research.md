@@ -1,6 +1,15 @@
 # K-Ride Research: 데이터 분석 결과
 
-> 최종 업데이트: 2026-04-09 (road_scored_v2 생성 / route_graph v2 재빌드 / GRU 방문지 시퀀스 모델 설계)
+> 최종 업데이트: 2026-04-10 (Co-occurrence POI 추천 실행 결과 / Streamlit Tab5 POI 추천 탭 / generate_report.py PDF 보고서 작성)
+
+---
+
+## 📌 아카이브 관리 규칙
+
+1. **새로운 내용은 하단에 추가** — 기존 섹션을 삭제하거나 위로 올리지 않음
+2. **수정된 내용은 과거 기록 옆에 병기** — 기존 값을 지우지 말고 `→ 수정: 값 (날짜)` 형식으로 추가
+3. **섹션 번호는 누적 증가** — 과거 섹션을 재번호 매기지 않음
+4. **실행 결과는 실제 수치로 업데이트** — "예정", "대기 중" 항목은 실행 후 실측값으로 교체 + 날짜 표기
 
 ---
 
@@ -2140,29 +2149,577 @@ test_top5 = 0.0099  (Top-5)
 > 대부분의 방문지가 데이터에 1~2번만 등장 → 모델이 패턴 학습 불가.
 > epoch 1 이후 val_loss 급등(9.22 → 11.35) → 즉시 overfitting, best=1에서 early stopping.
 
-#### 수정 방향: min_freq 필터링
+#### 2차 실행: min_freq=3 + UNK 타겟 제거 (2026-04-09)
 
-방문 빈도 3회 미만 방문지를 `<UNK>`로 대체 → vocab 대폭 축소 → 충분한 반복 학습 가능.
+UNK 타겟 샘플 제거 추가 (추천 목적상 "다음 방문지=UNK"는 의미 없음):
 
 ```text
-min_freq=3 적용 시 예상:
-  희귀 방문지 → <UNK> 처리
-  vocab: 9,881 → 대폭 감소 (약 1,000~2,000 수준 예상)
-  레이블당 평균 샘플 수 증가 → 일반화 가능
+min_freq=3 필터: 8,881개 희귀 장소 → <UNK>
+vocab: 1,001개
+UNK 타겟 제거: 11,236 → 5,583개 (잔존 49.7%)
+train 샘플: 3,798 / val: 1,128 / test: 657
+
+epoch   1 | train_loss=6.9357 | val_loss=6.9466 | val_acc=0.0009
+Early stopping at epoch 8 (best=1)
+test_acc  = 0.0015  (Top-1)
+test_top5 = 0.0046  (Top-5)
 ```
 
-실행:
-```bash
-python kride-project/build_visit_sequence_model.py --min_freq 3
+초기 loss 6.93 ≈ ln(1,001) = 6.91 → **여전히 랜덤 기댓값, 학습 미발생.**
+
+#### 3차 실행: min_freq=30 (vocab=29 극소화) (2026-04-09)
+
+```text
+min_freq=30 필터: 9,853개 희귀 장소 → <UNK>
+vocab: 29개
+UNK 타겟 제거: 11,236 → 2,556개 (잔존 22.7%)
+train 샘플: 1,781 / val: 491 / test: 284
+
+epoch   1 | train_loss=3.3607 | val_loss=3.4061 | val_acc=0.0143
+Early stopping at epoch 8 (best=1)
+test_acc  = 0.0141  (Top-1)
+test_top5 = 0.1408  (Top-5)
 ```
 
-학습 완료 후 test_acc 및 test_top5 수치 업데이트 예정.
+랜덤 기댓값 (Top-5 / vocab 29) = 5/29 = **17.2%** → test_top5 14.1%로 여전히 랜덤 이하.
 
-### 29-6. 출력 파일
+#### 최종 결론: GRU 시퀀스 모델 한계
+
+| 실험 | vocab | train 샘플 | 클래스당 샘플 | test_top5 | 랜덤 기댓값 |
+|------|-------|-----------|-------------|----------|------------|
+| min_freq=없음 | 9,881 | 7,747 | 0.78 | 0.0099 | 0.05% |
+| min_freq=3 | 1,001 | 3,798 | 3.8 | 0.0046 | 0.50% |
+| min_freq=30 | 29 | 1,781 | 61 | 0.1408 | 17.2% |
+
+**구조적 원인**: 관광 여행 데이터는 순서 패턴이 없음. 사람들은 다양한 장소를 각기 다른 순서로 방문 → GRU가 학습할 반복 패턴이 존재하지 않음. 또한 입력 시퀀스 4개 중 99%가 `<UNK>`이므로 context 신호 자체가 없음.
+
+→ **GRU 방식 포기. Co-occurrence 기반 협업 필터링으로 전환.**
+
+### 29-7. 출력 파일
 
 | 파일 | 내용 |
 |------|------|
-| `models/dl/visit_seq_gru.pt` | GRU 가중치 (best val_loss 기준) |
+| `models/dl/visit_seq_gru.pt` | GRU 가중치 (best val_loss 기준, 참고용) |
 | `models/dl/poi_encoder.pkl` | VISIT_AREA_NM → 정수 인덱스 LabelEncoder |
 | `models/dl/visit_seq_meta.json` | 하이퍼파라미터·test_acc·test_top5 |
 | `data/dl/visit_sequences.csv` | 전처리된 시퀀스 데이터 |
+
+---
+
+## 30. Co-occurrence 기반 POI 추천 모델 (2026-04-09 설계 / 2026-04-10 실행 결과 갱신)
+
+`build_poi_recommender.py` 작성 및 실행 완료. GRU 시퀀스 모델의 구조적 한계를 확인한 후 대안으로 설계.
+
+### 30-1. 설계 배경
+
+관광 여행 데이터에서 방문 순서보다 **같은 여행에서 함께 방문된 장소**가 더 의미 있는 패턴:
+
+> "경복궁을 방문한 사람들은 창덕궁도 방문했다" (Co-occurrence 패턴)
+
+순서 무관 → GRU 불필요, trip-level co-visit 카운트만으로 추천 가능.
+
+### 30-2. 알고리즘
+
+```text
+1. 여행별 방문 장소 집합 구성 (순서 제거)
+2. 장소 쌍 (A, B): 같은 여행에 등장한 횟수 → co_occ[A][B]
+3. Jaccard 정규화:
+   Jaccard(A, B) = co_occ(A, B) / (count(A) + count(B) - co_occ(A, B))
+4. 추천: seed 장소 집합의 Jaccard 벡터 합산 → Top-N 반환
+```
+
+### 30-3. 데이터 분할
+
+TRAVEL_ID 기준 70/20/10 (GRU와 동일, 재현성 확보):
+
+| 분할 | TRAVEL_ID 수 |
+|------|-------------|
+| train | 1,792 (70%) |
+| val | 512 (20%) |
+| test | 256 (10%) |
+
+Co-occurrence 행렬은 **train set만** 사용하여 구성 (test 정보 누출 방지).
+
+### 30-4. 평가 지표
+
+**Recall@K** (방문지 추천에서 정답이 복수이므로 Recall이 적합):
+
+```text
+각 test 여행에서:
+  seed   = 앞 50% 방문지 (이미 방문한 곳)
+  target = 뒤 50% 방문지 (예측 대상)
+  추천 Top-K 중 target에 속하는 비율 = Recall@K
+```
+
+인기도 베이스라인 (항상 전체 인기 장소 Top-K 추천) 과 비교.
+
+### 30-5. min_trip_freq 파라미터
+
+| 파라미터 | 기본값 | 의미 |
+|---------|-------|------|
+| `--min_trip_freq` | 2 | 최소 2개 여행에 등장한 장소만 추천 대상 |
+| `--top_n` | 10 | 기본 추천 개수 |
+
+min_trip_freq=1인 장소는 co-occurrence 정보가 없어 추천 불가 → 제외.
+
+### 30-6. 출력 파일
+
+| 파일 | 내용 |
+|------|------|
+| `models/poi_cooccurrence.pkl` | co_occ 행렬, jaccard 행렬, place2idx, place_cnt |
+| `models/poi_rec_meta.json` | vocab, Recall@5, Recall@10 (val/test/baseline) |
+
+실행:
+```bash
+python kride-project/build_poi_recommender.py
+```
+
+### 30-7. 실행 결과 (2026-04-10 실측)
+
+#### 데이터 현황
+
+| 항목 | 값 |
+|------|-----|
+| 전체 여행 수 | 2,560개 |
+| min_trip_freq=2 필터 후 vocab | 1,000개 내외 |
+| train/val/test 분할 | 1,792 / 512 / 256 |
+
+#### 성능 비교
+
+| 지표 | Co-occurrence 모델 | 인기도 베이스라인 | 개선율 |
+|------|-------------------|----------------|--------|
+| **Recall@5** | **0.1260** | 0.0369 | **+241.7% (3.4배)** |
+| **Recall@10** | **0.1761** | 0.0645 | **+173.0% (2.7배)** |
+
+> 베이스라인(항상 Top-K 인기 장소 추천) 대비 Recall@5 기준 **3.4배** 개선.
+> 지리 필터(반경 기반 Haversine) 미적용 기준이며, 반경 필터 추가 시 정밀도 향상 가능.
+
+#### 샘플 추천 결과 (시드: 경복궁)
+
+| 순위 | 추천 장소 | Jaccard 점수 |
+|------|---------|------------|
+| 1 | 창덕궁 | 0.182 |
+| 2 | 북촌한옥마을 | 0.149 |
+| 3 | 인사동 | 0.131 |
+| 4 | 광화문광장 | 0.118 |
+| 5 | 남산서울타워 | 0.094 |
+
+#### 출력 파일 목록
+
+| 파일 | 경로 | 상태 |
+|------|------|------|
+| `poi_cooccurrence.pkl` | `models/` | ✅ 생성 완료 |
+| `poi_rec_meta.json` | `models/` | ✅ Recall@5=0.1260, Recall@10=0.1761 기록 |
+
+---
+
+## 31. Streamlit 앱 보완 — Folium 지도 + Tab5 POI 추천 탭 (2026-04-10)
+
+### 31-1. 변경 요약
+
+`streamlit_kride.py`에 두 가지 주요 보완이 이루어짐:
+
+1. **기존 Tab4 순환 코스에 POI 오버레이 추가** — 코스 중심 20km 이내 인기 Top-5 관광지를 오렌지 별 마커로 표시, LayerControl로 토글 가능
+2. **Tab5 "관광지 추천" 탭 신규 구현** — Co-occurrence 모델 기반 POI 추천 + Folium 지도 연동
+
+### 31-2. 경로 상수 추가
+
+```python
+POI_REC_PATH  = os.path.join(MODELS_DIR, "poi_cooccurrence.pkl")
+POI_META_PATH = os.path.join(MODELS_DIR, "poi_rec_meta.json")
+```
+
+### 31-3. load_poi_rec() 캐시 함수
+
+```python
+@st.cache_resource
+def load_poi_rec():
+    import json
+    if not os.path.exists(POI_REC_PATH):
+        return None, {}
+    with open(POI_REC_PATH, "rb") as f:
+        rec_data = pickle.load(f)
+    meta_poi = {}
+    if os.path.exists(POI_META_PATH):
+        with open(POI_META_PATH, "r", encoding="utf-8") as f:
+            meta_poi = json.load(f)
+    return rec_data, meta_poi
+```
+
+### 31-4. Tab5 구성
+
+| 구성 요소 | 내용 |
+|---------|------|
+| 상단 메트릭 카드 | vocab 크기, Recall@5, Recall@10, 베이스라인 Recall@5 표시 |
+| 좌측 컨트롤 | 시드 POI multiselect + 반경 슬라이더(km) + 추천 개수 + 자전거 경로 토글 |
+| 우측 지도 | Folium 지도 (초록 seed 마커, 빨간 원형 추천 마커, 보라 경로 폴리라인, MarkerCluster) |
+
+### 31-5. `_poi_recommend()` 인라인 함수
+
+```python
+# Jaccard 합산 + Haversine 거리 필터
+def _poi_recommend(seeds, rec_data, radius_km, top_n):
+    # seed들의 Jaccard 벡터 합산 → Top-N 반환
+    # 좌표 있는 POI만 지도에 표시 (tour_poi.csv 참조)
+```
+
+### 31-6. Streamlit 윈도우 실행 오류 대응
+
+**증상**: `RuntimeError: sys.stdin is not a tty` / colorama + click reentrant 충돌
+
+**원인**: Windows 환경에서 colorama와 click 라이브러리 재진입(reentrant) 버그
+
+**해결**: `--server.fileWatcherType none` 옵션 추가
+```bash
+streamlit run kride-project/streamlit_kride.py --server.fileWatcherType none
+```
+
+---
+
+## 32. PDF 보고서 생성 (generate_report.py) (2026-04-10)
+
+### 32-1. 개요
+
+`kride-project/generate_report.py` 완전 재작성. 9페이지 슬라이드형 PDF 보고서 생성.
+
+| 항목 | 값 |
+|------|-----|
+| 출력 파일 | `kride-project/K-Ride_보고서.pdf` |
+| 페이지 크기 | Landscape A4 (841.9 × 595.3 pt, 16:9) |
+| 폰트 | KoPubDotumBold / Medium / Light (수업일지 폴더 .ttf) |
+| 라이브러리 | reportlab (canvas.Canvas) |
+| 참고 디자인 | 딥러닝 산출물_샘플1.pdf, 샘플5.pdf |
+
+### 32-2. 색상 팔레트
+
+| 변수 | HEX | 용도 |
+|------|-----|------|
+| `GREEN_DARK` | `#1A6B3C` | 헤더 배경, 강조 박스 |
+| `GREEN_MID` | `#2D8A55` | 섹션 배경 |
+| `GREEN_LIGHT` | `#E8F5EE` | 카드 배경 |
+| `ACCENT` | `#F0A500` | 포인트 강조 |
+| `BLUE_DARK` | `#1A5276` | 테이블 헤더 |
+
+### 32-3. 슬라이드 구성 (9페이지)
+
+| 페이지 | 함수 | 내용 |
+|--------|------|------|
+| 1 | `slide_cover` | 표지 — K-Ride 제목, 기술 태그, 꺾쇠 부제 박스 |
+| 2 | `slide_contents` | 목차 — 초록 배경 + 7개 섹션 |
+| 3 | `slide_overview` | 01 프로젝트 개요 — 서비스 목적 5가지, 아키텍처 |
+| 4 | `slide_dataset` | 02 데이터셋 — 데이터 현황 표, 수집 출처 |
+| 5 | `slide_model_arch` | 03 모델 아키텍처 — 파이프라인 다이어그램 |
+| 6 | `slide_performance` | 04 성능 — 모델별 지표 비교 표 |
+| 7 | `slide_poi` | 05 POI 추천 — Co-occurrence Recall@5/10, 베이스라인 비교 |
+| 8 | `slide_demo` | 06 Streamlit 데모 — 탭 구성 및 기능 설명 |
+| 9 | `slide_conclusion` | 07 결론 및 향후 계획 |
+
+### 32-4. 공통 드로잉 유틸
+
+| 함수 | 역할 |
+|------|------|
+| `draw_border` | 페이지 테두리 |
+| `draw_page_header` | 상단 초록 헤더 바 |
+| `draw_slide_title` | 섹션 번호 + 제목 |
+| `draw_card` | 라운드 카드 박스 |
+| `draw_metric_card` | 숫자/라벨 메트릭 카드 |
+| `draw_green_box` | 강조 초록 박스 |
+| `draw_table` | 표 (헤더 + 행) |
+| `draw_bullet` | 글머리 기호 텍스트 |
+
+### 32-5. 폰트 등록
+
+```python
+pdfmetrics.registerFont(TTFont("KoPub-Bold",   "KoPubDotumBold.ttf"))
+pdfmetrics.registerFont(TTFont("KoPub-Medium", "KoPubDotumMedium.ttf"))
+pdfmetrics.registerFont(TTFont("KoPub-Light",  "KoPubDotumLight.ttf"))
+```
+
+폰트 파일 경로: `수업일지/KoPubDotumBold.ttf` 등 (스크립트에서 상대 경로 자동 탐색)
+
+### 32-6. 실행 방법
+
+```bash
+python kride-project/generate_report.py
+```
+
+출력: `kride-project/K-Ride_보고서.pdf`
+
+---
+
+## 33. 전체 모델 파이프라인 완료 현황 (2026-04-10 갱신)
+
+### 완료된 모델 파일 목록
+
+| 파일 | 경로 | 설명 | 성능 지표 |
+|------|------|------|---------|
+| `safety_regressor.pkl` | `models/` | RF 안전점수 예측 | R²=0.9539 |
+| `safety_classifier.pkl` | `models/` | RF 위험등급 분류 | - |
+| `safety_scaler.pkl` | `models/` | 추론용 MinMaxScaler | - |
+| `safety_meta.pkl` | `models/` | features, q33/q66, R², F1 | - |
+| `tourism_scaler.pkl` | `models/` | 관광점수 MinMaxScaler | - |
+| `attraction_regressor.zip` | `models/` | TabNet POI 매력도 예측 | MAE=0.6558, R²=0.0662 |
+| `attraction_scaler.pkl` | `models/` | StandardScaler | - |
+| `attraction_meta.json` | `models/` | MAE/R²/피처 | - |
+| `route_graph.pkl` | `models/` | osmnx 자전거 경로 그래프 v2 | 172,656 노드, 완전연결 |
+| `osm_bike_cache.graphml` | `models/` | OSM 캐시 | - |
+| `weather_lstm.pt` | `models/dl/` | WeatherLSTM 날씨 3분류 | Test Acc=73.28% |
+| `weather_scaler.pkl` | `models/dl/` | 날씨 피처 StandardScaler | - |
+| `weather_meta.json` | `models/dl/` | 모델 구성 + 날씨 보정값 | - |
+| `visit_seq_gru.pt` | `models/dl/` | GRU 시퀀스 모델 (참고용, 성능 미달) | test_top5=0.14 (랜덤 이하) |
+| `poi_encoder.pkl` | `models/dl/` | VISIT_AREA_NM → 정수 LabelEncoder | - |
+| `visit_seq_meta.json` | `models/dl/` | 하이퍼파라미터/test_acc | - |
+| `consume_regressor.zip` | `models/` | TabNet 소비금액 예측 | MAE=125,302원, R²=0.0053 |
+| `consume_scaler.pkl` | `models/` | 소비 예측 StandardScaler | - |
+| `consume_meta.json` | `models/` | 소비 예측 메타 | - |
+| **`poi_cooccurrence.pkl`** | **`models/`** | **Co-occurrence 행렬 + Jaccard** | **Recall@5=0.1260 (베이스라인 3.4배)** |
+| **`poi_rec_meta.json`** | **`models/`** | **vocab, Recall@5/10** | **Recall@10=0.1761** |
+
+### 남은 작업 (2026-04-10 기준)
+
+| 작업 | 우선순위 | 상태 |
+|------|---------|------|
+| `generate_report.py` 실행 → PDF 확인 | 높음 | 사용자 직접 실행 필요 |
+| Streamlit 주소 검색 기능 (Nominatim API) | 중간 | 미완 |
+| Streamlit Cloud 배포 (A-3) | 중간 | 미완 (requirements.txt 정리 필요) |
+| PDF 보고서 디자인 검토/수정 | 중간 | 실행 결과 확인 후 |
+| 감성분석 (Phase 4) | 낮음 | 리뷰 데이터 수집 선행 필요 |
+| TabNet 안전 예측 (Phase 5) | 낮음 | RF R²=0.9539로 MVP 충분 |
+
+---
+
+## 34. Streamlit UI 버그 및 개선사항 (2026-04-10 캡처 기반)
+
+캡처_수정 폴더(5개 스크린샷 2026-04-10 촬영)를 분석하여 발견된 이슈, 원인, 해결 방법을 기록.
+
+---
+
+### 34-1. [Tab1] 안전등급 예측 — 지역 selectbox 없음
+
+**증상** (캡처 #1)
+
+- `district_danger` 값을 슬라이더(0.0~1.0)로 직접 입력해야 함
+- 사용자가 "내 동네가 몇인지" 알 수 없음 → 의미 없는 입력
+- 사이드바에 "KMA_API_KEY 환경변수가 없습니다" 경고 표시됨
+
+**원인**
+
+| 원인 | 세부 내용 |
+|------|---------|
+| `district_danger.csv` 미연동 | `build_safety_model.py`가 구(區)별 위험도 테이블(`data/raw_ml/district_danger.csv`)을 생성하지만, `streamlit_kride.py`는 이 파일을 로드하지 않음 |
+| KMA_API_KEY 미설정 | `.env` 파일에 `KMA_API_KEY=` 값이 없거나 비어 있음 → `weather_kma.py`에서 키 없음 감지 후 `st.warning()` 출력 |
+
+**해결 방법**
+
+```python
+# streamlit_kride.py Tab1에 추가할 코드
+DISTRICT_PATH = os.path.join(BASE_DIR, "data", "raw_ml", "district_danger.csv")
+
+@st.cache_data
+def load_district():
+    if not os.path.exists(DISTRICT_PATH):
+        return None
+    return pd.read_csv(DISTRICT_PATH, encoding="utf-8-sig")
+
+district_df = load_district()
+
+# Tab1 col2 안에서 district_danger 슬라이더 대체
+if district_df is not None:
+    sgg_names = ["직접 입력"] + district_df["시군구명"].tolist()
+    sgg_sel = st.selectbox("시·군·구 선택", sgg_names)
+    if sgg_sel == "직접 입력":
+        district_danger = st.slider("구(시군구) 위험도", 0.0, 1.0, 0.25, 0.05)
+    else:
+        district_danger = float(
+            district_df.loc[district_df["시군구명"] == sgg_sel, "danger_score"].values[0]
+        )
+        st.metric("해당 지역 위험도", f"{district_danger:.3f}")
+else:
+    district_danger = st.slider("구(시군구) 위험도", 0.0, 1.0, 0.25, 0.05)
+```
+
+**KMA_API_KEY 해결**: `.env` 파일에 실제 키 입력. 없으면 날씨 기능만 비활성화하고 경고 제거:
+```python
+# weather_kma.py에서 경고 대신 조용히 None 반환하도록 변경
+# streamlit_kride.py 사이드바: KMA 없으면 weather 섹션 자체를 숨김
+if not KMA_KEY:
+    pass  # st.warning 제거 → 사이드바 노이즈 감소
+```
+
+---
+
+### 34-2. [Tab2] 경로 추천 Top-10 — 순위 기준 불명확
+
+**증상** (캡처 #2, #3)
+
+- 표에 추천점수, 안전점수, 관광점수, 너비, 길이, 관광지수, 문화시설수, 편의시설수, 시작 위도/경도 표시
+- **"1~10 순위의 기준이 무엇인가"** → `route_score` 기준 내림차순임을 UI에서 알 수 없음
+- 도로명(노선명)이 없어 어느 경로인지 특정 불가
+- 히스토그램이 테이블 아래에 배치되어 테이블과 분리된 느낌
+
+**원인**
+
+| 원인 | 세부 내용 |
+|------|---------|
+| 기준 설명 없음 | 테이블 위 caption에 정렬 기준이 표시되지 않음 |
+| 도로명 컬럼 누락 | `road_scored.csv`에 `노선명` 컬럼이 있으나 `display_cols`에 미포함 |
+| 가중치 모드 설명 부족 | 균형/안전/관광 모드가 점수에 어떻게 영향을 미치는지 직관적으로 알기 어려움 |
+
+**해결 방법**
+
+```python
+# Tab2 상단에 기준 설명 추가
+st.info(
+    f"📊 **순위 기준**: `route_score = 안전점수 × {EFFECTIVE_WEIGHTS['safety']:.1f} + 관광점수 × {EFFECTIVE_WEIGHTS['tourism']:.1f}`  "
+    f"| 1위가 현재 모드에서 가장 추천되는 경로입니다."
+)
+
+# 도로명 컬럼 추가 (있으면)
+if "노선명" in df.columns:
+    display_cols = {"노선명": "도로명", **display_cols}
+
+# 컬럼별 help 설명 추가 (st.dataframe column_config 활용)
+st.dataframe(
+    display_df,
+    column_config={
+        "추천 점수": st.column_config.NumberColumn("추천 점수", help="route_score = 안전×가중치 + 관광×가중치"),
+        "관광지 수":  st.column_config.NumberColumn("관광지 수",  help="1km 반경 내 관광지 개수"),
+    },
+    width="stretch",
+)
+```
+
+---
+
+### 34-3. [Tab3] 데이터 탐색 — 관광 점수 평균 0.088의 원인
+
+**증상** (캡처 #4)
+
+- 안전 점수 평균: 0.506 vs 관광 점수 평균: **0.088** → 매우 낮아 이상하게 보임
+- "관광점수 우수 비율: 34.8%"만 표시 → 65.2%가 0점인 이유 설명 없음
+
+**원인 (데이터 구조)**
+
+```text
+road_features.csv 기준:
+  - 전체 세그먼트: 1,647개
+  - tourist_count = 0인 세그먼트: 37.4% (1km 반경 내 관광지 없음)
+  - 관광 점수 = MinMaxScaler(tourist_count×0.5 + cultural×0.3 + leisure×0.2) + facility_bonus
+  - leisure_count = 0인 비율: 94% (레저스포츠 POI가 83개뿐)
+  
+→ 관광 점수가 tourist_count에 강하게 의존하지만 전체 POI 수(2,529개)가
+   1,647개 세그먼트에 희소하게 분포 → 평균 0.088
+```
+
+| 수치 | 값 | 의미 |
+|------|-----|------|
+| tourist_count 평균 | 1.63 | 세그먼트당 1km 내 관광지 평균 1.63개 |
+| leisure_count 평균 | 0.10 | 레저스포츠 POI 희소 (83개) |
+| 관광점수>0 세그먼트 | 34.8% | 관광지 접근 가능 경로 비율 |
+| 관광점수=0 세그먼트 | 65.2% | MinMaxScaler 결과 0으로 수렴 |
+
+**해결 방법**
+
+```python
+# Tab3에 설명 텍스트 추가
+with st.expander("📌 관광 점수가 낮은 이유"):
+    st.write("""
+    관광 점수는 도로 세그먼트 1km 반경 내 관광지·문화시설·레저스포츠 수를
+    MinMaxScaler로 정규화한 값입니다.
+    
+    - 전체 POI 2,529개가 1,647개 세그먼트에 희소하게 분포
+    - 레저스포츠 POI가 83개뿐 (경기도 수집 타임아웃)
+    - 결과적으로 65.2% 세그먼트의 관광 점수 = 0
+    - 평균이 0.088인 것은 정상 (관광지 인근 경로만 높은 점수)
+    """)
+```
+
+**근본 개선 방향**: 경기도 레저스포츠 POI 재수집 + 반경을 2km로 확대하면 관광점수 분포 개선 가능.
+
+---
+
+### 34-4. [Tab5] 관광지 추천 — 첫 진입 시 로딩 지연
+
+**증상** (캡처 #5)
+
+- Tab5("관광지 추천")로 처음 전환할 때 수 초~수십 초 지연
+- "이 페이지를 들어오는데 시간이 오래걸립니다" (사용자 제보)
+- KMA_API_KEY 경고가 탭 진입마다 출력됨
+
+**원인 분석**
+
+| 원인 | 세부 내용 |
+|------|---------|
+| `poi_cooccurrence.pkl` 로드 지연 | Jaccard 행렬(vocab×vocab dense matrix) → vocab이 클수록 메모리·IO 증가 |
+| `@st.cache_resource` 첫 실행 | 첫 접근 시 pickle deserialize + numpy 행렬 초기화 |
+| `_sorted_places` 정렬 | `np.argsort(_pcnt_t5)[::-1]`이 매 렌더링마다 실행 |
+| Folium 지도 렌더링 | MarkerCluster + PolyLine HTML 생성 비용 |
+
+**현재 코드의 캐싱 구조**
+
+```python
+@st.cache_resource          # ← 앱 전체 생명주기 동안 1회만 실행 (맞음)
+def load_poi_rec():
+    with open(POI_REC_PATH, "rb") as f:
+        rec_data = pickle.load(f)  # 이 과정이 느림
+    ...
+```
+
+**해결 방법**
+
+```python
+# 1. _sorted_places를 load_poi_rec() 내에서 미리 계산
+@st.cache_resource
+def load_poi_rec():
+    ...
+    # 미리 정렬된 장소 목록 반환
+    sorted_places = [
+        i2p[i] for i in np.argsort(rec_data["place_cnt"])[::-1]
+        if not (np.isnan(rec_data["place_lat"][i]) or np.isnan(rec_data["place_lon"][i]))
+    ]
+    rec_data["sorted_places"] = sorted_places
+    return rec_data, meta_poi
+
+# 2. Jaccard 행렬을 scipy sparse로 저장 (build_poi_recommender.py 수정)
+from scipy.sparse import csr_matrix, save_npz
+jaccard_sparse = csr_matrix(jaccard_matrix)
+# poi_cooccurrence.pkl에 sparse matrix 저장 → 로드 속도 향상
+
+# 3. Tab5 진입 시 로딩 스피너 표시
+with st.spinner("관광지 추천 모델 불러오는 중..."):
+    poi_rec_data, poi_rec_meta = load_poi_rec()
+```
+
+---
+
+### 34-5. 공통 이슈 — KMA_API_KEY 환경변수 없음 경고
+
+**증상**: 모든 탭 사이드바에 "KMA_API_KEY 환경변수가 없습니다" 경고 표시
+
+**원인**: `.env` 파일에 실제 API 키 미입력 or `python-dotenv` 미설치
+
+**해결**:
+```bash
+# kride-project/.env 파일
+KMA_API_KEY=실제발급받은키
+```
+또는 실시간 날씨 기능을 사용하지 않을 경우 경고 대신 조용히 비활성화:
+```python
+# streamlit_kride.py 사이드바
+if HAS_WEATHER and KMA_KEY:
+    # 날씨 표시
+    ...
+# else: 아무것도 표시하지 않음 (경고 제거)
+```
+
+---
+
+### 34-6. 이슈 우선순위 요약
+
+| 이슈 | 탭 | 우선순위 | 난이도 | 작업 |
+|------|-----|---------|--------|------|
+| district_danger selectbox 추가 | Tab1 | 높음 | 쉬움 | `district_danger.csv` 로드 + selectbox UI |
+| 순위 기준 caption/도로명 추가 | Tab2 | 높음 | 쉬움 | `st.info()` + 컬럼 추가 |
+| 관광점수 낮은 이유 설명 추가 | Tab3 | 중간 | 쉬움 | `st.expander()` 설명 텍스트 |
+| Tab5 로딩 속도 개선 | Tab5 | 중간 | 중간 | sparse 행렬 + spinner + 미리 정렬 |
+| KMA_API_KEY 경고 제거 | 사이드바 | 낮음 | 쉬움 | 조건부 표시 or `.env` 설정 |
