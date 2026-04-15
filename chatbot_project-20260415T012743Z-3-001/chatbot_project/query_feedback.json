@@ -1,0 +1,8 @@
+[
+    {
+        "id": 1,
+        "question": "행복실천 정보에서 위대한 시크릿 책을 읽는 유사 내용을 찾아서 누가 작성했는 지 이름을 알려줘",
+        "feedback": "SELECT member_id \nFROM action_info\nWHERE action_desc LIKE '%위대한 시크릿%';",
+        "timestamp": "2024-10-31T09:51:20.239229"
+    }
+]
