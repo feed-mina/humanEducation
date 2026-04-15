@@ -1,0 +1,54 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.18'    
+    // Spring Boot 2.7.x와 호환되는 의존성 관리 플러그인 버전 매핑
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'    
+    id 'java'
+    id 'war'
+}
+
+group = 'humanPrj'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	
+    // JSP 사용을 위한 의존성 (Spring Boot 버전과 호환됨)
+	implementation 'org.apache.tomcat.embed:tomcat-embed-jasper'
+	implementation 'javax.servlet:jstl'
+	
+	//implementation 'io.uvicorn:uvicorn-core:0.18.3' // FastAPI 실행
+	
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	annotationProcessor 'org.projectlombok:lombok'
+	
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	
+    // 테스트 관련 의존성
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+    
+    // [참고] Spring Boot 2.7 이상 및 최신 Gradle에서 JUnit5 실행 시 사용
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

@@ -1,0 +1,76 @@
+<springboot gradle 프로젝트>
+스프링부트 설치 : https://spring.io/tools  ---> Windows 버전 다운
+cf. 최근 버전은 sts5 버전이기 때문에 아래 sts4 버전으로 다운
+https://cdn.spring.io/spring-tools/release/STS4/4.29.1.RELEASE/dist/e4.35/spring-tool-suite-4-4.29.1.RELEASE-e4.35.0-win32.win32.x86_64.zip
+
+//lombok 다운 및 설치(스프링부트 경로)
+cmd에서 lombok이 위치한 경로로 이동 후 : java -jar lombok.jar
+팝업이 뜰 때 SpringToolsuite4.exe가 위치한 폴더에서 SpringToolsuite4.exe 선택
+
+// SpringToolsuite4.exe 실행 후
+1. File > Import... 클릭
+2. Gradle > Existing Gradle Project 선택 후 Next
+3. Project root directory에 human 소스가 있는 폴더 선택 후 Finish
+
+// 프로젝트명 마우스 오른쪽 클릭 후 Run As > Spring Boot App 클릭
+
+cf. 에러 발생시
+ - 프로젝트명 마우스 오른쪽 클릭 후 Gradle > Refresh Gradle Project 
+ - STS를 닫은 후 프로젝트 폴더 .gradle, .settings, build, bin, .classpath, .project 삭제 --> 다시 STS 실행 --> Gradle > Refresh Gradle Project
+
+// 추후 프로젝트 생성 시
+https://start.spring.io/  접속 : Gradle Groovy, JAVA17, ADD Dependencies(Lombok, Spring Boot DevToos, Spring Security,  MariaDB Driver), packing(war)
+--------------------------------------------------------------------------------------------
+<참고 : VSCODE로 스프링부트 활용시>
+// VS Code → Extensions (Ctrl + Shift + X) 에서 아래 설치
+Extension Pack for Java (Microsoft) 
+Spring Boot Extension Pack (VMware)
+Gradle for Java
+Lombok Annotations Support for VS Code
+
+// Spring Boot 프로젝트 생성
+Ctrl + Shift + P
+Spring Initializr: Create a Gradle Project
+선택 순서:
+Project Type: Gradle 또는 Maven
+Language: Java
+Spring Boot Version
+Group Id: com.example
+Artifact Id: demo
+Packaging: war
+Java Version: 17
+Dependencies 선택 (Web, JPA, Security 등)
+
+// 기존 STS 프로젝트를 VS Code로 가져오기
+>> Gradle 프로젝트
+File → Open Folder
+build.gradle 있는 폴더 선택
+자동으로 Gradle 인식됨
+만약 인식 안되면 --> Ctrl + Shift + P → Gradle: Refresh Gradle Project
+
+// 애플리케이션 실행
+방법 1 : 좌측 Spring Boot Dashboard  --> 애플리케이션 우클릭 → Run / Debug
+방법 2 : Java Main 실행 --> @SpringBootApplication 클래스에서 ▶ Run / Debug 버튼 클릭
+-------------------------------------------------------------------------------------------------------------
+
+<gradle 설치>
+url : https://gradle.org/releases/   ----> 8.11.1 버전 설치 (경로 : c:\Program Files\gradle-8.11.1)
+
+<java 17 설치>
+https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html
+
+<환경변수>
+시스템 변수 편집
+//Gradle
+- 변수 이름 : GRADLE_HOME
+- 변수 값 : C:\Program Files\gradle-8.11.1
+
+//Java
+- 변수 이름 : JAVA_HOME
+- 변수 값 : C:\Program Files\Java\jdk-17
+
+//path
+- %JAVA_HOME%\bin\
+- %GRADLE_HOME%\bin\
+
+
