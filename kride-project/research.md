@@ -2723,3 +2723,264 @@ if HAS_WEATHER and KMA_KEY:
 | 관광점수 낮은 이유 설명 추가 | Tab3 | 중간 | 쉬움 | `st.expander()` 설명 텍스트 |
 | Tab5 로딩 속도 개선 | Tab5 | 중간 | 중간 | sparse 행렬 + spinner + 미리 정렬 |
 | KMA_API_KEY 경고 제거 | 사이드바 | 낮음 | 쉬움 | 조건부 표시 or `.env` 설정 |
+
+---
+
+## 35. Phase 8 AI 비서 설계 결정사항 (2026-04-15)
+
+> **배경**: K-Ride 프로젝트의 기존 ML/DL 파이프라인이 완성 단계에 도달함.
+> LLM + LangChain + RAG + Gradio를 결합해 "지능형 자전거 여행 비서"로 진화시키는 Phase 8 설계를 확정.
+
+---
+
+### 35-1. 사용자 요구사항 분석 (Q&A 결과)
+
+#### 객관식 최종 답변
+
+| 질문 | 선택 | 의미 |
+|------|------|------|
+| Q1 핵심 기능 | A+C | 대화형 경로 추천 + 실시간 브리핑 에이전트 |
+| Q2 지식베이스 | A+B+C+D 전체 | POI 리뷰, 공식 가이드라인, road_scored.csv, SNS 크롤링 |
+| Q3 LangChain 방식 | A+B | Text-to-API + ReAct Agent 하이브리드 |
+| Q4 Gradio 포지션 | C+D | 개발자 데모 샌드박스 + 멀티모달(음성) 프론트엔드 |
+| Q5 핵심 우려 | 할루시네이션 + 레이턴시 |
+| 목적 분류 방식 | B+C+D | UI 버튼 + LLM 추론 + 되묻기 + 첫 턴 질문 |
+| 목적 복수 선택 | C | 메인 1개 + 서브 최대 2개 |
+| 데이터 소스 | A | 목적별 전용 소스 매핑 |
+| 파라미터 세팅 | B | LLM 동적 생성 |
+| 디버그 표시 | D | 개발 중에만 표시 |
+
+#### 주관식 핵심 확인사항
+
+**가상 첫 번째 질문 (실제 사용 시나리오)**
+```
+"나는 BTS를 좋아해. 이번에 경기도나 서울쪽으로 놀러가게 되는데
+ BTS가 간 브이로그 탐방이나 앨범과 관련된 곳 또는 SNS에 남긴 구역에서
+ 자전거로 탐방할만한 곳을 찾아줘.
+ 나는 여성이고 나이대는 30대 초반이고 전기 자전거로 타고 갈 거야.
+ 내일쯤 여행을 시작할 건데 날씨는 괜찮은지, 도로가 안전한지,
+ 경로는 몇 시간 정도 되는지 알려줘. 지도로도 보여줘."
+```
+
+이 한 문장에서 에이전트가 처리해야 할 작업:
+```
+1. 목적 분류: 메인=K문화, 서브=[인생샷, 커플(혼자)여행]
+2. 크롤링: BTS 관련 서울/경기 장소 (위버스, 팬카페, 나무위키)
+3. 날씨: KMA API → 내일 서울/경기 예보
+4. 경로: Dijkstra + 전기자전거 파라미터 (평지 선호, 거리 여유)
+5. 안전: RF 모델 → 각 구간 safety_score
+6. 지도: Folium으로 경로 + POI 마커 렌더링
+7. 합성: 자연어 리포트 (날씨 + 경로 + 안전 + 볼거리 통합)
+```
+
+**알고리즘 분담 방향**
+- 추가하고 싶은 것: SNS 기반 리뷰 크롤링, 관광지/아이돌/K한류/여행지 인터넷 검색
+- 알고리즘 선택은 아래 옵션 검토 후 결정 예정
+
+---
+
+### 35-2. 아키텍처 선택: Option C (완전 하이브리드)
+
+```
+Option A "LLM은 통역사" — 채택하지 않음 (유연성 부족)
+Option B "LLM은 프로듀서" — 채택하지 않음 (파라미터 매핑 복잡)
+Option C "완전 하이브리드" — 채택
+  LLM Agent
+    ├─ SNS/웹 크롤링  → 아이돌/테마 장소 발굴 (LLM 강점)
+    ├─ Dijkstra      → 경로 계산 (알고리즘 강점)
+    ├─ RF/TabNet     → 안전점수 (ML 강점)
+    ├─ LSTM          → 날씨 예측 (DL 강점)
+    └─ LLM 합성      → 최종 자연어 리포트
+```
+
+**핵심 원칙**: LLM은 오케스트레이터. 경로/안전/날씨 숫자는 기존 모델이 생성.
+
+---
+
+### 35-3. 목적 분류 모듈 설계 결정
+
+#### 카테고리 구조 (확정 초안)
+
+10개 메인 카테고리, 메인 1개 + 서브 최대 2개 선택 가능.
+
+```
+관광       — 명소, 랜드마크, 역사, 박물관
+호캉스     — 호텔, 풀빌라, 스파, 루프탑
+K문화      — 아이돌, 드라마 촬영지, 팬사이트, K-pop
+인생샷     — 포토스팟, 인스타, 감성카페, 뷰맛집
+액티비티   — 서핑, 클라이밍, 카약, 번지점프
+가족여행   — 키즈카페, 동물원, 안전, 쉬운 코스
+커플여행   — 데이트코스, 야경, 분위기, 로맨틱
+혼자여행   — 힐링, 조용한, 사색, 나만의 시간
+당일치기   — 2-4시간, 짧은, 가까운
+자연즐기기 — 산, 강, 공원, 숲길, 한적한
+```
+
+#### 3중 분류 흐름
+
+```
+1. UI 버튼 클릭 → 즉시 확정 (가장 빠름, 레이턴시 0)
+2. 텍스트 입력 → LLM 추론
+   - confidence >= 0.8 → 확정
+   - confidence < 0.8  → "혹시 K문화 탐방 목적이 맞나요?" 재확인
+3. 첫 턴 빈 입력 → "어떤 여행을 원하시나요?" 질문
+```
+
+#### 파라미터 동적 생성 예시 (K문화 + 커플여행 + 30대 여성 + 전기자전거)
+
+```json
+{
+  "main_intent": "K문화",
+  "sub_intents": ["커플여행"],
+  "safety_weight": 0.65,
+  "tourism_weight": 0.35,
+  "max_distance_km": 25,
+  "prefer_flat": true,
+  "bike_type": "electric",
+  "crawl_sources": ["weverse", "namu.wiki", "팬카페"],
+  "required_fields": ["멤버명_또는_콘텐츠명", "방문근거_출처URL"],
+  "persona": {"gender": "female", "age_group": "30대"}
+}
+```
+
+---
+
+### 35-4. 목적별 전용 데이터 소스 매핑
+
+```
+관광       → 네이버 블로그, 구글 Places API, 한국관광공사 API
+호캉스     → 야놀자, 여기어때, 호텔 공식 사이트
+K문화      → 위버스(weverse.io), 팬카페(cafe.naver.com), 나무위키
+인생샷     → 인스타그램 해시태그, 핀터레스트, 네이버 블로그 감성사진
+액티비티   → 클룩(klook.com/ko), 에어비앤비 체험, 카카오 예약
+가족여행   → 네이버 지도 어린이 친화, 서울시 공원 API
+커플여행   → 네이버 블로그 데이트코스 검색, 야경 명소 큐레이션
+혼자여행   → 네이버 블로그 혼행 검색, 한적한 자전거길
+당일치기   → 거리 필터링 (공통 소스 + max_km 제한)
+자연즐기기 → 한국관광공사 자연 API, 국립공원 공단(knps.or.kr)
+```
+
+---
+
+### 35-5. RAG 지식베이스 구성 결정
+
+#### ChromaDB 컬렉션 구조
+
+```
+컬렉션명              데이터 소스                        업데이트 주기
+kride_poi_general   tour_poi.csv + 관광지 설명 텍스트    초기 1회 + 크롤링 추가 시
+kride_road_info     road_scored.csv 구간 텍스트화        모델 재학습 시
+kride_kculture      K문화 크롤링 결과                    주 1회 갱신
+kride_lifestyle     호캉스/인생샷/액티비티 크롤링          월 1회 갱신
+kride_safety_rules  자전거도로 가이드라인 PDF 등           분기 1회 갱신
+```
+
+#### 임베딩 모델 결정
+
+1순위: `jhgan/ko-sroberta-multitask` (한국어 특화, 로컬 무료)
+2순위: `text-embedding-3-small` (OpenAI, 유료 — 품질 기준 미달 시 전환)
+
+---
+
+### 35-6. 할루시네이션 방어 전략 (우선순위 1)
+
+#### 발생 가능 시나리오
+
+| 시나리오 | 위험도 | 방어 방법 |
+|---------|--------|---------|
+| 실제로 BTS가 가지 않은 장소를 "BTS가 갔다"고 답함 | 높음 | SNS 정보에 출처 URL 필수, "~로 알려진 곳" 단서 |
+| 위험한 도로를 "안전하다"고 답함 | 매우 높음 | safety_tool 데이터 없이 "안전" 발언 금지 (시스템 프롬프트 절대 규칙) |
+| 존재하지 않는 경로 좌표를 생성 | 높음 | route_tool 결과만 사용, 임의 좌표 생성 금지 |
+| 오늘 날씨를 "맑다"고 임의 답변 | 중간 | weather_tool 호출 결과만 인용 |
+
+#### 테스트 케이스 (test_hallucination.py)
+
+```
+TC-01: "이 도로 완전 안전해?" → safety_tool 인용 여부 확인
+TC-02: "내일 비 안 와?" → weather_tool 호출 여부 확인
+TC-03: "BTS 뷔가 여기 갔어?" → 출처 URL 포함 여부 확인
+TC-04: "강남에서 부산까지 경로 짜줘" → route_tool 호출 or "데이터 없음" 확인
+TC-05: 존재하지 않는 장소 입력 → "확인된 정보 없음" 응답 확인
+```
+
+---
+
+### 35-7. 레이턴시 방어 전략 (우선순위 2)
+
+#### 예상 응답 시간 분석
+
+```
+단계                  예상 시간    최적화 방법
+LLM 목적 분류         1-2초       gpt-4o-mini 사용
+날씨 API 호출         0.5-1초     async 병렬
+경로 계산 (Dijkstra)  0.1-0.5초   route_graph.pkl 사전 로드
+SNS 크롤링            2-5초       async 병렬 + 결과 캐싱
+LLM 최종 합성         2-4초       streaming으로 체감 시간 단축
+
+최악 순차 실행 시: 5.6~12.5초
+병렬 + 스트리밍 최적화 후: 체감 2-3초 (첫 토큰)
+```
+
+#### LLM 모델 선택 근거
+
+```
+gpt-4o       — 최고 품질, 느림 (~5-8초), 비용 높음  → 제외
+gpt-4o-mini  — 품질 충분, 빠름 (~1-2초), 비용 낮음  → 채택
+claude-haiku — gpt-4o-mini와 유사, 비용 절감 대안   → 백업 옵션
+로컬 LLM     — GPU 자원 부담, 한국어 품질 불확실     → 후순위 검토
+```
+
+---
+
+### 35-8. 기존 K-Ride 모델 → Tool 래핑 매핑 상세
+
+| 기존 파일 | Tool 이름 | 래핑 방식 | 반환 형식 |
+|----------|-----------|---------|---------|
+| weather_kma.py | weather_tool | @tool 데코레이터 직접 래핑 | JSON (날씨상태, 기온, 강수확률, safety_weight) |
+| models/route_graph.pkl + nx.shortest_path | route_tool | pkl 로드 후 함수 래핑 | JSON (거리, 시간, GeoJSON 경로) |
+| models/safety_regressor.pkl | safety_tool | joblib.load + predict 래핑 | JSON (구간별 safety_score, 위험등급) |
+| Google Search API | crawl_tool | SerpAPI 래퍼 + SOURCE_MAP 분기 | 텍스트 (장소명 + 설명 + 출처URL) |
+| ChromaDB (신규) | poi_rag_tool | langchain-chroma 래퍼 | 텍스트 (관련 POI 정보) |
+
+---
+
+### 35-9. 프로젝트 디렉토리 구조 (Phase 8 추가 후)
+
+```
+kride-project/
+├── kride_ai/                      <- Phase 8 신규 (AI 비서)
+│   ├── __init__.py
+│   ├── intent/
+│   │   ├── classifier.py          <- IntentClassifier
+│   │   └── category_config.py     <- 10개 카테고리 정의
+│   ├── agent/
+│   │   ├── kride_agent.py         <- ReAct Agent
+│   │   ├── system_prompt.py       <- 할루시네이션 방지 규칙
+│   │   └── tools/
+│   │       ├── weather_tool.py    <- weather_kma.py 래핑
+│   │       ├── route_tool.py      <- route_graph.pkl 래핑
+│   │       ├── safety_tool.py     <- safety_regressor.pkl 래핑
+│   │       ├── crawl_tool.py      <- SNS/웹 크롤링
+│   │       └── poi_rag_tool.py    <- ChromaDB 검색
+│   ├── rag/
+│   │   ├── vectorstore.py         <- ChromaDB 관리
+│   │   └── ingestion.py           <- 임베딩 파이프라인
+│   └── gradio_app.py              <- Gradio UI
+├── build_route_graph.py           <- 기존 (완료)
+├── build_safety_model.py          <- 기존 (완료)
+├── weather_kma.py                 <- 기존 (완료)
+├── streamlit_kride.py             <- 기존 (완료)
+└── ...
+```
+
+---
+
+### 35-10. 미결 결정사항 (추후 사용자 확인 필요)
+
+| 항목 | 현재 상태 | 선택지 |
+|------|-----------|--------|
+| 임베딩 모델 | 미결 (jhgan 우선 시도) | A. jhgan/ko-sroberta (무료) / B. OpenAI (유료) |
+| SNS 크롤링 도구 | 미결 | A. SerpAPI (유료, 안정적) / B. requests+BeautifulSoup (무료, 불안정) |
+| 자전거 특화 카테고리 | 미결 | "라이딩 챌린지", "야간라이딩" 별도 카테고리 추가 여부 |
+| LLM 알고리즘 분담 최종 확정 | 미결 | Option A/B/C 중 Phase 8 안정화 후 결정 |
+| 네이버 블로그 크롤링 | 미결 | robots.txt 확인 후 진행 가능 여부 결정 |

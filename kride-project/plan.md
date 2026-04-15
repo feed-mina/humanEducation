@@ -1,8 +1,8 @@
 # K-Ride 개발 계획
 
-> 업데이트: 2026-04-10 (Co-occurrence POI 추천 완료 / Streamlit Tab5 완료 / generate_report.py PDF 완료 / UI 수정 이슈 등록)
+> 업데이트: 2026-04-15 (Phase 8 AI 비서 아키텍처 추가 — LLM + LangChain + RAG + Gradio + 목적 분류 모듈)
 >
-> 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** → 통합 서비스 (Streamlit → Vercel React 연동)
+> 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** + **LLM 지능형 AI 비서** → 통합 서비스 (Streamlit → Vercel React 연동)
 >
 > 딥러닝 추가 목표: KLUE-BERT 감성분석·TabNet 안전예측·CNN 도로이미지 분류를 단계적으로 도입해 모델 품질을 향상시킨다.
 >
@@ -1363,4 +1363,403 @@ webdriver-manager              # Selenium 드라이버 관리
 ```text
 파일: streamlit_kride.py
 변경: KMA_KEY가 없으면 st.warning() 대신 조용히 날씨 섹션 숨김
+```
+
+---
+
+## Phase 8: 지능형 AI 자전거 여행 비서 (LLM + LangChain + RAG + Gradio) ← 신규 (2026-04-15)
+
+> **목표**: 기존 ML/DL 파이프라인 위에 LLM 레이어를 얹어 "대화형 자전거 여행 비서"로 진화.
+> 사용자가 "BTS 탐방하며 내일 전기자전거로 서울 돌고 싶어"라고 말하면,
+> 에이전트가 목적을 분류하고 → 날씨/경로/안전/SNS 크롤링 도구를 순서대로 호출하고 → 자연어 리포트 + 지도로 응답한다.
+
+### 설계 결정 요약 (2026-04-15 사용자 확정)
+
+| 항목 | 결정 |
+|------|------|
+| 목적 분류 방식 | UI 버튼 우선 + LLM 자동 추론 + 불확실 시 되묻기 + 첫 턴 에이전트 질문 (B+C+D) |
+| 목적 복수 선택 | 메인 1개 + 서브 최대 2개 (C) |
+| 데이터 소스 | 목적별 전용 소스 매핑 — 호캉스=야놀자, K문화=위버스/팬카페, 인생샷=인스타 해시태그 등 (A) |
+| 경로 파라미터 세팅 | LLM이 목적+사용자 조건 보고 동적 생성 (B) |
+| 디버그 표시 | 개발 중에만 [K문화][커플여행] 태그 표시, 이후 숨김 (D) |
+| 아키텍처 모델 | Option C — 완전 하이브리드 (LLM이 오케스트레이터, 알고리즘이 실행자) |
+| LangChain 방식 | Text-to-API + ReAct Agent (A+B) |
+| Gradio 포지션 | 개발자 데모 샌드박스 + 멀티모달(음성) 프론트엔드 (C+D) |
+| 핵심 우려사항 | 할루시네이션 + 레이턴시 |
+
+---
+
+### 전체 아키텍처 (Option C 하이브리드)
+
+```
+[사용자 입력 텍스트 or 음성(Whisper)]
+        |
+        v
+[Phase 8-0: 목적 분류 모듈 IntentClassifier]
+  UI버튼 -> LLM추론 -> 재확인 -> 파라미터 생성
+        |
+        v (목적 + 파라미터)
+[Phase 8-1: LangChain ReAct Agent 오케스트레이터]
+  목적에 따라 도구 선택/호출/합성
+        |
+   +----+----+----+----+
+   |    |    |    |    |
+[날씨][경로][안전][SNS][POI RAG]
+Tool  Tool  Tool  크롤링 ChromaDB
+   |    |    |    |
+[KMA][Dijkstra][RF/TabNet][Google Search]
+ API  [Graph]            [각 목적별 소스]
+
+[기존 K-Ride 모델들 재사용 — LLM은 설명만 담당]
+        |
+        v
+[Phase 8-4: Gradio UI]
+  채팅 + Folium 지도 + 디버그 태그 + 음성 입력
+```
+
+---
+
+### Phase 8-0: 목적 분류 모듈 (IntentClassifier)
+
+파일: `kride_ai/intent/classifier.py`, `kride_ai/intent/category_config.py`
+
+#### 목적 카테고리 정의 (초안 — 추후 확장 가능)
+
+| 카테고리 | 키워드 | 전용 크롤링 소스 | 필수 결과 항목 |
+|---------|--------|----------------|--------------|
+| 관광 | 명소, 랜드마크, 역사, 박물관 | 네이버 블로그, 구글 Places | 명소명, 운영시간, 입장료 |
+| 호캉스 | 호텔, 풀빌라, 스파, 루프탑 | 야놀자, 여기어때 리뷰 | 숙소명, 등급, 자전거보관 여부 |
+| K문화 | 아이돌, 드라마 촬영지, K-pop | 위버스, 팬카페, 나무위키 | 멤버명/콘텐츠명, 방문 근거 출처 |
+| 인생샷 | 포토스팟, 인스타, 감성카페, 뷰맛집 | 인스타 해시태그, 핀터레스트 | GPS좌표, 골든타임, 주차 여부 |
+| 액티비티 | 서핑, 클라이밍, 카약, 번지점프 | 클룩, 에어비앤비 체험 | 예약 필요 여부, 연령/체력 제한, 비용 |
+| 가족여행 | 키즈카페, 동물원, 안전, 쉬운 코스 | 네이버 지도 어린이 친화 | 경사도, 화장실 위치, 응급실 거리 |
+| 커플여행 | 데이트코스, 야경, 분위기, 로맨틱 | 네이버 블로그 데이트코스 | 야경 명소, 분위기 카페 |
+| 혼자여행 | 힐링, 조용한, 사색, 나만의 시간 | 네이버 블로그 혼행 | 한적한 구간, 혼밥 가능 식당 |
+| 당일치기 | 2-4시간, 짧은, 가까운 | 공통 (거리 필터링) | 총 소요 시간, 대중교통 연계 |
+| 자연즐기기 | 산, 강, 공원, 숲길, 한적한 | 한국관광공사 API, 국립공원 | 자연경관 등급, 생태 정보 |
+
+#### 3중 분류 흐름
+
+```
+[입력]
+  1. UI 버튼 클릭 -> 즉시 카테고리 확정 (가장 빠름)
+  2. 텍스트 입력 -> LLM 자동 추론
+       confidence >= 0.8 -> 확정
+       confidence < 0.8  -> 되묻기
+  3. 첫 턴 빈 입력 -> 에이전트가 "어떤 여행을 원하시나요?" 질문
+
+[목적 결정 구조]
+  메인 1개 (필수) + 서브 최대 2개 (선택)
+  예: 메인=K문화, 서브=[커플여행, 인생샷]
+
+[파라미터 동적 생성 — LLM 담당]
+  {
+    "safety_weight": 0.7,
+    "tourism_weight": 0.3,
+    "max_distance_km": 20,
+    "prefer_flat": true,
+    "bike_type": "electric",
+    "crawl_sources": ["weverse", "fancafe"],
+    "required_fields": ["멤버명", "방문 근거 출처"]
+  }
+```
+
+#### 파일 구조
+
+```
+kride-project/kride_ai/
+├── __init__.py
+├── intent/
+│   ├── __init__.py
+│   ├── classifier.py        <- IntentClassifier 클래스
+│   └── category_config.py   <- CATEGORIES dict (소스/키워드/필수항목)
+├── agent/
+│   ├── __init__.py
+│   ├── kride_agent.py       <- ReAct Agent (오케스트레이터)
+│   ├── system_prompt.py     <- 할루시네이션 방지 지시 포함
+│   └── tools/
+│       ├── __init__.py
+│       ├── weather_tool.py  <- weather_kma.py 래핑
+│       ├── route_tool.py    <- route_graph.pkl + Dijkstra 래핑
+│       ├── safety_tool.py   <- safety_regressor.pkl 래핑
+│       ├── crawl_tool.py    <- Google Search API + 소스별 크롤러
+│       └── poi_rag_tool.py  <- ChromaDB 검색
+├── rag/
+│   ├── __init__.py
+│   ├── vectorstore.py       <- ChromaDB 관리 (컬렉션별 목적 분리)
+│   └── ingestion.py         <- 문서 임베딩 파이프라인
+└── gradio_app.py            <- Gradio UI
+```
+
+#### Task (Phase 8-0)
+
+```
+[ ] kride_ai/ 디렉토리 및 __init__.py 생성
+[ ] category_config.py 작성 — CATEGORIES dict (10개 카테고리 x 소스/키워드/필수항목)
+[ ] classifier.py 작성 — IntentClassifier 클래스
+    - classify_from_text(text) -> LLM 추론 (confidence 포함)
+    - classify_from_button(category_name) -> 즉시 확정
+    - ask_clarification() -> 재확인 질문 생성
+    - build_parameters(intent, user_profile) -> LLM 동적 파라미터 생성
+```
+
+---
+
+### Phase 8-1: LangChain ReAct Agent (오케스트레이터)
+
+파일: `kride_ai/agent/kride_agent.py`, `kride_ai/agent/system_prompt.py`
+
+#### 핵심 설계 원칙
+
+```
+1. LLM은 "무엇을 할지" 결정만 함 — 숫자 생성 금지
+2. 경로 계산 -> 반드시 route_tool (Dijkstra) 호출 결과만 사용
+3. 안전 점수 -> 반드시 safety_tool (RF/TabNet 모델) 결과만 사용
+4. 날씨     -> 반드시 weather_tool (KMA API) 결과만 사용
+5. SNS 장소 -> "~로 알려진 곳" 단서 + 출처 링크 필수
+```
+
+#### 할루시네이션 방어 시스템 프롬프트 핵심 규칙
+
+```
+[절대 규칙]
+- "안전합니다"는 safety_tool 데이터 없이 절대 말하지 마세요.
+- 경로 좌표는 route_tool 반환값만 사용하세요. 임의로 만들지 마세요.
+- 날씨 정보는 weather_tool 호출 결과만 인용하세요.
+- 아이돌/연예인 방문지는 반드시 출처 URL을 함께 제시하세요.
+- 데이터가 없으면 "확인된 정보가 없습니다"라고 답하세요.
+```
+
+#### Task (Phase 8-1)
+
+```
+[ ] kride_agent.py 작성
+    - create_kride_agent() 함수
+    - gpt-4o-mini 사용 (비용 절감 + 빠른 응답)
+    - streaming=True (레이턴시 체감 개선)
+    - max_iterations=8 (무한루프 방지)
+    - return_intermediate_steps=True (디버그용)
+[ ] system_prompt.py 작성 — 할루시네이션 방지 절대 규칙 포함
+[ ] .env에 OPENAI_API_KEY 추가
+```
+
+---
+
+### Phase 8-2: Tool 구현 (기존 K-Ride 모델 래핑)
+
+파일: `kride_ai/agent/tools/` 각 파일
+
+#### 기존 K-Ride 코드 -> Tool 매핑
+
+| Tool 파일 | 래핑 대상 기존 코드 | 담당 역할 |
+|-----------|------------------|---------|
+| weather_tool.py | weather_kma.py (완료) | 날씨 조회 + safety_score 보정값 |
+| route_tool.py | models/route_graph.pkl + Dijkstra | 최적 경로 계산 (경로는 LLM이 만들지 않음) |
+| safety_tool.py | models/safety_regressor.pkl (완료) | 도로 구간 안전점수 조회 |
+| crawl_tool.py | Google Search API + BeautifulSoup | SNS/웹 크롤링 (목적별 소스 분기) |
+| poi_rag_tool.py | ChromaDB + 기존 tour_poi.csv | POI 상세 정보 검색 |
+
+#### crawl_tool 목적별 소스 분기 로직
+
+```python
+SOURCE_MAP = {
+    "K문화":    ["site:weverse.io", "site:namu.wiki", "팬카페"],
+    "인생샷":   ["인스타그램 포토스팟", "site:pinterest.com"],
+    "호캉스":   ["site:yanolja.com", "site:goodchoice.kr"],
+    "액티비티": ["site:klook.com/ko", "에어비앤비 체험"],
+    "관광":     ["네이버 블로그", "site:visitkorea.or.kr"],
+    "자연":     ["site:knps.or.kr", "한국관광공사"],
+    "가족여행": ["어린이 자전거길", "키즈 친화"],
+    "커플여행": ["데이트코스", "야경 명소"],
+    "혼자여행": ["혼행", "혼밥", "조용한 자전거길"],
+    "당일치기": ["당일치기", "서울 근교"],
+}
+```
+
+#### Task (Phase 8-2)
+
+```
+[ ] weather_tool.py — weather_kma.py 래핑 (LangChain @tool 데코레이터)
+[ ] route_tool.py   — route_graph.pkl 로드 + Dijkstra Tool 래핑
+[ ] safety_tool.py  — safety_regressor.pkl 추론 Tool 래핑
+[ ] crawl_tool.py   — Google Search API + SOURCE_MAP 분기
+[ ] poi_rag_tool.py — ChromaDB 검색 Tool
+```
+
+---
+
+### Phase 8-3: RAG 지식베이스 구축 (ChromaDB)
+
+파일: `kride_ai/rag/vectorstore.py`, `kride_ai/rag/ingestion.py`
+
+#### 지식베이스 구성 (목적별 컬렉션 분리)
+
+```
+ChromaDB 컬렉션 구조:
+  kride_poi_general   <- 기존 tour_poi.csv + 관광지 설명
+  kride_road_info     <- road_scored.csv 구간 속성 텍스트화
+  kride_kculture      <- K문화 크롤링 데이터 (위버스, 나무위키 등)
+  kride_lifestyle     <- 호캉스/인생샷/액티비티 크롤링 데이터
+  kride_safety_rules  <- 지자체 자전거도로 가이드라인, 안전수칙
+
+임베딩 모델 선택지:
+  A. text-embedding-3-small (OpenAI, 유료, 고성능)
+  B. jhgan/ko-sroberta-multitask (로컬 무료, 한국어 특화)
+  -> 우선 B로 구축, 품질 부족 시 A로 전환
+```
+
+#### road_scored.csv 텍스트화 (구간 설명 생성)
+
+```python
+def road_to_text(row):
+    return (
+        f"{row.sigungu}의 자전거도로 구간 ({row.length_km:.1f}km). "
+        f"안전점수 {row.safety_score:.2f}, 관광점수 {row.tourism_score:.2f}. "
+        f"도로 너비 {row.width_m:.1f}m, 유형: {row.road_type}. "
+        f"주변 관광지 {row.tourist_count}개, 편의시설 {row.facility_count}개."
+    )
+```
+
+#### Task (Phase 8-3)
+
+```
+[ ] vectorstore.py 작성 — ChromaDB 초기화/컬렉션 관리/검색 함수
+[ ] ingestion.py 작성
+    - tour_poi.csv -> kride_poi_general 임베딩
+    - road_scored.csv -> kride_road_info 텍스트화 후 임베딩
+    - K문화 크롤링 결과 -> kride_kculture 임베딩
+[ ] requirements에 chromadb, langchain-chroma 추가
+[ ] 임베딩 모델 확정: jhgan/ko-sroberta 우선, 추후 OpenAI 전환 검토
+```
+
+---
+
+### Phase 8-4: Gradio UI (데모 + 멀티모달)
+
+파일: `kride_ai/gradio_app.py`
+포지션: 개발자/기획자 내부 데모 샌드박스 + 음성 입력 시연
+
+#### UI 구성
+
+```
++----------------------------------------------------------+
+|  K-Ride AI 비서 (Gradio 데모)                              |
++----------------------------------------------------------+
+|  [목적 버튼] 관광 | 호캉스 | K문화 | 인생샷 | 액티비티      |
+|             가족여행 | 커플여행 | 혼자여행 | 당일치기 | 자연  |
+|  [서브 목적 체크박스 — 최대 2개]                             |
++---------------------+------------------------------------+
+|  채팅 영역           |  Folium 지도 영역                   |
+|  스트리밍 응답        |  경로 + POI 마커 표시               |
+|                     |                                    |
+|  [디버그 패널]       |  [구간별 안전점수 JSON]              |
+|  [K문화][커플여행]   |  (Accordion — 개발 중에만 열림)     |
++---------------------+------------------------------------+
+|  텍스트 입력 or [마이크 버튼 — Whisper 음성 입력]             |
++----------------------------------------------------------+
+```
+
+#### 스트리밍 + 레이턴시 개선 전략
+
+```python
+for chunk in agent_executor.stream({"input": message}):
+    if "output" in chunk:
+        yield chunk["output"]  # 첫 토큰부터 즉시 표시
+    if "intermediate_steps" in chunk:
+        for action, obs in chunk["intermediate_steps"]:
+            if action.tool == "route_tool":
+                map_html = render_folium_map(json.loads(obs))
+                yield "", map_html  # 경로 나오면 지도 먼저 표시
+```
+
+#### Task (Phase 8-4)
+
+```
+[ ] gradio_app.py 작성
+    - 목적 버튼 그리드 (10개 카테고리, gr.Button)
+    - 서브 목적 체크박스 (최대 2개 선택 제한 로직 포함)
+    - 스트리밍 채팅 + Folium 지도 동시 렌더링
+    - Whisper 음성 입력 (gr.Audio + openai-whisper)
+    - 디버그 패널 (gr.Accordion, 개발 중 기본 열림 / 배포 시 닫힘)
+[ ] requirements에 gradio>=4.0, openai-whisper 추가
+```
+
+---
+
+### Phase 8-5: 할루시네이션 & 레이턴시 방어 전략
+
+#### 할루시네이션 방어 (4중 레이어)
+
+```
+방어층 1 (시스템 프롬프트): "데이터 없으면 모른다고 답하라" 절대 규칙
+방어층 2 (Tool 설계): 안전/경로 정보는 Tool 반환값만 LLM에 전달
+방어층 3 (출처 태깅): SNS 정보에 출처 URL 태그 자동 삽입
+방어층 4 (테스트):
+  - "존재하지 않는 도로" -> "데이터 없음" 응답 확인
+  - "이 도로 완전 안전해?" -> safety_tool 데이터 인용 응답 확인
+  - "내일 비 안 와?" -> weather_tool 호출 결과 인용 확인
+```
+
+#### 레이턴시 방어 (5중 레이어)
+
+```
+방어층 1 (스트리밍): 첫 토큰 즉시 표시 (streaming=True)
+방어층 2 (병렬 호출): 날씨 + 경로 + SNS 크롤링 async 병렬 실행
+방어층 3 (모델 선택): gpt-4o-mini (gpt-4o 대비 5~10배 빠름)
+방어층 4 (캐싱): 동일 경로 요청 LRU 캐시 (TTL=30분)
+방어층 5 (선 렌더링): route_tool 결과 나오는 즉시 지도 표시
+```
+
+#### Task (Phase 8-5)
+
+```
+[ ] test_hallucination.py 작성 (할루시네이션 테스트 케이스)
+[ ] 캐싱 레이어 구현 (functools.lru_cache 또는 Redis)
+[ ] 응답 시간 측정 로깅 추가
+```
+
+---
+
+### Phase 8 필요 패키지 (requirements.txt 추가)
+
+```
+langchain>=0.2.0
+langchain-openai>=0.1.0
+langchain-community>=0.2.0
+langchain-chroma>=0.1.0
+openai>=1.30.0
+chromadb>=0.5.0
+gradio>=4.36.0
+openai-whisper>=20231117
+google-search-results>=2.4.2
+beautifulsoup4>=4.12.0
+httpx>=0.27.0
+sentence-transformers>=3.0.0
+```
+
+### Phase 8 전체 실행 순서 (우선순위 순)
+
+```
+Priority 1 — 환경 구성
+  [ ] kride_ai/ 디렉토리 구조 생성 + __init__.py
+  [ ] requirements.txt에 Phase 8 패키지 추가
+  [ ] .env에 OPENAI_API_KEY 추가
+
+Priority 2 — 목적 분류 모듈 (Phase 8-0)
+  [ ] category_config.py
+  [ ] classifier.py
+
+Priority 3 — Tool 구현 (Phase 8-2)
+  [ ] weather_tool.py / route_tool.py / safety_tool.py
+  [ ] crawl_tool.py / poi_rag_tool.py
+
+Priority 4 — Agent + RAG (Phase 8-1, 8-3)
+  [ ] system_prompt.py + kride_agent.py
+  [ ] vectorstore.py + ingestion.py
+
+Priority 5 — Gradio UI (Phase 8-4)
+  [ ] gradio_app.py
+
+Priority 6 — 방어 및 최적화 (Phase 8-5)
+  [ ] test_hallucination.py + 캐싱 + 로깅
 ```
