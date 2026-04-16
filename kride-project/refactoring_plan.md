@@ -117,16 +117,18 @@ def recommend_v2(seeds, lat, lon, radius_km=20, top_n=10, category_boost=True):
 | AI Hub 전국 여행로그 | aihub.or.kr | 신청 후 1~3일 승인 | [ ] 미신청 |
 | 한국관광공사 TourAPI (전국) | data.visitkorea.or.kr | API 키 발급 후 전국 수집 | [x] 완료 — 15,905건 (관광지 8,931 / 레저 3,243 / 숙박 2,080 / 문화 1,651) |
 | 전국 ASOS 기상 관측소 | data.kma.go.kr | API 키 발급됨 → 관측소 확대 | [ ] 서울/경기만 |
-| 카카오 로컬 API (맛집/POI) | developers.kakao.com | REST API 키 발급 | [x] 보류 — 지도 API 비즈니스 신청 필요, 네이버로 대체 |
+| 카카오 로컬 API (맛집/POI) | developers.kakao.com | REST API 키 (테스트 앱) | [x] **사용 가능** — 로컬 REST API는 비즈니스 등록 불필요, 테스트 앱으로 FD6/CE7 반경 검색 |
 | 네이버 DataLab 검색어 트렌드 | developers.naver.com | Client ID/Secret 발급 완료 (1,000콜/일) | [x] 완료 — krider 앱 등록, sns_mention_norm 산출에 활용 |
-| 네이버 지역 검색 API (맛집) | developers.naver.com | API 설정 탭에서 지역 검색 추가 (25,000콜/일) | [ ] 미추가 — krider 앱에서 '지역(검색)' API 제휴 신청 필요 |
+| 네이버 지역 검색 API (맛집) | developers.naver.com | API 설정 탭에서 지역 검색 추가 (25,000콜/일) | [ ] 미추가 — 카카오 REST API 우선 사용, 보조 수단으로 추가 가능 |
+| 네이버 Cloud Maps | console.ncloud.com | Geocoding / Reverse Geocoding | [x] **완료** — krider 앱 등록 (2026-04-16), 주소↔좌표 변환 활용 |
 | 한국관광공사 숙박 API | data.visitkorea.or.kr | TourAPI contentTypeId=32 (숙박) | [x] 완료 — --include_lodging 옵션으로 포함 수집 (전국 2,080건) |
 
 ### 3-1-1. 외부 API 연계 계획 (관광 점수 · 맛집 POI)
 
 > **여기어때 / 야놀자**: 공개 API 없음 (파트너 계약 필요) → **한국관광공사 숙박 API**로 대체  
-> **또간집 / 망고플레이트 / 블루리본**: 공개 API 없음, 크롤링 약관 위반 위험 → **네이버 지역 검색 API**로 맛집 정보 수집  
-> **카카오 로컬 API**: 지도 API 비즈니스 신청 필요 → **보류**, 네이버 지역 검색 API로 대체
+> **또간집 / 망고플레이트 / 블루리본**: 공개 API 없음, 크롤링 약관 위반 위험 → **카카오 로컬 API**로 맛집 정보 수집  
+> **카카오 로컬 API**: REST API는 비즈니스 등록 불필요 → **사용 가능** (테스트 앱 REST 키, FD6 음식점/CE7 카페 반경 검색, 300,000콜/일)  
+> **네이버 Cloud Maps**: Geocoding/Reverse Geocoding 등록 완료 (2026-04-16) → 주소↔좌표 변환에 활용
 
 #### 네이버 DataLab 검색어 트렌드 — tourism_score sns_mention_norm 산출
 
@@ -218,7 +220,7 @@ def collect_food_poi_naver(query: str, display: int = 5) -> list:
 tourism_score_final =
     0.5 × poi_density_score     (관광지/레저 POI 밀도 — TourAPI 15,905건 기반)
   + 0.2 × attraction_score      (방문자 만족도 TabNet)
-  + 0.2 × food_poi_density      (맛집 POI 밀도 — 네이버 지역 검색 API, 추후 수집)
+  + 0.2 × food_poi_density      (맛집 POI 밀도 — 카카오 로컬 FD6/CE7 반경 검색, step3_food_collect.py)
   + 0.1 × sns_mention_norm      (네이버 DataLab 검색 트렌드 정규화 — API 발급 완료)
 ```
 
@@ -811,11 +813,11 @@ Response:
 | TAAS 자전거 사고 데이터 다운로드 | 사용자 |
 | AI Hub 전국 여행로그 신청 | 사용자 |
 | 한국관광공사 TourAPI 전국 수집 스크립트 | 작성 |
-| ~~카카오 REST API 키 발급~~ | 보류 — 지도 API 비즈니스 신청 필요 |
+| ✅ 카카오 REST API 키 | 사용 가능 — 로컬 REST API 비즈니스 등록 불필요, FD6/CE7 반경 검색 (300,000콜/일) |
 | ✅ 네이버 Client ID/Secret 발급 | 완료 — krider 앱 등록, DataLab 트렌드 API 활성화 |
 | 네이버 지역 검색 API 추가 | 사용자 — krider 앱 API 설정 탭에서 '지역(검색)' 추가 신청 |
-| 맛집 POI 수집 스크립트 (step3_food_collect.py) | 작성 예정 — 네이버 지역 검색 API 기반 |
-| DataLab 트렌드 수집 스크립트 (step4_naver_trend.py) | 작성 예정 — sns_mention_norm 산출 |
+| ✅ 맛집 POI 수집 스크립트 (step3_food_collect.py) | 완료 (2026-04-16) — 카카오 FD6/CE7 반경 검색 기본, --provider naver 대체 옵션 |
+| ✅ DataLab 트렌드 수집 스크립트 (step4_naver_trend.py) | 완료 (2026-04-16) — sns_mention_norm 산출, --offset 배치 지원, 5,000 POI/일 |
 
 ### Phase R-3: 전국 파이프라인 (3~4주차)
 
@@ -883,8 +885,8 @@ Render 무료 플랜 기준 FastAPI + SpringBoot 동시 배포 가능.
 | ---- | ---- | ---- |
 | GRU 방문지 시퀀스 모델 | 구조적 한계 (vocab 희소성, top5=0.14 랜덤 이하) | Co-occurrence로 대체 완료 |
 | 여기어때 / 야놀자 API 연동 | 공개 API 없음, B2B 파트너 계약 필요 | 한국관광공사 숙박 TourAPI (contentTypeId=32) |
-| 카카오 로컬 API | 지도 API 비즈니스 신청 필요 (2026-04-16 확인) | 네이버 지역 검색 API로 대체 (krider 앱 추가 신청 필요) |
-| 또간집 / 망고플레이트 / 블루리본 크롤링 | 공개 API 없음, 약관 위반 위험 | 네이버 지역 검색 API |
+| 카카오 지도 SDK (JavaScript) | 지도 표시용 SDK는 비즈니스 신청 필요 | Naver Cloud Maps Dynamic Map으로 대체 |
+| 또간집 / 망고플레이트 / 블루리본 크롤링 | 공개 API 없음, 약관 위반 위험 | 카카오 로컬 REST API (FD6/CE7) |
 | K컬처 / 아이돌 브이로그 방문지 크롤링 | 우선순위 낮음, 데이터 수집 복잡도 높음 | Phase 8 이후 SNS 크롤링 모듈에서 재검토 |
 | 네이버 로드뷰 CNN | 약관 금지 | AI Hub 자전거도로 이미지 데이터셋 |
 | Neural CF 개인화 추천 | 데이터 부족 + 구현 복잡도 | Co-occurrence MVP → 전국 데이터 확보 후 ALS |

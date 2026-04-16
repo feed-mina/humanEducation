@@ -217,8 +217,7 @@ class FocalLoss(nn.Module):
 
 ### 4-2. 중기 개선 — 네이버 DataLab 검색 트렌드 연동
 
-> **현황 (2026-04-16)**: 네이버 krider 앱 등록 완료, DataLab 검색어 트렌드 API 활성화  
-> **카카오 로컬 API**: 지도 API 비즈니스 신청 필요 → 보류, 네이버 지역 검색 API로 대체
+> **현황 (2026-04-16)**: 네이버 DataLab API 활성화 ✅ | 네이버 Cloud Maps Geocoding 등록 ✅ | 카카오 로컬 REST API 사용 가능 ✅ (비즈니스 등록 불필요, FD6/CE7, 300,000콜/일) | 카카오 지도 SDK → Naver Cloud Maps Dynamic Map으로 대체
 
 #### DataLab API 제약 및 배치 처리 전략
 
