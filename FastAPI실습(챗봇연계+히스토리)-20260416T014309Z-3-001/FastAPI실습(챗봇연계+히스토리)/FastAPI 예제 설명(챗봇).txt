@@ -1,0 +1,101 @@
+<FastAPI 디렉토리 구조>
+chatbot-fastapi/
+├── app/
+│   ├── routers/
+│   │   └── chat_router.py
+│   ├── services/
+│   │   └── ollama_service.py
+│   ├── schemas/
+│   │   └── chat_schema.py
+├── main.py
+└── .env
+
+// 실행 : chabot-fastapi 메인 경로에서 python main.py 실행   ==> Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit) 메시지 확인
+
+1. main.py : 
+- 설명: FastAPI 애플리케이션의 진입점(entry point). 애플리케이션을 초기화하고 라우터를 포함하며, 기본 엔드포인트(/)를 제공
+- 주요 역할: 서버 실행(Uvicorn), 라우터 연결, API 상태 확인용 루트 엔드포인트 제공.
+- 내용: FastAPI 객체 생성, chat_router 포함, 기본 GET / 엔드포인트.
+
+2. app/routers/chat_router.py
+- 설명: 챗봇 관련 API 엔드포인트를 정의하는 라우터 파일
+- 주요 역할: /chat/message POST 엔드포인트를 통해 사용자 메시지를 받아 OllamaService로 전달하고 응답을 반환
+- 내용: APIRouter를 사용해 /chat 접두사 설정, ChatRequest 스키마로 요청 처리, 응답 반환
+
+3. app/services/ollama_service.py
+- 설명: Ollama API와 통신하는 서비스 로직을 담당
+- 주요 역할: Gemma2 모델에 사용자 입력(prompt)을 전달하고 응답을 받아오는 역할
+- 내용: OllamaService 클래스 정의, 환경 변수로 API URL 설정, HTTP 요청으로 Ollama 호출 및 에러 처리
+
+4. app/schemas/chat_schema.py
+- 설명: API 요청 및 응답 데이터의 구조를 정의하는 Pydantic 모델 파일
+- 주요 역할: 요청(ChatRequest)과 응답(ChatResponse) 데이터의 형식 검증
+- 내용: BaseModel을 상속받아 message 필드(요청)와 response 필드(응답) 정의
+5. .env
+- 설명: 환경 변수를 저장하는 설정 파일
+- 주요 역할: Ollama API URL 등 민감하거나 변경 가능한 설정을 코드 외부에서 관리
+- 내용 예시: OLLAMA_API_URL=http://localhost:11434/api/generate
+
+<Spring Boot 디렉토리 구조>
+
+chatbot-spring/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/example/chatbot/
+│   │   │       ├── controller/
+│   │   │       │   └── ChatController.java
+│   │   │       ├── service/
+│   │   │       │   └── ChatService.java
+│   │   │       ├── dto/
+│   │   │       │   └── ChatRequest.java
+│   │   │       └── config/
+│   │   │           └── ChatbotApplication.java
+│   │   │           └── WebConfig.java
+│   │   ├── resources/
+│   │   │   └── application.properties
+│   │   └── webapp/
+│   │       └── WEB-INF/
+│   │           └── views/
+│   │               └── index.jsp
+└── build.gradle
+
+// http://localhost:8080 으로 챗봇 화면 확인
+
+1. build.gradle
+- 설명: Gradle 빌드 스크립트로, 프로젝트 의존성과 빌드 설정을 정의
+- 주요 역할: Spring Boot, JSP, Lombok 등 의존성 관리, 빌드 프로세스 설정
+- 내용: Spring Boot 플러그인, 의존성(spring-boot-starter-web, tomcat-embed-jasper, lombok 등) 정의
+
+2. ChatController.java
+- 설명: Spring MVC 컨트롤러로, HTTP 요청을 처리하고 JSP 뷰를 반환
+- 주요 역할: / (GET)로 JSP 페이지를 렌더링, /chat (POST)로 사용자 메시지를 받아 FastAPI와 통신 후 결과 표시
+- 내용: @GetMapping, @PostMapping으로 엔드포인트 정의, ChatService 호출
+
+3. ChatService.java
+- 설명: 비즈니스 로직을 담당하며 FastAPI와 통신
+- 주요 역할: 사용자 메시지를 FastAPI로 전송하고 응답을 받아 컨트롤러로 전달
+- 내용: RestTemplate으로 HTTP POST 요청, FastAPI URL 설정(application.properties에서 가져옴)
+
+4. ChatRequest.java
+- 설명: 데이터 전송 객체(DTO)로, 사용자 메시지를 담는 클래스
+- 주요 역할: FastAPI로 보낼 요청 데이터를 구조화
+- 내용: Lombok @Data, @NoArgsConstructor, @AllArgsConstructor로 message 필드 정의
+
+5. ChatbotApplication.java
+ - 설명: Spring Boot 애플리케이션의 메인 클래스
+ - 주요 역할: 애플리케이션 실행 진입점 제공
+ - 내용: @SpringBootApplication 어노테이션으로 Spring Boot 초기화
+
+<전체 프로세스 요약>
+1. Client -> ChatController: 웹 페이지에서 사용자가 메시지를 입력하면, ChatController가 해당 메시지를 받습니다.
+
+2. ChatController -> ChatService: ChatController는 사용자 메시지를 ChatService에게 전달하며, 챗봇 응답을 요청합니다.
+
+3. ChatService -> FastAPI: ChatService는 RestTemplate을 사용하여 FastAPI에 HTTP 요청을 보냅니다.
+
+4. FastAPI -> ChatService: FastAPI는 요청을 처리하고 챗봇 응답을 생성하여 HTTP 응답의 Body에 담아 ChatService에게 반환합니다. 이 과정에서 Controller는 관여하지 않습니다.
+
+5. ChatService -> ChatController: ChatService는 HTTP 응답 Body에서 챗봇 응답을 추출하고, ChatController에게 반환합니다.
+
+6. ChatController -> View (JSP/Thymeleaf/react/vue): ChatController는 챗봇 응답을 View에 전달하여 화면에 표시합니다.

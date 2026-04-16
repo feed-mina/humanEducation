@@ -1,7 +1,7 @@
 import requests
 
 class OllamaService:
-    def __init__(self, model="gemma2:2b"):
+    def __init__(self, model="gemma2"):
         self.base_url = "http://localhost:11434/api/generate"
         self.model = model
 

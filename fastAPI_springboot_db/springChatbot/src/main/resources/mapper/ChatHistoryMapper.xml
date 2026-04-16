@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="springChatbot.mapper.ChatHistoryMapper">
+    <insert id="insertChatHistory" parameterType="springChatbot.dto.ChatHistory">
+        INSERT INTO chat_history (user_message, bot_response, model_name)
+        VALUES (#{userMessage}, #{botResponse}, #{modelName})
+    </insert>
+
+    <select id="selectChatHistory" resultType="springChatbot.dto.ChatHistory">
+        SELECT id, user_message AS userMessage, bot_response AS botResponse, created_at AS createdAt, model_name AS modelName
+        FROM chat_history
+        ORDER BY created_at DESC
+    </select>
+</mapper>
