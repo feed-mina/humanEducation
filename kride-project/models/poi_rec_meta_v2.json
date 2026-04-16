@@ -1,0 +1,18 @@
+{
+  "vocab": 1646,
+  "min_trip_freq": 2,
+  "max_dist_km": 20.0,
+  "category_boost_factor": 1.5,
+  "exclude_type_ge": 21,
+  "n_trips_train": 1775,
+  "n_trips_val": 507,
+  "n_trips_test": 254,
+  "val_recall5": 0.1166,
+  "val_recall10": 0.1827,
+  "test_recall5": 0.1372,
+  "test_recall10": 0.1811,
+  "test_recall5_no_boost": 0.126,
+  "baseline_test_recall5": 0.037,
+  "baseline_test_recall10": 0.0498,
+  "model_version": "v2"
+}

@@ -1,0 +1,38 @@
+{
+  "feature_cols": [
+    "sgg_enc",
+    "travel_duration_h",
+    "distance_km",
+    "companion_cnt",
+    "season",
+    "day_of_week",
+    "has_lodging",
+    "income_tier",
+    "age_grp_enc",
+    "gender_enc",
+    "travel_purpose_enc",
+    "travel_styl_avg"
+  ],
+  "target_col": "log_total_consume",
+  "log_transform": true,
+  "income_tier_map": {
+    "0": "짠순이(1~3분위)",
+    "1": "보통(4~6분위)",
+    "2": "호캉스(7~8분위)"
+  },
+  "season_label": {
+    "1": "봄",
+    "2": "여름",
+    "3": "가을",
+    "4": "겨울"
+  },
+  "sgg_enc_global_mean": 11.895748518391752,
+  "val_mae_krw": 114202,
+  "val_r2": 0.1155,
+  "test_mae_krw": 129653,
+  "test_r2": 0.1277,
+  "n_train": 1755,
+  "n_val": 376,
+  "n_test": 377,
+  "model_version": "v2"
+}
