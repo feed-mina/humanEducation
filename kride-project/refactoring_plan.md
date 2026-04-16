@@ -35,10 +35,40 @@ Co-occ Recall@5=0.126          → Recall@5≥0.20            → Recall@5≥0.3
 | 1 | `tn_traveller_master_*.csv` 파일 존재 확인 + TRAVEL_ID 머지 | 30분 |
 | 2 | 이상치 제거 (q01~q99) + 로그 변환 타겟 | 30분 |
 | 3 | 타겟 재정의: 4개 소비 테이블 합산 (파일 있으면) | 1시간 |
-| 4 | 피처 추가 (income, age_grp, gender, travel_purpose) | 1시간 |
+| 4 | 피처 추가 (income_tier, age_grp, gender, travel_purpose) | 1시간 |
 | 5 | TargetEncoding(sgg_code) + 계절 가중치 | 30분 |
 | 6 | TabNet 재학습 (3분할: 70/15/15) | 1~2시간 |
 | 7 | 결과 비교 (old vs new) | 30분 |
+
+#### 소득 분위 → 3단계 구간 변환 (income_tier)
+
+연속형 소득 분위(1~8)를 소비 패턴이 유사한 3단계로 구간화.
+
+```python
+# build_consume_model_v2.py — 소득 구간화 전처리
+def map_income_tier(income: int) -> int:
+    """
+    INCOME (1~8분위) → income_tier (0/1/2)
+    0=짠순이 (1~3분위): 저소득, 비용 최소화
+    1=보통   (4~6분위): 중간 소득, 평균적 소비
+    2=호캉스 (7~8분위): 고소득, 숙박/식사 지출 많음
+    """
+    if income <= 3:
+        return 0   # 짠순이
+    elif income <= 6:
+        return 1   # 보통
+    else:
+        return 2   # 호캉스
+
+df["income_tier"] = df["INCOME"].apply(map_income_tier)
+# income_tier는 범주형 → OneHotEncoding 또는 CatBoost 범주형 처리
+```
+
+| income_tier | 원본 분위 | 레이블 | 예상 소비 수준 |
+| ----------- | --------- | ------ | ------------- |
+| 0 | 1~3분위 | 짠순이 | 저소비, 활동 중심 |
+| 1 | 4~6분위 | 보통 | 평균적 소비 패턴 |
+| 2 | 7~8분위 | 호캉스 | 숙박/식음료 비중 높음 |
 
 #### 새 파일
 
@@ -87,6 +117,84 @@ def recommend_v2(seeds, lat, lon, radius_km=20, top_n=10, category_boost=True):
 | AI Hub 전국 여행로그 | aihub.or.kr | 신청 후 1~3일 승인 | [ ] 미신청 |
 | 한국관광공사 TourAPI (전국) | data.visitkorea.or.kr | API 키 발급 후 전국 수집 | [ ] 일부만 |
 | 전국 ASOS 기상 관측소 | data.kma.go.kr | API 키 발급됨 → 관측소 확대 | [ ] 서울/경기만 |
+| 카카오 로컬 API (맛집/POI) | developers.kakao.com | REST API 키 발급 (무료 50만콜/일) | [ ] 미설정 |
+| 네이버 지역 검색 API (맛집) | developers.naver.com | Client ID/Secret 발급 (무료 25,000콜/일) | [ ] 미설정 |
+| 한국관광공사 숙박 API | data.visitkorea.or.kr | TourAPI contentTypeId=32 (숙박) | [ ] 미수집 |
+
+### 3-1-1. 외부 API 연계 계획 (관광 점수 · 맛집 POI)
+
+> **여기어때 / 야놀자**: 공개 API 없음 (파트너 계약 필요) → **한국관광공사 숙박 API**로 대체  
+> **또간집 / 망고플레이트 / 블루리본**: 공개 API 없음, 크롤링 약관 위반 위험 → **카카오·네이버 로컬 API**로 맛집 정보 수집
+
+#### 카카오 로컬 API — 맛집 POI 수집
+
+```python
+# step3_food_collect.py — 카카오 로컬 API로 맛집 수집
+import requests
+
+KAKAO_API_KEY = os.environ["KAKAO_REST_API_KEY"]
+
+def collect_food_poi(query: str, x: float, y: float, radius: int = 5000, pages: int = 3) -> list:
+    """
+    카카오 로컬 API: 키워드 검색 (FD6=음식점 카테고리)
+    - 무료, 50만 콜/일
+    - 반경 검색 지원
+    """
+    results = []
+    for page in range(1, pages + 1):
+        resp = requests.get(
+            "https://dapi.kakao.com/v2/local/search/keyword.json",
+            headers={"Authorization": f"KakaoAK {KAKAO_API_KEY}"},
+            params={
+                "query": query,
+                "category_group_code": "FD6",  # 음식점
+                "x": x, "y": y,
+                "radius": radius,
+                "page": page,
+                "size": 15,
+            },
+        )
+        data = resp.json()
+        results.extend(data.get("documents", []))
+        if data["meta"]["is_end"]:
+            break
+    return results
+
+# 사용 예: 서울 주요 자전거 경유지 근처 맛집 수집
+BIKE_HUBS = [
+    ("한강공원", 126.978, 37.555),
+    ("북악산", 126.980, 37.600),
+    # ...
+]
+for name, x, y in BIKE_HUBS:
+    pois = collect_food_poi("맛집", x, y, radius=2000)
+    # poi 테이블에 category='맛집' 으로 저장
+```
+
+#### 맛집 POI를 관광 점수에 반영하는 방법
+
+맛집은 별도 POI 카테고리로 추가하고, 경로 추천 결과에 `facilities_on_route`로 표시.  
+관광 점수(`tourism_score_final`) 계산 시 맛집 밀도를 보조 지표로 포함.
+
+```
+tourism_score_final =
+    0.5 × poi_density_score     (관광지/레저 POI 밀도)
+  + 0.2 × attraction_score      (방문자 만족도 TabNet)
+  + 0.2 × food_poi_density      (맛집 POI 밀도 — 반경 1km 내 맛집 수 정규화)
+  + 0.1 × sns_mention_norm      (Phase 8 SNS 크롤링 후 추가)
+```
+
+#### DB 반영: poi 테이블 category 추가
+
+```sql
+-- 기존 category: '관광지', '문화', '레저', '편의시설'
+-- 추가 category: '맛집', '숙박'
+
+-- 맛집 POI 삽입 예시
+INSERT INTO poi (name, category, sido_nm, sgg_nm, geom, visit_count)
+VALUES ('성수동 카페거리', '맛집', '서울', '성동구',
+        ST_SetSRID(ST_MakePoint(127.056, 37.544), 4326), 0);
+```
 
 ### 3-2. 전국 전처리 파이프라인 설계
 
@@ -298,7 +406,7 @@ class ConsumeRequest(BaseModel):
     companion_cnt: int = 1
     season: int                     # 1~4
     has_lodging: bool = False
-    income_grp: Optional[int] = None   # 1~8 소득분위
+    income_tier: Optional[int] = None  # 0=짠순이(1~3분위), 1=보통(4~6분위), 2=호캉스(7~8분위)
     age_grp: Optional[str] = None
     gender: Optional[str] = None
 
@@ -444,7 +552,9 @@ OPENAI_API_KEY=sk-...
 KMA_API_KEY=...
 ASOS_API_KEY=...
 NAVER_CLIENT_ID=...
-GOOGLE_SEARCH_API_KEY=...   # Phase 8 SNS 크롤링
+NAVER_CLIENT_SECRET=...           # 네이버 지역 검색 API
+KAKAO_REST_API_KEY=...            # 카카오 로컬 API (맛집 POI 수집)
+GOOGLE_SEARCH_API_KEY=...         # Phase 8 SNS 크롤링
 HF_REPO_ID=your-name/kride-models
 
 # Render/Railway 환경 변수: 대시보드에서 동일 변수 설정
@@ -563,7 +673,7 @@ Request:
   "companion_cnt": 2,
   "season": 2,
   "has_lodging": false,
-  "income_grp": 5,
+  "income_tier": 1,
   "age_grp": "30대",
   "gender": "F"
 }
@@ -632,6 +742,10 @@ Response:
 | TAAS 자전거 사고 데이터 다운로드 | 사용자 |
 | AI Hub 전국 여행로그 신청 | 사용자 |
 | 한국관광공사 TourAPI 전국 수집 스크립트 | 작성 |
+| 카카오 REST API 키 발급 (developers.kakao.com) | 사용자 |
+| 네이버 Client ID/Secret 발급 (developers.naver.com) | 사용자 |
+| 맛집 POI 수집 스크립트 (step3_food_collect.py) | 작성 |
+| 한국관광공사 숙박 API 수집 스크립트 (contentTypeId=32) | 작성 |
 
 ### Phase R-3: 전국 파이프라인 (3~4주차)
 
@@ -690,3 +804,17 @@ React에서 WebSocket으로 스트리밍 응답 수신.
 
 Render 무료 플랜 기준 FastAPI + SpringBoot 동시 배포 가능.
 모델 파일은 HuggingFace Hub에서 서버 시작 시 자동 다운로드.
+
+---
+
+## 10. 폐기 / 보류 항목
+
+| 항목 | 이유 | 대안 |
+| ---- | ---- | ---- |
+| GRU 방문지 시퀀스 모델 | 구조적 한계 (vocab 희소성, top5=0.14 랜덤 이하) | Co-occurrence로 대체 완료 |
+| 여기어때 / 야놀자 API 연동 | 공개 API 없음, B2B 파트너 계약 필요 | 한국관광공사 숙박 TourAPI (contentTypeId=32) |
+| 또간집 / 망고플레이트 / 블루리본 크롤링 | 공개 API 없음, 약관 위반 위험 | 카카오 로컬 API + 네이버 지역 검색 API |
+| K컬처 / 아이돌 브이로그 방문지 크롤링 | 우선순위 낮음, 데이터 수집 복잡도 높음 | Phase 8 이후 SNS 크롤링 모듈에서 재검토 |
+| 네이버 로드뷰 CNN | 약관 금지 | AI Hub 자전거도로 이미지 데이터셋 |
+| Neural CF 개인화 추천 | 데이터 부족 + 구현 복잡도 | Co-occurrence MVP → 전국 데이터 확보 후 ALS |
+| TabNet Safety (Phase 5) | RF R²=0.9539으로 충분 | 전국 데이터 15,000행 확보 후 재검토 |

@@ -409,11 +409,11 @@ CREATE TABLE road_segment (
     length_km       DECIMAL(8,3),
     width_m         DECIMAL(6,2),
     geom            GEOMETRY(LINESTRING, 4326),  -- PostGIS 공간 컬럼
-    safety_score    DECIMAL(5,4),
-    tourism_score   DECIMAL(5,4),
-    tourism_score_v2 DECIMAL(5,4),
-    final_score     DECIMAL(5,4),
-    final_score_v2  DECIMAL(5,4),
+    safety_score         DECIMAL(5,4),
+    tourism_score        DECIMAL(5,4),         -- POI 밀도 기반 (규칙 기반 v1, 마이그레이션 완료 후 제거 예정)
+    tourism_score_final  DECIMAL(5,4),         -- 통합 점수 (v2: POI+attraction+SNS 가중 합산) — 서비스 사용 컬럼
+    final_score          DECIMAL(5,4),
+    final_score_v2       DECIMAL(5,4),
     district_danger DECIMAL(5,4),
     updated_at      TIMESTAMP DEFAULT NOW()
 );
@@ -451,7 +451,7 @@ CREATE TABLE consume_prediction (
     companion_cnt   INTEGER,
     season          SMALLINT,             -- 1=봄, 2=여름, 3=가을, 4=겨울
     has_lodging     BOOLEAN,
-    income_grp      SMALLINT,            -- 소득 분위 (1~8)
+    income_tier     SMALLINT,            -- 소비 성향 (0=짠순이 1~3분위, 1=보통 4~6분위, 2=호캉스 7~8분위)
     age_grp         VARCHAR(10),
     gender          CHAR(1),
     predicted_amt   INTEGER,             -- TabNet 예측 소비금액 (원)
