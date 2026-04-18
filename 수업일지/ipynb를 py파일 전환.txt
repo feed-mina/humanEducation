@@ -1,7 +1,0 @@
-pip install nbconvert
-
-jupyter nbconvert --to python  파일명.ipynb
-
-pip install streamlit
-
-streamlit run 파일명.py

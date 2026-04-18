@@ -1,5 +1,0 @@
-# vscode 트리구조 설정
-
-하단 톱니바퀴 아이콘(설정) → Settings 열기 (Ctrl + ,)
-검색창에 compact folders 입력
-Explorer: Compact Folders 옵션을 끄기(체크 해제)

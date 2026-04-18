@@ -1,9 +1,0 @@
-# GOOGLE API KEY
-GOOGLE_API_KEY="구글 AI Studio 키를 넣으세요"
-
-# --- MariaDB/MySQL 접속 정보 (SQLAlchemy 용) ---
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=비밀번호
-DB_NAME=test
