@@ -2984,3 +2984,257 @@ kride-project/
 | 자전거 특화 카테고리 | 미결 | "라이딩 챌린지", "야간라이딩" 별도 카테고리 추가 여부 |
 | LLM 알고리즘 분담 최종 확정 | 미결 | Option A/B/C 중 Phase 8 안정화 후 결정 |
 | 네이버 블로그 크롤링 | 미결 | robots.txt 확인 후 진행 가능 여부 결정 |
+
+---
+
+## 35. ML/DL 성능 종합 현황 업데이트 (2026-04-16) ← refactoring_research.md 통합
+
+> 최종 업데이트: 2026-04-16 / 이 섹션부터는 refactoring_research.md 내용을 통합한 섹션임
+
+### 35-1. 전체 모델 성능 대시보드
+
+| 모델 | 파일 | 현재 성능 | 목표 성능 | 상태 | 우선순위 |
+|------|------|-----------|-----------|------|---------:|
+| **안전 RF 회귀** | safety_regressor.pkl | R²=0.9539 | R²≥0.97 | 양호 | 3순위 |
+| **안전 RF 분류** | safety_classifier.pkl | F1=0.9864 | F1≥0.99 | 양호 | 4순위 |
+| **관광 점수** | road_scored_v2.csv | 규칙 기반 (평균 0.088) | 실데이터 기반 ≥0.15 | 구조적 한계 | 2순위 |
+| **소비 TabNet v2** | consume_regressor_v2.zip | MAE=129,653원, R²=0.1277 | R²≥0.25 | ✅ v2 완료 — 전국 데이터 확보 후 v3 | **1순위** |
+| **POI 매력도 TabNet** | attraction_regressor.zip | MAE=0.6558, R²=0.0662 | R²≥0.15 | Selection bias 구조 한계 | 3순위 |
+| **날씨 LSTM** | weather_lstm.pt | Test Acc=73.28% | Acc≥80% | 개선 가능 | 2순위 |
+| **GRU 시퀀스** | visit_seq_gru.pt | top5=0.14 (랜덤 이하) | — | **폐기 → Co-occurrence 대체** | 완료 |
+| **Co-occurrence POI** | poi_cooccurrence_v2.pkl | Recall@5=0.1372 (베이스라인 3.7배) | Recall@5≥0.20 | ✅ v2 완료 (2026-04-16) | 3순위 |
+| **경로 그래프** | route_graph.pkl | 172,656 노드, 238,962 엣지 | 전국 확대 | 서울만 완료 | 2순위 |
+
+---
+
+## 36. 소비 예측 모델 (TabNet v2) — 원인 분석 및 개선 결과 (2026-04-16)
+
+> **v1**: R²=0.0053 → **v2 실행 결과**: MAE=129,653원, R²=0.1277 (test) / R²=0.1155 (val)
+> Step A~E 전부 적용 완료. **다음 목표**: 전국 AI Hub 데이터(Step F) → R²≥0.25
+
+### 36-1. 원인 상세 분석
+
+| 원인 | 현황 수치 | 영향도 |
+|------|-----------|--------|
+| 소비 분산 극단 | min=1,000원 ~ max=15,071,450원, std=366,662원 | 매우 높음 |
+| 타겟 범위 협소 | 활동 소비만 집계 (이동/숙박 제외) | 높음 |
+| 피처 부족 | 7개 피처 (소득·목적·성별 없음) | 높음 |
+| 계절 불균형 | 여름 82.8% (2,094/2,530행) | 중간 |
+| 데이터 양 부족 | 2,530행 (TabNet 권장 10,000행+) | 높음 |
+
+### 36-2. v2 실행 통계 (2026-04-16)
+
+| 항목 | 수치 |
+|------|------|
+| 학습 데이터 | train=1,755 / val=376 / test=377 (총 2,508행, 이상치 51행 제거) |
+| 조기종료 | epoch 114 (best epoch=94) |
+| Val MAE / R² | 114,202원 / 0.1155 |
+| Test MAE / R² | 129,653원 / 0.1277 |
+| income_tier 분포 | 짠순이 867 (34.6%) / 보통 1427 (56.9%) / 호캉스 214 (8.5%) |
+| 계절 분포 | 여름 2075 (82.7%) — 전국 데이터 확보 후 해소 예정 |
+
+### 36-3. 소득 분위 구간화 (income_tier)
+
+```python
+def map_income_tier(income: int) -> int:
+    """INCOME (1~8분위) → income_tier (0/1/2)"""
+    if income <= 3:   return 0   # 짠순이 (저소득)
+    elif income <= 6: return 1   # 보통 (중간)
+    else:             return 2   # 호캉스 (고소득)
+```
+
+### 36-4. 개선 단계별 예상 성능
+
+| 단계 | 적용 개선 | 예상 R² | 비고 |
+|------|-----------|---------|------|
+| v1 (기준) | 활동소비 단독, 7 피처 | 0.0053 | — |
+| **v2 (완료)** | **전체 소비 합산, 12 피처, income_tier** | **0.1277** | **✅ 실측** |
+| Step F | 전국 데이터 (10,000+행) | 0.25~0.35 | AI Hub 전국 여행로그 신청 후 |
+
+---
+
+## 37. 날씨 LSTM — 성능 향상 계획 (2026-04-16)
+
+> **현재**: Test Acc=73.28% / **목표**: Acc≥80%
+
+### 37-1. 현재 한계 분석
+
+| 한계 | 수치 | 개선 방향 |
+|------|------|---------|
+| 흐림(클래스 1) 데이터 7% | 826/10,960행 | SMOTE 합성 또는 데이터 추가 |
+| 입력 피처 8개 | 기온·강수·풍속·습도 등 | 이슬점·기압·일조시간 추가 |
+| 5개 관측소만 사용 | 서울·수원·인천·양평·이천 | 전국 확대 시 관측소 확대 |
+
+### 37-2. 개선 방안
+
+| 방법 | 예상 Acc | 우선순위 |
+|------|---------|---------|
+| ASOS 피처 추가 (이슬점·기압·일조시간) | ~77% | 1순위 |
+| SMOTE 흐림 클래스 증강 + Focal Loss | ~78% | 2순위 |
+| Bi-LSTM or LSTM+Attention | ~78% | 3순위 (A+B 후에도 미달 시) |
+
+---
+
+## 38. 관광 점수 — 구조적 개선 계획 (2026-04-16)
+
+> **현재 문제**: 65.2% 세그먼트 tourism_score=0, 평균 0.088
+> **근본 원인**: POI 밀도가 낮고 경기도 레저스포츠 83개뿐 (→ v2에서 전국 15,905건으로 해결 중)
+
+### 38-1. 단기 개선 (완료)
+
+| 개선 항목 | 상태 | 결과 |
+|---------|------|------|
+| ✅ 경기도 레저스포츠 POI 재수집 | 완료 | 경기 845건 수집 (v1: 83건 타임아웃 → 해결) |
+| ✅ 전국 POI 데이터 수집 | 완료 | 15,905건 수집 (관광지·레저·숙박·문화) |
+
+### 38-2. 관광 점수 공식 (목표)
+
+```
+tourism_score_final =
+    0.5 × poi_density_score     ← TourAPI 15,905건 수집 완료 ✅
+  + 0.2 × attraction_score      ← TabNet POI 매력도 ✅
+  + 0.2 × food_poi_density      ← 카카오 로컬 REST API (수집 예정)
+  + 0.1 × sns_mention_norm      ← 네이버 DataLab 트렌드 ✅ API 발급
+```
+
+---
+
+## 39. 안전 모델 — 고도화 방향 (2026-04-16)
+
+> **현재 성능**: R²=0.9539, F1=0.9864 (이미 우수)
+> **한계**: 1,647개 서울 세그먼트만, 실제 사고 데이터 미반영
+
+### TAAS 사고 데이터 연동 계획
+
+```
+데이터: 경찰청 교통사고분석시스템 (TAAS) — taas.koroad.or.kr
+연동: TAAS 사고 좌표 → road_scored_v2.csv Spatial Join (반경 300m)
+     → accident_count 피처 추가 → safety_index 타겟 재설계
+     safety_index_v3 = 0.5×(1-district_danger) + 0.3×road_attr + 0.2×(1-accident_rate)
+```
+
+### TabNet Safety (Phase 5) 도입 조건
+
+| 조건 | 현재 | 충족 시점 |
+|------|------|---------|
+| 학습 데이터 3,000행 이상 | 1,647행 | 전국 확대 후 |
+| TAAS 사고 데이터 연동 | 미완 | TAAS 다운로드 후 |
+| RF 앙상블 필요성 | RF R²=0.9539 충분 | 전국 데이터 후 재평가 |
+
+---
+
+## 40. Co-occurrence POI 추천 — Recall 향상 (2026-04-16)
+
+> **v2 결과**: Recall@5=0.1372 / Recall@10=0.1811 (베이스라인 3.7배)
+> **목표**: Recall@5≥0.20 (전국 AI Hub 여행로그 확보 후 달성 예정)
+
+| 방법 | 예상 Recall@5 개선 | 난이도 |
+|------|-----------------|--------|
+| 현재 위치 반경 내 POI만 추천 | +0.03~0.05 | 낮음 |
+| 카테고리 가중치 부스트 | +0.01~0.02 | 낮음 |
+| 전국 데이터 (10,000+여행) | +0.05~0.08 | 높음 |
+| Matrix Factorization (ALS) | +0.04~0.07 | 중간 |
+
+---
+
+## 41. 전국 확대 — 데이터 수집 현황 (2026-04-16)
+
+### 자전거도로 데이터
+
+| 광역시도 | 현재 상태 | 예상 세그먼트 수 |
+|---------|---------|--------------|
+| 서울 | ✅ 완료 | 1,647개 |
+| 경기 | ⚠️ 일부 | ~3,000개 |
+| 인천/부산/대구/광주/대전 | ❌ 미수집 | 각 300~800개 |
+| 전국 | — | ~15,000개+ |
+
+### AI Hub 여행로그 전국 확대
+
+| 데이터셋 | 현재 | 확대 후 |
+|---------|------|---------|
+| 수도권 여행로그 2023 | ✅ 2,560 여행 | — |
+| 전국 여행로그 (별도 신청) | ❌ 미보유 | ~15,000 여행 |
+
+### 전국 확대 시 모델별 예상 효과
+
+| 모델 | 현재 (서울) | 전국 확대 후 |
+|------|-----------|-----------|
+| 소비 TabNet | R²=0.1277 | R²≥0.25~0.35 |
+| 안전 RF | R²=0.9539 (1,647행) | R²≥0.97 |
+| Co-occurrence | Recall@5=0.1372 | Recall@5≥0.20 |
+| 날씨 LSTM | Acc=73.28% | Acc≥80% |
+
+---
+
+## 42. DB 설계 — 배포 대비 스키마 (2026-04-16)
+
+> 배포 환경: SpringBoot + PostgreSQL + PostGIS
+
+### road_segment 테이블 (핵심)
+
+```sql
+CREATE TABLE road_segment (
+    id              SERIAL PRIMARY KEY,
+    sido_nm         VARCHAR(20),
+    sgg_nm          VARCHAR(30),
+    road_name       VARCHAR(100),
+    road_type       VARCHAR(30),
+    length_km       DECIMAL(8,3),
+    width_m         DECIMAL(6,2),
+    geom            GEOMETRY(LINESTRING, 4326),
+    safety_score         DECIMAL(5,4),
+    tourism_score_final  DECIMAL(5,4),  -- 서비스 사용 컬럼 (POI+attraction+SNS 가중합)
+    final_score_v2       DECIMAL(5,4),
+    district_danger DECIMAL(5,4),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_road_geom ON road_segment USING GIST(geom);
+CREATE INDEX idx_road_sido ON road_segment(sido_nm);
+```
+
+### consume_prediction 테이블
+
+```sql
+CREATE TABLE consume_prediction (
+    id              SERIAL PRIMARY KEY,
+    sgg_code        VARCHAR(10),
+    duration_h      DECIMAL(5,2),
+    companion_cnt   INTEGER,
+    season          SMALLINT,
+    has_lodging     BOOLEAN,
+    income_tier     SMALLINT,  -- 0=짠순이(1~3분위), 1=보통(4~6분위), 2=호캉스(7~8분위)
+    age_grp         VARCHAR(10),
+    gender          CHAR(1),
+    predicted_amt   INTEGER,
+    model_version   VARCHAR(20),
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+```
+
+### PostGIS 공간 쿼리 활용 예시
+
+```sql
+-- 특정 좌표 반경 2km 내 안전한 경로
+SELECT id, road_name, safety_score, tourism_score_final
+FROM road_segment
+WHERE ST_DWithin(
+    geom::geography,
+    ST_SetSRID(ST_MakePoint(126.9780, 37.5665), 4326)::geography,
+    2000
+)
+ORDER BY final_score_v2 DESC LIMIT 20;
+```
+
+---
+
+## 43. 폐기/보류 항목 최신 (2026-04-16)
+
+| 항목 | 이유 | 대안 |
+|------|------|------|
+| GRU 방문지 시퀀스 | 구조적 한계 (vocab 희소성, top5=0.14 랜덤 이하) | Co-occurrence v2로 대체 완료 |
+| 네이버 로드뷰 CNN | 약관 금지 | AI Hub 자전거도로 이미지 데이터셋 |
+| Neural CF 개인화 추천 | 데이터 부족 + 구현 복잡도 | Co-occurrence MVP → ALS |
+| TabNet Safety (Phase 5) | RF R²=0.9539으로 충분 | 전국 15,000행 후 재검토 |
+| 여기어때/야놀자 API | 공개 API 없음, B2B 파트너 계약 필요 | 한국관광공사 숙박 TourAPI |
+| 카카오 지도 SDK (JS) | 비즈니스 신청 필요 | Naver Cloud Maps Dynamic Map |
+| 또간집/망고플레이트 크롤링 | 약관 위반 위험 | 카카오 로컬 REST API (FD6/CE7) |

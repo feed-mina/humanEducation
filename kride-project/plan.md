@@ -1,14 +1,14 @@
-# K-Ride 개발 계획
+# K-Ride 마스터 플랜 (통합본)
 
-> 업데이트: 2026-04-15 (Phase 8 AI 비서 아키텍처 추가 — LLM + LangChain + RAG + Gradio + 목적 분류 모듈)
+> **최종 업데이트: 2026-04-25** (plan.md + refactoring_plan.md 통합)
 >
-> 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** + **LLM 지능형 AI 비서** → 통합 서비스 (Streamlit → Vercel React 연동)
+> 목표: 안전점수 모델 + 관광 모델 + **경로탐지** + **편의시설 표시** + **여행 코스 추천** + **딥러닝 보강** + **LLM 지능형 AI 비서** → 통합 서비스 (Streamlit → SpringBoot/FastAPI/React)
 >
-> 딥러닝 추가 목표: KLUE-BERT 감성분석·TabNet 안전예측·CNN 도로이미지 분류를 단계적으로 도입해 모델 품질을 향상시킨다.
+> 딥러닝 목표: KLUE-BERT 감성분석 · TabNet 안전예측 · CNN 도로이미지 분류를 단계적으로 도입해 모델 품질을 향상시킨다.
 >
-> **서비스 목표 (전체)**: 자전거 여행 + 안전성 + 경로탐지 + 관광지/여행 추천 + 자전거 이용자 편의 제공
+> **서비스 목표**: 자전거 여행 + 안전성 + 경로탐지 + 관광지/여행 추천 + 자전거 이용자 편의 제공
 >
-> **FastAPI 서버 구현은 후순위** — 모델 파이프라인 완성 후 진행
+> **로드맵**: 수도권 Streamlit MVP → FastAPI+React 웹앱 → SpringBoot MSA + 전국 확대
 
 ---
 
@@ -26,37 +26,38 @@
 - [X] safety_index_v2 설계 완료 (`(1-district_danger)×0.6 + road_attr_score×0.4`)
 - [X] `build_tourism_model.py` 실행 → `tourism_scaler.pkl`, `road_scored.csv` 생성
 
-### 경로탐지 그래프 (완료)
-- [X] `build_route_graph.py` 실행 → `models/route_graph.pkl` 생성 (osmnx, 120,775 노드 / 169,136 엣지, 완전 연결)
+### 경로탐지 그래프
+- [X] `build_route_graph.py` 실행 → `models/route_graph.pkl` (172,656 노드 / 238,962 엣지, 완전 연결, v2 점수 반영 재빌드 2026-04-09)
 
-### 딥러닝 파이프라인 (완료)
-- [X] ASOS 일자료 API 키 발급 + `fetch_weather_data.py` 실행 → `weather_asos_daily.csv` (5,480행)
-- [X] `build_weather_lstm.py` 실행 → `models/dl/weather_lstm.pt` 생성 (test_acc=73.28%, 계절별 그룹 + train/val/test 3분할)
-- [X] `weather_kma.py` 작성 → KMA 단기예보 API 연동 모듈 (실시간 날씨 → safety_score 보정)
-- [X] `build_event_ner.py` 작성 → 이벤트 NER 스크립트 (zero-shot 분류 방식)
-- [X] `build_consume_model.py` 수정 완료 → AI Hub 다중 테이블 자동 머지 (`load_aihub_data()`)
-  - 기본 경로: `data/ai-hub/국내 여행로그 수도권_2023/02.라벨링데이터/`
-  - TRAVEL_ID 기준으로 activity_consume + travel + companion + visit_area 4개 테이블 머지
+### 딥러닝 파이프라인
+- [X] ASOS 일자료 API 키 발급 + `fetch_weather_data.py` → `weather_asos_daily.csv` (5,480행)
+- [X] `build_weather_lstm.py` → `models/dl/weather_lstm.pt` (test_acc=73.28%, 계절별 3분할)
+- [X] `weather_kma.py` → KMA 단기예보 API 연동 모듈
+- [X] `build_event_ner.py` → zero-shot mDeBERTa 파이프라인 (데이터 수집 대기)
+- [X] `build_consume_model.py` v1 → MAE=125,302원, R²=0.0053
+- [X] `build_consume_model_v2.py` ✅ **2026-04-16 완료** → `consume_regressor_v2.zip` MAE=129,653원, R²=0.1277 (v1 대비 24배 향상)
+- [X] `build_attraction_model.py` → `attraction_regressor.zip` (MAE=0.6558, R²=0.0662, 8,454 POI)
+- [X] `build_tourism_score_v2.py` → `road_scored_v2.csv` (1,647 세그먼트, attraction_score 반영)
+- [X] `build_poi_recommender_v2.py` ✅ **2026-04-16 완료** → `poi_cooccurrence_v2.pkl` Recall@5=0.1372 (베이스라인 3.7배)
+- [X] GRU 방문지 시퀀스 → `visit_seq_gru.pt` 생성됨 (top5=0.14, 랜덤 이하) → **폐기, Co-occurrence 대체**
 
-### Streamlit 앱 (Tab 1~5 구현 완료, UI 수정 대기)
-- [X] Tab 1~4 기본 구현 (안전등급 예측 / 경로 추천 / 데이터 탐색 / 경로 탐색)
-- [X] Tab 4 경로 탐색: A→B 최적 경로 + folium 폴리라인 오버레이
-- [X] Tab 4 순환 코스 생성 + folium 지도
-- [X] 편의시설 마커 레이어 (경로 탐색 시 반경 500m 내 표시)
-- [X] 사이드바 날씨 연동 (2026-04-09)
-  - `KMA_API_KEY` `.env` 자동 로드
-  - 30분 캐시(`@st.cache_data(ttl=1800)`) 날씨 조회
-  - 날씨 아이콘 / 기온 / 강수확률 / 풍속 표시
-  - "날씨 기반 안전 가중치 자동 조정" 토글 → `EFFECTIVE_WEIGHTS` 반영
-- [X] Tab 5 "관광지 추천" 구현 (2026-04-10) — Co-occurrence + Jaccard 기반 POI 추천, Folium 지도 연동
-- [X] Tab1 district_danger → 시군구 selectbox 교체 (UI 이슈 #A — 2026-04-10 완료)
-- [X] Tab2 순위 기준 caption + 도로명 컬럼 추가 (UI 이슈 #B — 2026-04-10 완료)
-- [X] Tab3 관광점수 설명 expander 추가 (UI 이슈 #C — 2026-04-10 완료)
-- [X] Tab5 로딩 속도 개선 (UI 이슈 #D — spinner + sorted_places 캐시 2026-04-10 완료)
-- [X] 사이드바 KMA_API_KEY 경고 제거 (UI 이슈 #E — 2026-04-10 완료)
+### 외부 API 연동 ✅ **2026-04-16 완료**
+- [X] 네이버 DataLab 트렌드 API (`step4_naver_trend.py`) — sns_mention_norm 산출, 5,000 POI/일
+- [X] 카카오 로컬 REST API (`step3_food_collect.py`) — FD6/CE7 맛집/카페 반경 검색
+- [X] 네이버 Cloud Maps Geocoding/ReverseGeocoding — krider 앱 등록 완료
+- [X] 한국관광공사 TourAPI 전국 수집 → 15,905건 (관광지 8,931 / 레저 3,243 / 숙박 2,080 / 문화 1,651)
+
+### Streamlit 앱 (Tab 1~5 완료)
+- [X] Tab1: 안전등급 예측 (시군구 selectbox)
+- [X] Tab2: 도로 추천 순위 (순위 기준 caption + 도로명)
+- [X] Tab3: 데이터 탐색 (관광점수 설명 expander)
+- [X] Tab4: 경로 탐색 (A→B + 순환 코스 + 편의시설 500m 마커)
+- [X] Tab5: 관광지 추천 (Co-occurrence + Jaccard + Folium, 로딩 속도 개선)
+- [X] 사이드바: KMA 날씨 연동 (30분 캐시), 날씨 기반 가중치 자동 조정 토글
+- [X] 소비 예측 카드 (경로/코스 결과에 예상 지출 표시)
 
 ### PDF 보고서
-- [X] `generate_report.py` 작성 완료 (2026-04-10) — 9페이지 landscape A4, KoPubDotum 폰트
+- [X] `generate_report.py` 작성 완료 (2026-04-10) — 9페이지 landscape A4
 - [ ] PDF 실행 결과 확인 및 디자인 수정
 
 ### 데이터 확보
@@ -1762,4 +1763,247 @@ Priority 5 — Gradio UI (Phase 8-4)
 
 Priority 6 — 방어 및 최적화 (Phase 8-5)
   [ ] test_hallucination.py + 캐싱 + 로깅
+```
+
+---
+
+## 전국 확대 로드맵 (refactoring_plan.md 통합 — 2026-04-16)
+
+```
+[현재]                          [단기 목표]                 [장기 목표]
+서울 자전거도로 1,647개          → 전국 자전거도로 15,000+    → 전국 자전거 여행 플랫폼
+Streamlit 단일 앱              → FastAPI + React (웹앱)    → SpringBoot MSA 배포
+수도권 AI Hub 데이터            → 전국 AI Hub + TAAS        → 실시간 데이터 연동
+소비 R²=0.1277 (v2)            → 소비 R²≥0.25             → 소비 R²≥0.35+
+날씨 Acc=73%                   → 날씨 Acc≥80%             → 실시간 LSTM 예보
+Co-occ Recall@5=0.1372 (v2)    → Recall@5≥0.20            → Recall@5≥0.30 (전국)
+```
+
+---
+
+## 폐기/보류 확정 항목
+
+| 항목 | 이유 | 대안 |
+|------|------|------|
+| GRU 방문지 시퀀스 | top5=0.14 (랜덤 이하), vocab 희소성 | Co-occurrence v2로 완전 대체 |
+| TabNet 안전 예측 (Phase 5) | RF R²=0.9539으로 충분, 1,647행 부족 | 전국 15,000행 확보 후 재검토 |
+| Neural CF 개인화 추천 | 데이터 부족 + 복잡도 높음 | Co-occurrence MVP → 전국 후 ALS |
+| 네이버 로드뷰 CNN | 약관 금지 (저장·학습 금지) | AI Hub 자전거도로 이미지 |
+| 카카오 지도 SDK (JS) | 비즈니스 등록 필요 | Naver Cloud Maps Dynamic Map |
+| 여기어때/야놀자 API | 공개 API 없음, B2B 계약 필요 | 한국관광공사 숙박 TourAPI (contentTypeId=32) |
+| 또간집/망고플레이트 크롤링 | 공개 API 없음, 약관 위반 위험 | 카카오 로컬 REST API (FD6/CE7) |
+| K컬처/아이돌 브이로그 방문지 크롤링 | 우선순위 낮음, 복잡도 높음 | Phase 8 이후 SNS 크롤링 재검토 |
+
+---
+
+## SpringBoot + FastAPI + React 배포 아키텍처 (상세)
+
+### 전체 시스템 아키텍처
+
+```
+[사용자] HTTPS
+   ↓
+[React Frontend — Vercel]
+  - 지도 시각화 (네이버 지도 or Leaflet)
+  - 경로 추천 UI / AI 비서 채팅 (WebSocket) / 사용자 프로파일
+   ↓ REST API / WebSocket
+[SpringBoot Gateway — 메인 백엔드]
+  - 인증/인가 (JWT) / 사용자 관리 / 경로 저장·즐겨찾기
+  - PostgreSQL + PostGIS
+   ↓ HTTP 내부 통신
+[FastAPI ML Server]
+  - /predict/safety   ← RF 모델
+  - /predict/consume  ← TabNet v2
+  - /recommend/route  ← Dijkstra
+  - /recommend/poi    ← Co-occurrence v2
+  - /weather          ← LSTM + KMA API
+  - /ai-chat          ← LangChain Agent (Phase 8)
+   ↓
+[PostgreSQL + PostGIS]
+  - road_segment / poi / travel_log / user_profile / weather_daily
+```
+
+### FastAPI 서버 구조
+
+```
+fastapi_server/
+├── main.py                  ← FastAPI 앱 + CORS
+├── routers/
+│   ├── predict.py           ← /predict/safety, /predict/consume
+│   ├── recommend.py         ← /recommend/route, /recommend/poi
+│   ├── weather.py           ← /weather
+│   ├── segments.py          ← /segments
+│   └── ai_chat.py           ← /ai-chat (Phase 8)
+├── models/
+│   ├── loader.py            ← 모델 파일 로딩 (앱 시작 시 1회)
+│   └── schemas.py           ← Pydantic 요청/응답 스키마
+└── services/
+    ├── route_service.py / safety_service.py
+    ├── consume_service.py / poi_service.py
+    └── db/database.py       ← SQLAlchemy + PostGIS
+```
+
+### SpringBoot 역할 (Java)
+
+| 기능 | 엔드포인트 | 설명 |
+|------|-----------|------|
+| 회원가입/로그인 | POST /auth/signup, /auth/login | JWT 발급 |
+| 사용자 프로파일 | GET/PUT /user/profile | 나이/성별/자전거종류/사는곳 |
+| 경로 저장/조회 | POST/GET /routes | 추천 경로 즐겨찾기 |
+| 리뷰 작성 | POST /reviews | POI 리뷰 (KLUE-BERT 감성분석 연동) |
+| 알림 | WebSocket /ws/alert | 이벤트/날씨 알림 |
+| ML 서버 프록시 | 내부 HTTP → FastAPI | 인증된 사용자만 ML API 접근 |
+
+---
+
+## DB 마이그레이션 계획 (CSV → PostgreSQL + PostGIS)
+
+### 핵심 테이블 DDL
+
+```sql
+CREATE TABLE road_segment (
+    id              SERIAL PRIMARY KEY,
+    sido_nm         VARCHAR(20),
+    sgg_nm          VARCHAR(30),
+    road_name       VARCHAR(100),
+    length_km       DECIMAL(8,3),
+    width_m         DECIMAL(6,2),
+    geom            GEOMETRY(LINESTRING, 4326),
+    safety_score         DECIMAL(5,4),
+    tourism_score_final  DECIMAL(5,4),  -- 서비스 사용 컬럼 (v2 통합 점수)
+    final_score_v2       DECIMAL(5,4),
+    district_danger DECIMAL(5,4),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_road_geom ON road_segment USING GIST(geom);
+
+CREATE TABLE poi (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(200),
+    category        VARCHAR(50),  -- 관광지/문화/레저/맛집/숙박
+    sido_nm         VARCHAR(20),
+    sgg_nm          VARCHAR(30),
+    geom            GEOMETRY(POINT, 4326),
+    attraction_score DECIMAL(5,4),
+    visit_count     INTEGER DEFAULT 0,
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_poi_geom ON poi USING GIST(geom);
+```
+
+### 마이그레이션 순서
+
+| 순서 | 스크립트 | 원본 CSV | 대상 테이블 |
+|-----|---------|---------|-----------|
+| 1 | migrate_road.py | road_scored_v2.csv | road_segment |
+| 2 | migrate_poi.py | tour_poi.csv | poi |
+| 3 | migrate_facility.py | facility_clean.csv | facility |
+| 4 | migrate_travel.py | AI Hub 4개 테이블 | travel_log |
+| 5 | migrate_weather.py | weather_asos_daily.csv | weather_daily |
+| 6 | migrate_accident.py | TAAS 사고 데이터 | road_accident |
+
+> Neon 무료 플랜 500MB 기준 전국 데이터 (~460MB) 커버 가능.
+
+---
+
+## 전국 확대 — 데이터 수집 현황 (Phase R-2)
+
+| 데이터 | URL | 상태 |
+|--------|-----|------|
+| 전국 자전거도로 | data.go.kr | [ ] 미수집 |
+| TAAS 자전거 사고 | taas.koroad.or.kr | [ ] 미수집 |
+| AI Hub 전국 여행로그 | aihub.or.kr | [ ] 미신청 |
+| 한국관광공사 TourAPI (전국) | data.visitkorea.or.kr | [x] 완료 — 15,905건 |
+| 전국 ASOS 기상 관측소 | data.kma.go.kr | [ ] 서울/경기만 |
+| 카카오 로컬 API | developers.kakao.com | [x] 사용 가능 — 300,000콜/일 |
+| 네이버 DataLab | developers.naver.com | [x] 완료 — 1,000콜/일 |
+| 네이버 Cloud Maps | console.ncloud.com | [x] 완료 — krider 앱 등록 |
+
+### 전국 OSM 경로 그래프 — 시도별 분할 전략
+
+```python
+SIDO_CONFIG = {
+    "서울": {"bbox": (37.413, 37.715, 126.764, 127.185), "done": True},
+    "경기": {"bbox": (37.000, 38.300, 126.500, 127.900), "done": False},
+    "부산": {"bbox": (35.000, 35.400, 128.800, 129.300), "done": False},
+    "인천": {"bbox": (37.200, 37.900, 126.300, 126.900), "done": False},
+    # ... 나머지 광역시도
+}
+# route_graph_seoul.pkl, route_graph_busan.pkl ...
+```
+
+---
+
+## 전체 구현 우선순위 타임라인
+
+| Phase | 작업 | 기간 | 상태 |
+|-------|------|------|------|
+| R-1 | ML 즉시 개선 (소비 v2 / POI 추천 v2 / 전국 POI 수집) | 1주차 | ✅ 완료 (2026-04-16) |
+| R-2 | 전국 데이터 수집 (자전거도로 / TAAS / AI Hub 전국) | 2주차 | ⏳ 진행 중 |
+| R-3 | 전국 파이프라인 (전처리 / 모델 재학습 / OSM 시도별) | 3~4주 | [ ] |
+| R-4 | FastAPI ML 서버 구축 + Docker Compose | 4~5주 | [ ] |
+| R-5 | SpringBoot 메인 백엔드 (JWT / DB / ML 프록시) | 5~6주 | [ ] |
+| R-6 | React Frontend (Vite+TS / 네이버지도 / Vercel 배포) | 6~7주 | [ ] |
+| R-7/8 | AI 비서 LangChain + WebSocket 스트리밍 통합 | 병행 | [ ] |
+
+---
+
+## 배포 환경
+
+### Docker Compose (개발 환경)
+
+```yaml
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: kride
+      POSTGRES_USER: kride_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports: ["5432:5432"]
+
+  fastapi:
+    build: ./fastapi_server
+    ports: ["8001:8001"]
+    environment:
+      DATABASE_URL: postgresql://kride_user:${DB_PASSWORD}@postgres:5432/kride
+      KMA_API_KEY: ${KMA_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - ./kride-project/models:/app/models
+    depends_on: [postgres]
+
+  springboot:
+    build: ./springboot_server
+    ports: ["8080:8080"]
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/kride
+      FASTAPI_URL: http://fastapi:8001
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on: [postgres, fastapi]
+
+  react:
+    build: ./react-kride
+    ports: ["3000:3000"]
+    environment:
+      REACT_APP_SPRING_URL: http://localhost:8080
+      REACT_APP_NAVER_CLIENT_ID: ${NAVER_CLIENT_ID}
+```
+
+### 운영 배포 옵션
+
+| 서비스 | 무료 옵션 | 권장 |
+|--------|----------|------|
+| React | Vercel | Vercel |
+| SpringBoot | Render (750h/월) | Render → AWS |
+| FastAPI | Railway (500h/월) | Railway → AWS |
+| PostgreSQL | Neon (500MB) | Neon → RDS |
+| 모델 파일 | Hugging Face Hub | HF Hub |
+
+### 환경 변수 목록
+
+```
+KMA_API_KEY / ASOS_API_KEY / NAVER_CLIENT_ID / NAVER_CLIENT_SECRET
+KAKAO_REST_API_KEY / OPENAI_API_KEY / DB_PASSWORD / JWT_SECRET
+HF_REPO_ID=your-name/kride-models
 ```
