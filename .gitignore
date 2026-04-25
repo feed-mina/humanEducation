@@ -1,3 +1,10 @@
-.venv/*
-node_modules/*
-kride_render/*
+kride-project/.venv/*
+kride-project/node_modules/*
+kride-project/.vscode/*
+kride-project/.idea/*
+kride-project/__pycache__/*
+kride-project/*.pyc
+kride-project/*.pyo
+kride-project/*.pyd
+kride-project/venv/*
+kride-project/.env
