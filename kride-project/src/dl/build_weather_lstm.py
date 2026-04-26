@@ -42,7 +42,8 @@ warnings.filterwarnings("ignore")
 
 # ── 경로 설정 ──────────────────────────────────────────────────────────────────
 try:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    BASE_DIR = os.path.dirname(os.path.dirname(_SCRIPT_DIR))  # src/dl → src → kride-project
 except NameError:
     BASE_DIR = os.path.abspath(os.path.join(os.getcwd(), "kride-project"))
     if not os.path.exists(BASE_DIR):
@@ -342,6 +343,7 @@ def train(data_dir: str):
 
     best_val_acc = 0.0
     best_state   = None
+    history = {"train_loss": [], "val_acc": []}  # 학습 곡선용
 
     for epoch in range(1, EPOCHS + 1):
         model.train()
@@ -366,12 +368,16 @@ def train(data_dir: str):
         val_acc = correct / total if total else 0.0
         scheduler.step()
 
+        avg_loss = tr_loss / len(tr_dl)
+        history["train_loss"].append(round(avg_loss, 6))
+        history["val_acc"].append(round(val_acc, 6))
+
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_state   = {k: v.clone() for k, v in model.state_dict().items()}
 
         if epoch % 5 == 0 or epoch == 1:
-            print(f"  Epoch {epoch:3d}/{EPOCHS}  loss={tr_loss/len(tr_dl):.4f}  val_acc={val_acc:.4f}")
+            print(f"  Epoch {epoch:3d}/{EPOCHS}  loss={avg_loss:.4f}  val_acc={val_acc:.4f}")
 
     # 최적 가중치 저장
     model.load_state_dict(best_state)
@@ -396,6 +402,12 @@ def train(data_dir: str):
     test_acc = accuracy_score(y_true, y_pred)
     test_f1_macro = f1_score(y_true, y_pred, average='macro')
     print(f"  Test Acc: {test_acc:.4f}, F1-Macro: {test_f1_macro:.4f}")
+
+    # 학습 히스토리 저장 (visualize_weather_lstm.py 에서 학습 곡선 생성에 사용)
+    history_path = os.path.join(DL_MODELS_DIR, "weather_history.json")
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+    print(f"  ✅ weather_history.json 저장")
 
     # 메타 저장
     meta = {
