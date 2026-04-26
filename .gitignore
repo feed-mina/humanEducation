@@ -8,3 +8,6 @@ kride-project/*.pyo
 kride-project/*.pyd
 kride-project/venv/*
 kride-project/.env
+kride-project/.vscode
+kride-project/.ai/*
+kride-project/.ai
