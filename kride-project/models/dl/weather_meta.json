@@ -4,9 +4,9 @@
   "num_layers": 2,
   "num_classes": 3,
   "seq_len": 14,
-  "best_val_acc": 0.7562,
-  "test_acc": 0.7054,
-  "test_f1_macro": 0.5091,
+  "best_val_acc": 0.8245,
+  "test_acc": 0.8216,
+  "test_f1_macro": 0.7213,
   "weather_label": {
     "0": "맑음",
     "1": "흐림",
