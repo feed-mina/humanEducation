@@ -1,0 +1,121 @@
+spring:
+  application:
+    name: SDUI-server
+  main:
+    allow-bean-definition-overriding: true
+  web:
+    resources:
+      static-locations: classpath:/static/
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/testdb # jdbc:postgresql://localhost:5432/testdb # 5434/SDUI_TD
+    username: postgres # postgres # mina
+    password: 1234 # password # 1234
+    hikari:
+      maximum-pool-size: 12
+      connection-timeout: 30000
+      minimum-idle: 5
+      idle-timeout: 600000
+      pool-name: DemoBackendHikariPool
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    sql-migration-suffixes: .sql
+    validate-on-migrate: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: yerin4984@gmail.com
+    password: xbfkdgfxevqytije
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    debug: true
+
+server:
+  port: 8080
+  address: 0.0.0.0
+  ssl:
+    enabled: false
+  forward-headers-strategy: native
+
+jwt:
+  secret-key: d6ac9ecc0a3aa3c395313fb236e0ec10d71ab78fb36f54ba626664eba0b842b1
+  issuer: admin
+  expiration: 86400000
+
+app:
+  url:
+    web: ${WEB_URL:http://localhost:3000}
+    mobile: ${MOBILE_URL:http://sdui-delta.vercel.app://}
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID:2d22c7fa1d59eb77a5162a3948a0b6fe}
+  token-admin: ${KAKAO_TOKEN_ADMIN:96ed9105639fb627fb2c710f39e6516f}
+  redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/api/kakao/callback}
+
+slack:
+  webhook-url: ${SLACK_WEBHOOK_URL:}
+  bot-token: ${SLACK_BOT_TOKEN:}
+  channel-id: ${SLACK_CHANNEL_ID:}
+  target-user-id: ${SLACK_TARGET_USER_ID:U0AM4840JFR}
+
+openai:
+  api-key: ${OPENAI_API_KEY:dummy-local}
+  model: gpt-4o-mini
+  whisper-model: whisper-1
+
+fastapi:
+  url: http://localhost:8001
+  internal-api-key: sdui-internal-dev-key
+
+google:
+  oauth:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:https://sdui-delta.vercel.app/view/GOOGLE_CALLBACK}
+
+cloud:
+  aws:
+    s3:
+      bucket: sdui-273354627025-ap-northeast-2-an
+      region: ap-northeast-2
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:dummy-local}
+      secret-key: ${AWS_SECRET_KEY:dummy-local}
+  gcp:
+    document-ai:
+      project-id: ${GCP_PROJECT_ID:kdeliver}
+      location: us
+      processor-id: ${GCP_PROCESSOR_ID:6ed87cfefab39a91}
+      credentials-path: ${GCP_CREDENTIALS_PATH:assets/kdeliver-358f601d765c.json}
+
+logging:
+  file:
+    name: log.txt
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    com.domain.demo_backend.mapper: DEBUG
+    org.mybatis: DEBUG
+    org.apache.ibatis: DEBUG
+    org.springframework.jdbc.core: INFO
+    org.springframework.web: DEBUG

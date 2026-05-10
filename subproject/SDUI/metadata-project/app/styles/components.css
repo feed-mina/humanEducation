@@ -1,0 +1,19 @@
+/* SDUI 엔진 컨테이너 */
+.engine-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 모바일일 때만 폭 제한 */
+.app-wrapper.is-mobile .engine-container {
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+/* PC일 때 카드 레이아웃 유도 */
+.app-wrapper.is-pc .engine-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}

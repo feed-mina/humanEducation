@@ -1,0 +1,347 @@
+"""
+test_fastapi.py — K-Ride FastAPI 단위 테스트
+=============================================
+
+실행:
+  cd D:/kride-project
+  pytest tests/test_fastapi.py -v
+
+의존성:
+  pip install pytest httpx
+
+배포 환경 대응:
+  - TestClient는 실제 HTTP 서버 없이 ASGI 앱을 직접 호출 (Vercel/EC2 불필요)
+  - 외부 서비스(Neo4j, ChromaDB, Groq, Supabase)는 모두 patch로 격리
+  - HAS_AI=True 경로와 False 경로 모두 검증
+"""
+
+from __future__ import annotations
+
+import sys
+import types
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+# ── 외부 패키지가 없어도 import 가능하도록 stub ──────────────────────────────
+def _stub(name: str):
+    """존재하지 않는 패키지를 빈 MagicMock으로 대체"""
+    mod = types.ModuleType(name)
+    sys.modules.setdefault(name, mod)
+    return mod
+
+for _pkg in ["neo4j", "chromadb", "groq", "supabase", "sentence_transformers"]:
+    _stub(_pkg)
+
+# FastAPI 앱 임포트 (stub 설정 이후에 해야 ImportError 방지)
+from src.api.fastapi_server import app  # noqa: E402
+
+client = TestClient(app, raise_server_exceptions=False)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 1. 헬스체크
+# ══════════════════════════════════════════════════════════════════════════════
+class TestHealth:
+    def test_health_returns_ok(self):
+        resp = client.get("/api/health")
+        assert resp.status_code == 200
+
+    def test_health_has_required_fields(self):
+        body = client.get("/api/health").json()
+        assert "status" in body
+        assert body["status"] == "ok"
+        assert "graph_nodes" in body
+        assert "graph_edges" in body
+        assert "road_scored_rows" in body
+
+    def test_health_numeric_fields(self):
+        body = client.get("/api/health").json()
+        assert isinstance(body["graph_nodes"], int)
+        assert isinstance(body["graph_edges"], int)
+        assert isinstance(body["road_scored_rows"], int)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. GET /api/artists
+# ══════════════════════════════════════════════════════════════════════════════
+MOCK_ARTISTS = [
+    {"id": "1", "name": "BTS",   "imageUrl": "https://example.com/bts.jpg"},
+    {"id": "2", "name": "아이유", "imageUrl": "https://example.com/iu.jpg"},
+]
+
+class TestArtists:
+    def test_artists_503_when_no_ai(self):
+        """HAS_AI=False → 503"""
+        with patch("src.api.fastapi_server.HAS_AI", False):
+            resp = client.get("/api/artists")
+        assert resp.status_code == 503
+
+    def test_artists_returns_list(self):
+        """HAS_AI=True, Supabase mock → artists 배열 반환"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_all_artists", return_value=MOCK_ARTISTS):
+            resp = client.get("/api/artists")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "artists" in body
+        assert len(body["artists"]) == 2
+
+    def test_artists_item_shape(self):
+        """각 아티스트가 id/name/imageUrl 보유"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_all_artists", return_value=MOCK_ARTISTS):
+            artists = client.get("/api/artists").json()["artists"]
+        for a in artists:
+            assert "id" in a
+            assert "name" in a
+            assert "imageUrl" in a
+
+    def test_artists_502_on_exception(self):
+        """get_all_artists가 예외를 던지면 502"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_all_artists", side_effect=Exception("DB 오류")):
+            resp = client.get("/api/artists")
+        assert resp.status_code == 502
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 3. GET /api/regions
+# ══════════════════════════════════════════════════════════════════════════════
+MOCK_REGIONS = [
+    {"id": "1", "name": "서울", "imageUrl": None, "safety_score": 0.87},
+    {"id": "2", "name": "부산", "imageUrl": None, "safety_score": 0.82},
+]
+
+class TestRegions:
+    def test_regions_503_when_no_ai(self):
+        with patch("src.api.fastapi_server.HAS_AI", False):
+            resp = client.get("/api/regions")
+        assert resp.status_code == 503
+
+    def test_regions_from_neo4j(self):
+        """Neo4j에 Region 노드 있으면 그대로 반환"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_regions", return_value=MOCK_REGIONS):
+            resp = client.get("/api/regions")
+        assert resp.status_code == 200
+        assert len(resp.json()["regions"]) == 2
+
+    def test_regions_fallback_when_neo4j_empty(self):
+        """Neo4j 결과 없으면 하드코딩 17개 반환"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_regions", return_value=[]):
+            body = client.get("/api/regions").json()
+        assert len(body["regions"]) == 17
+        names = [r["name"] for r in body["regions"]]
+        assert "서울" in names
+        assert "제주" in names
+
+    def test_regions_fallback_item_has_id_and_name(self):
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_regions", return_value=[]):
+            regions = client.get("/api/regions").json()["regions"]
+        for r in regions:
+            assert "id" in r
+            assert "name" in r
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 4. POST /api/recommend/ai
+# ══════════════════════════════════════════════════════════════════════════════
+MOCK_POIS = [
+    {"poi_id": "p1", "name": "경복궁", "sido": "서울", "lat": 37.58, "lon": 126.97,
+     "category": "kculture", "address": "서울 종로구", "image_url": ""},
+    {"poi_id": "p2", "name": "광장시장", "sido": "서울", "lat": 37.57, "lon": 126.99,
+     "category": "food", "address": "서울 종로구", "image_url": ""},
+]
+
+class TestRecommendAI:
+    def test_recommend_ai_503_no_ai(self):
+        with patch("src.api.fastapi_server.HAS_AI", False):
+            resp = client.post("/api/recommend/ai", json={})
+        assert resp.status_code == 503
+
+    def test_recommend_ai_returns_structure(self):
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=MOCK_POIS), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_recommendation_text", return_value="추천 이유"):
+            resp = client.post("/api/recommend/ai", json={
+                "artists": ["BTS"],
+                "regions": ["서울"],
+                "purposes": ["kculture"],
+                "budget": {"min": 0, "max": 500000},
+            })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "pois" in body
+        assert "recommendation_text" in body
+        assert "count" in body
+
+    def test_recommend_ai_budget_filter(self):
+        """avg_cost 없는 POI는 예산 필터에서 제외되지 않음"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=MOCK_POIS), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_recommendation_text", return_value=""):
+            body = client.post("/api/recommend/ai", json={
+                "budget": {"min": 0, "max": 100},
+            }).json()
+        # avg_cost 없는 POI는 통과해야 함
+        assert body["count"] == len(MOCK_POIS)
+
+    def test_recommend_ai_empty_request(self):
+        """빈 요청도 200 반환 (neo4j/chroma 결과 없으면 count=0)"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_recommendation_text", return_value=""):
+            resp = client.post("/api/recommend/ai", json={})
+        assert resp.status_code == 200
+        assert resp.json()["count"] == 0
+
+    def test_recommend_ai_deduplication(self):
+        """같은 poi_id POI는 중복 제거"""
+        dup = MOCK_POIS + [MOCK_POIS[0]]   # p1 중복
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=dup), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_recommendation_text", return_value=""):
+            body = client.post("/api/recommend/ai", json={}).json()
+        assert body["count"] == len(MOCK_POIS)   # 중복 제거 후 2개
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 5. POST /api/recommend/itinerary
+# ══════════════════════════════════════════════════════════════════════════════
+MOCK_ITINERARY = {
+    "itinerary": [
+        {
+            "day": 1,
+            "morning":   {"places": [{"name": "경복궁", "address": "서울 종로구", "tip": "개장 직후 방문"}]},
+            "afternoon": {"places": [{"name": "광장시장", "address": "서울 종로구", "tip": "육회비빔밥"}]},
+        }
+    ]
+}
+
+class TestItinerary:
+    def test_itinerary_503_no_ai(self):
+        with patch("src.api.fastapi_server.HAS_AI", False):
+            resp = client.post("/api/recommend/itinerary", json={})
+        assert resp.status_code == 503
+
+    def test_itinerary_returns_structure(self):
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=MOCK_POIS), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=MOCK_ITINERARY):
+            resp = client.post("/api/recommend/itinerary", json={
+                "duration": "당일치기",
+                "artists": ["BTS"],
+                "regions": ["서울"],
+                "purposes": ["kculture"],
+                "budget": {"min": 0, "max": 500000},
+            })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "itinerary" in body
+        assert "mapData" in body
+        assert "markers" in body["mapData"]
+
+    def test_itinerary_day_count_onenight(self):
+        two_day = {
+            "itinerary": [
+                {"day": 1, "morning": {"places": []}, "afternoon": {"places": []}},
+                {"day": 2, "morning": {"places": []}, "afternoon": {"places": []}},
+            ]
+        }
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=[]), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=two_day):
+            body = client.post("/api/recommend/itinerary", json={"duration": "1박2일"}).json()
+        assert len(body["itinerary"]) == 2
+
+    def test_itinerary_markers_from_pois_with_coords(self):
+        """좌표 있는 POI만 markers에 포함"""
+        no_coord_poi = {"poi_id": "p3", "name": "좌표없음", "category": "food"}
+        pois_mixed = MOCK_POIS + [no_coord_poi]
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=pois_mixed), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=MOCK_ITINERARY):
+            markers = client.post("/api/recommend/itinerary", json={}).json()["mapData"]["markers"]
+        # 좌표 없는 p3는 제외
+        marker_names = [m["name"] for m in markers]
+        assert "좌표없음" not in marker_names
+
+    def test_itinerary_502_on_groq_failure(self):
+        """Groq 호출 실패 → 502"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=[]), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", side_effect=Exception("Groq 오류")):
+            resp = client.post("/api/recommend/itinerary", json={})
+        assert resp.status_code == 502
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 6. GET /api/weather (KMA 키 없는 fallback)
+# ══════════════════════════════════════════════════════════════════════════════
+class TestWeather:
+    def test_weather_fallback_no_key(self):
+        """KMA 키 없으면 fallback 응답 반환"""
+        with patch.dict("os.environ", {"KMA_API_KEY": ""}, clear=False):
+            resp = client.get("/api/weather?lat=37.5&lon=127.0")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "weather_label" in body
+        assert "w_safety_adj" in body
+        assert "w_tourism_adj" in body
+
+    def test_weather_adj_sum_to_one(self):
+        """w_safety_adj + w_tourism_adj 합계 = 1.0"""
+        with patch.dict("os.environ", {"KMA_API_KEY": ""}, clear=False):
+            body = client.get("/api/weather?lat=37.5&lon=127.0&base_w_safety=0.7").json()
+        total = round(body["w_safety_adj"] + body["w_tourism_adj"], 5)
+        assert total == 1.0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 7. POST /api/recommend (기존 세그먼트 추천 — CSV 없을 때 503)
+# ══════════════════════════════════════════════════════════════════════════════
+class TestRecommend:
+    def test_recommend_503_no_csv(self):
+        """road_scored.csv 없으면 503"""
+        with patch("src.api.fastapi_server.df_scored", None):
+            resp = client.post("/api/recommend", json={
+                "lat": 37.5, "lon": 127.0,
+            })
+        assert resp.status_code == 503
+
+    def test_recommend_validation_error(self):
+        """필수 필드(lat/lon) 누락 → 422"""
+        resp = client.post("/api/recommend", json={})
+        assert resp.status_code == 422
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 8. GET /api/weather_forecast (날짜 유효성)
+# ══════════════════════════════════════════════════════════════════════════════
+class TestWeatherForecast:
+    def test_forecast_invalid_date(self):
+        resp = client.get("/api/weather_forecast?travel_date=not-a-date")
+        assert resp.status_code == 400
+
+    def test_forecast_no_model_fallback(self):
+        """LSTM 모델 없으면 더미 응답"""
+        with patch("src.api.fastapi_server.HAS_LSTM_WEATHER", False):
+            resp = client.get("/api/weather_forecast?travel_date=2026-06-01")
+        assert resp.status_code == 200
+        assert resp.json()["weather_label"] == "맑음"

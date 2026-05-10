@@ -1,0 +1,103 @@
+**📘 프로젝트 오류 일지: sdui-delta.vercel.app (S3 + CloudFront 정적 웹사이트 배포)**
+
+---
+
+### 🗂️ 프로젝트 개요
+- 프론트엔드: Vue + Vite 프로젝트
+- 호스팅: AWS S3 + CloudFront
+- 도메인: sdui-delta.vercel.app (가비아에서 구매)
+- 인증서: AWS ACM을 이용한 HTTPS 적용
+
+---
+
+### ❌ 주요 오류 및 해결 과정 요약
+
+#### 1. **DNS 오류 (ERR_NAME_NOT_RESOLVED)**
+- 🔍 증상: `https://sdui-delta.vercel.app` 접속 시 DNS 이름을 찾을 수 없음
+- 🛠 원인:
+  - Route 53에서 A 레코드 alias 설정이 잘못됨
+  - CloudFront와 연결된 도메인이 없거나 ACM 인증서 미적용 상태
+-  해결:
+  - ACM 인증서를 US East (N. Virginia)에 발급 및 적용
+  - CloudFront 배포에 해당 인증서 연결
+  - Route 53 A 레코드 → alias → CloudFront 도메인으로 정확히 설정함
+
+---
+
+#### 2. **CloudFront에서 404 오류 (NoSuchKey: project1/index.html)**
+- 🔍 증상:
+  - CloudFront가 `project1/index.html`을 찾지 못해 404 발생
+  - 실제 S3에는 `index.html`이 루트(/)에 존재함
+- 🛠 원인:
+  - CloudFront 원본 경로가 `/project1`로 잘못 설정되어 있었음
+-  해결:
+  - CloudFront 배포 설정 > 원본 > 원본 경로 `/project1` → `공백`으로 변경
+  - 이후 CloudFront 캐시 무효화 `/*` 처리하여 변경 사항 반영
+
+---
+
+#### 3. **403 Forbidden 오류 (AccessDenied)**
+- 🔍 증상: CloudFront가 S3 버킷 콘텐츠에 접근하지 못함
+- 🛠 원인:
+  - S3 퍼블릭 엑세스 차단 설정이 활성화되어 있었음
+-  해결:
+  - [S3 버킷] > [권한] > [퍼블릭 엑세스 차단 해제]
+  - 버킷 정책에 다음 JSON 추가:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::web-2025-version1/*"
+    }
+  ]
+}
+```
+
+---
+
+#### 4. **HTTPS 접속 시 보안 경고 (NET::ERR_CERT_COMMON_NAME_INVALID)**
+- 🔍 증상:
+  - `https://EC2-IP`로 접속 시 HTTPS 경고 화면
+- 🛠 원인:
+  - EC2 자체에는 정식 인증서가 없으며 IP 기반 인증서는 유효하지 않음
+-  해결:
+  - 개인 도메인에서는 CloudFront + ACM 조합으로만 HTTPS 사용
+  - EC2는 Let’s Encrypt 등 별도 인증서 설정 필요 (이번 프로젝트에서는 사용 안 함)
+
+---
+
+#### 5. **Vue 라우팅 관련 404 오류**
+- 🔍 증상: 새로고침 시 404 오류 (SPA에서 흔한 문제)
+-  해결:
+  - CloudFront > 오류 페이지 응답 설정 추가
+    - 오류 코드: 404
+    - 응답 페이지 경로: `/index.html`
+    - HTTP 응답 코드: 200
+
+---
+
+###  최종 확인
+- https://sdui-delta.vercel.app 정상 접속 완료
+- CloudFront 캐시 무효화 수행함
+- S3에 `index.html`은 루트에 위치
+- HTTPS 인증서 정상 적용 (ACM)
+- SPA 라우팅도 정상 작동
+
+---
+
+### 📝 기타 참고사항
+- `project1/index.html`은 실제 프로젝트 내에는 존재하지 않음. 오류 원인은 CloudFront 설정에서 자동으로 붙여진 잘못된 경로 때문이었음.
+- `vite.config.js`와 `router/index.js` 파일은 `base: '/'`, `createWebHashHistory()` 구조로 되어 있었고 문제 없음 확인
+- Chrome DNS 캐시도 `/net-internals/#dns`에서 수동 삭제 확인함
+
+---
+
+작성일: 2025-04-30  
+작성자: 민예린  
+

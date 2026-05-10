@@ -1,0 +1,10 @@
+.sliderContainer {
+  margin: 10px 0;
+}
+
+.sliderContainer div div div div {
+  background-color: #2b3440;
+  padding-left: 3px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}

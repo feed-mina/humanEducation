@@ -1,0 +1,62 @@
+
+/* DIARY-DETAIL 상세 페이지 타이틀 */
+.detail-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #4A90E2;
+    padding-bottom: 10px;
+}
+
+/* 상세 페이지 날짜 */
+.detail-date {
+    font-size: 14px;
+    color: #888;
+    text-align: right;
+    margin-bottom: 20px;
+}
+
+/* 상세 페이지 내용 */
+.detail-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #555;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 200px;
+    white-space: pre-wrap; /* 줄바꿈 유지 */
+}
+
+/* 목록 버튼 */
+.list-btn {
+    margin-top: 30px;
+    width: 100%;
+    padding: 15px;
+    background: #eee;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.list-btn:hover {
+    background: #ddd;
+}
+
+.group-DIARY_CARD {
+    display: flex;
+    flex-flow: column;
+    /*min-width: 500px;*/
+    width: 100%; /* 부모 너비에 맞게 유동적으로 조절 */
+    max-width: 500px; /* PC처럼 넓은 화면에서도 500px까지만 커지도록 제한 */
+    border: 2px solid #ddd;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: center;
+    position: static;
+    padding: 20px;
+    border-radius: 16px;
+    box-sizing: border-box;
+}

@@ -1,0 +1,231 @@
+/* TimeSelect.css */
+
+.time-select-wrapper {
+    position: relative;
+    padding: 1.5rem 1rem;
+    background-color: #f9fafb;
+    border-radius: 1rem;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.time-select-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #9ca3af; /* gray-400 */
+    margin-bottom: 1rem;
+    margin-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.swiper-container-wrapper {
+    position: relative;
+    padding: 0 2.5rem;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.time-button {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+    cursor: pointer;
+}
+
+/* 선택되지 않았을 때 */
+.time-button.default {
+    background-color: #ffffff;
+    color: #4b5563; /* gray-600 */
+}
+
+.time-button.default:hover {
+    background-color: #f3f4f6; /* gray-100 */
+}
+
+/* 선택되었을 때 */
+.time-button.active {
+    background-color: #4f46e5; /* indigo-600 */
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 10px 15px -3px rgba(199, 210, 254, 0.5); /* indigo-200 shadow */
+}
+
+.swiper-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    cursor: pointer;
+    font-size: 1.25rem;
+    user-select: none;
+}
+
+.swiper-nav-btn.prev { left: 0; }
+.swiper-nav-btn.next { right: 0; }
+
+.time-select-legend {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.color-box {
+    width: 0.75rem;
+    height: 0.75rem;
+    border: 1px solid #e5e7eb;
+}
+
+.color-box.wake { background-color: #fef9c3; } /* yellow-100 */
+.color-box.sleep { background-color: #a855f7; } /* purple-500 */
+
+
+/* 읽기 전용일 때 버튼 스타일 (회색 처리 및 클릭 방지) */
+.time-button.readonly {
+    cursor: default !important;
+    pointer-events: none; /* 클릭 이벤트 원천 차단 [cite: 2026-02-17] */
+    opacity: 0.8;
+}
+
+/* 선택된(active) 항목은 강조하되, 선택 안 된 항목은 더 투명하게 */
+.time-button.readonly.default {
+    background-color: #f3f4f6;
+    color: #d1d5db;
+}
+
+.time-button.readonly.active {
+    background-color: #4f46e5;
+    color: #ffffff;
+    box-shadow: none;
+}
+
+.color-box.default-bg { background-color: #ffffff; border: 1px solid #d1d5db; }
+.color-box.active-bg { background-color: #4f46e5; }
+
+.color-box.default-bg { background-color: #ffffff; border: 1px solid #d1d5db; } /* wake 대신 */
+.color-box.active-bg { background-color: #a855f7; } /* sleep 대신 */
+
+
+/* TimeSelect.css 또는 통합 CSS */
+
+/* 활성화된 시간 (보라색) */
+.time-button.active {
+    background-color: #8b5cf6 !important; /* 보라색 (Violet 500) */
+    color: #ffffff !important;
+    border-color: #7c3aed !important;
+    font-weight: bold;
+}
+
+/* 읽기 전용일 때의 활성 상태 (약간 흐린 보라색) */
+.is-readonly .time-button.active {
+    background-color: #ddd6fe !important;
+    color: #5b21b6;
+    border: none;
+}
+
+/* 범례(Legend) 색상 일치 */
+.color-box.active-bg {
+    background-color: #8b5cf6;
+}
+
+/* 읽기 전용일 때도 선택된 값(보라색)은 유지 */
+.time-button.active.readonly-style {
+    background-color: #ddd6fe !important;
+    color: #5b21b6;
+    opacity: 1;
+}
+
+
+/* TimeSelect.css */
+
+/* 활성화 상태 (Swap 기능으로 선택된 시간 - 보라색) */
+.time-button.active {
+    background-color: #8b5cf6 !important; /* Violet 500 */
+    color: #ffffff !important;
+    border: 1px solid #7c3aed !important;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* 상세페이지(readonly)에서의 스타일 */
+.time-button.readonly-style {
+    cursor: default !important;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+/* 상세페이지에서 선택된 시간 (연한 보라색으로 가독성 확보) */
+.time-button.active.readonly-style {
+    background-color: #ddd6fe !important;
+    color: #5b21b6 !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.color-box.active-bg {
+    background-color: #8b5cf6 !important;
+}
+
+/* 읽기 전용 상태일 때의 active 스타일 */
+.time-button.readonly.active {
+    background-color: #ddd6fe !important; /* 연보라 */
+    color: #5b21b6 !important;
+    opacity: 1;
+}
+
+
+/* TimeSelect.css */
+
+/* 1. 활성화 버튼 (보라색) */
+.time-button.active {
+    background-color: #8b5cf6 !important; /* 요구하신 보라색 */
+    color: #ffffff !important;
+    border: 1px solid #7c3aed !important;
+    transform: scale(1.1);
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.4);
+}
+
+/* 2. 읽기 전용 상태에서 선택된 시간 (연보라색으로 유지) */
+.time-button.readonly.active {
+    background-color: #ddd6fe !important; /* 연한 보라색 */
+    color: #5b21b6 !important;
+    opacity: 1; /* 읽기 전용이어도 선택된 값은 선명하게 */
+}
+
+/* 3. 내비게이션 버튼 노출 수정 */
+/* 기존의 display: none; 을 제거하거나 아래처럼 유지 */
+.is-readonly .swiper-nav-btn {
+    display: flex; /* 상세페이지에서도 화살표가 보이도록 수정 */
+    opacity: 0.5;
+}
+
+/* 4. 범례 색상 보정 */
+.color-box.active-bg {
+    background-color: #8b5cf6 !important;
+}
+
+@media (min-width: 800px) {
+    .time-select-wrapper{
+        min-width: 700px;
+    }
+}
+

@@ -1,0 +1,222 @@
+@media (min-width: 1024px) {/* 1. 상단 큰 카드 (약속 안내 영역) */
+    .is-pc .group-MAIN_SECTION {
+        display: flex !important;
+        flex-direction: row !important; /* 좌측 텍스트, 우측 이미지 */
+        justify-content: space-around;
+        align-items: center;
+        background: #ffffff;
+        border-radius: 30px;
+        padding: 80px 60px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        margin-bottom: 40px;
+    }
+    /* 텍스트와 버튼을 감싸는 영역 */
+    .is-pc .no-goal-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+    /* 이미지 영역 */
+    .is-pc .diarylmg {
+        width: 40% !important;
+        order: 2; /* 이미지를 우측으로 */
+        margin-bottom: 0 !important;
+    }
+    /* 2. 하단 요소들을 2열 그리드로 배치 (로그인/튜토리얼 영역) */
+    .is-pc .content-area {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+    }
+
+    .is-pc .diary-btn-primary,
+    .is-pc .diary-btn-secondary {
+        width: 100%; /* 카드 너비에 맞게 꽉 채움 */
+        max-width: none;
+    }
+    /* 공통 버튼 스타일 */
+    .diary-btn-primary, .sidebar-auth-btn.login {
+        background-color: #007B65;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 25px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+
+
+
+
+
+    /* 1. 전체 페이지 레이아웃 구조 잡기 */
+    .page-wrap.MAIN_PAGE {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: flex-start;
+        background-color: #f8f9fa;
+        min-height: 100vh;
+        padding: 0;
+    }
+
+    /* 2. 사이드바 스타일 (이미지 좌측 메뉴 영역) */
+    .sidebar-nav {
+        width: 260px;
+        height: 100vh;
+        background-color: #ffffff;
+        padding: 40px 24px;
+        border-right: 1px solid #eee;
+        position: sticky;
+        top: 0;
+    }
+
+
+    /* 4. 상단 메인 클럭 섹션 (Hero Card) */
+    .group-MAIN_CLOCK_SECTION {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        background: #ffffff;
+        border: none;
+        border-radius: 24px;
+        padding: 60px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    /* 5. 메인 섹션 내 텍스트와 버튼 그룹 */
+    .no-goal-container {
+        flex: 1;
+        align-items: flex-start;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 0;
+    }
+
+    .no-goal-msg {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1.3;
+        margin-bottom: 30px;
+    }
+
+    /* 6. 하단 2단 카드 배치를 위한 컨테이너 */
+    .bottom-card-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    /* 7. 로그인 및 SNS 섹션 카드화 */
+    .group-LOGIN_SECTION,
+    .group-SNS_SECTION {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 32px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    }
+
+    /* 8. 버튼 스타일 PC 최적화 */
+    .arrival-button,
+    .login_form_button,
+    .kakao-button {
+        width: auto;
+        min-width: 160px;
+        padding: 14px 28px;
+        border-radius: 30px;
+        margin: 0;
+    }
+
+/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+/* PC 전용 레이아웃 설정 (1024px 이상) */
+    /* 1. 전체 페이지를 사이드바와 콘텐츠로 분리 */
+    .app-container {
+        display: flex;
+        min-height: 100vh;
+        background-color: #f5f7f9; /* 콘텐츠 부각을 위한 연한 배경 */
+    }
+
+    /* 2. 좌측 네비게이션 (이미지의 JustSaying 영역) */
+    .side-nav {
+        width: 260px;
+        background-color: #ffffff;
+        border-right: 1px solid #eaeaea;
+        padding: 40px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+    }
+
+    /* 3. 우측 메인 콘텐츠 영역 전용 wrap */
+    .page-wrap {
+        flex: 1;
+        padding: 60px;
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* 카드 중앙 정렬 */
+        gap: 30px;
+    }
+
+    /* 4. [MAIN_PAGE] 상단 큰 카드 (오늘의 약속 시간 영역) */
+    .time-record-container {
+        width: 100%;
+        max-width: 900px;
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 40px;
+        display: flex !important;
+        flex-direction: row !important; /* 가로 배치: 텍스트 좌측, 이미지 우측 */
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: none !important; /* 이미지처럼 깔끔하게 테두리 제거 */
+    }
+
+    /* 5. [MAIN_PAGE] 하단 카드 그리드 (로그인/튜토리얼 영역) */
+    /* ACTIVE_INFO_GROUP 내부에 카드들이 나란히 배치되도록 설정 */
+    .active-display-row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr; /* 2열 배치 */
+        gap: 24px;
+        width: 100%;
+        max-width: 900px;
+        border: none !important;
+    }
+
+    /* 6. 개별 카드 컴포넌트 스타일링 */
+    .action-button-box, .no-goal-container {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        min-height: 180px;
+    }
+
+    /* 7. [LOGIN_PAGE] 중앙 집중형 레이아웃 */
+    .LOGIN_SECTION {
+        max-width: 450px;
+        width: 100%;
+        margin: auto;
+        padding: 50px;
+        background: #ffffff;
+        border-radius: 30px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+    }
+}

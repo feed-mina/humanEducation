@@ -1,0 +1,55 @@
+{
+  "cookies": [
+    {
+      "name": "accessToken",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMUB0ZXN0LmNvbSIsImVtYWlsIjoidXNlcjFAdGVzdC5jb20iLCJ1c2VyU3FubyI6MiwidXNlcklkIjoidXNlcl90ZXN0MSIsInJvbGUiOiJST0xFX1VTRVIiLCJpYXQiOjE3NzM1NTE3NDksImV4cCI6MTc3MzU1NTM0OX0.PLfd6R0Ol88e-p1rVAgGrhxH6urUImei3lzB5aV_dT0",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1773555350.526621,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "refreshToken",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMUB0ZXN0LmNvbSIsImlhdCI6MTc3MzU1MTc0OSwiZXhwIjoxNzc0MTU2NTQ5fQ.F6beinB9zRZtN1ABHzpznKMFQwt9hXU3NJ5DghImn9E",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1774156550.537448,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "role",
+      "value": "ROLE_USER",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1773555350.538654,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "loginType",
+      "value": "N",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1773555350.539351,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "isLoggedIn",
+      "value": "true",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1773555350.539857,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

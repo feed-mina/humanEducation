@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+
+# 1. 데이터베이스 서비스 
+  db:
+    image: postgres:15
+    container_name: sdui-db
+    environment:
+      - POSTGRES_DB=SDUI_TD
+      - POSTGRES_USER=mina
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5434:5432"
+    networks:
+      - sdui-network
+
+    # 2. Redis 서비스 
+  redis:
+    image: redis:latest
+    container_name: sdui-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - sdui-network
+
+# 3. Spring Boot 애플리케이션 서비스
+  app:
+    build:
+      context: ./SDUI-server
+      dockerfile: Dockerfile
+    container_name: sdui-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+      # - sdui-fastapi  # [FastAPI 비활성화] AI 면접관 이력서 분석 기능 구현 시 주석 해제
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/SDUI_TD
+      - SPRING_DATASOURCE_USERNAME=mina
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      # [FastAPI 비활성화] AI 면접관 이력서 분석 기능 구현 시 주석 해제
+      # - FASTAPI_URL=http://sdui-fastapi:8001
+      # - FASTAPI_INTERNAL_API_KEY=sdui-internal-dev-key
+    networks:
+      - sdui-network
+
+  # [FastAPI 비활성화] AI 면접관 이력서 분석 기능 구현 시 주석 해제
+  # sdui-fastapi:
+  #   build:
+  #     context: ./pronounce-api
+  #     dockerfile: Dockerfile
+  #   container_name: sdui-fastapi
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     - INTERNAL_API_KEY=sdui-internal-dev-key
+  #     - ENV=production
+  #     # Google Cloud TTS 사용 시 주석 해제:
+  #     # - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
+  #   # volumes:
+  #   #   - ./assets/kdeliver-358f601d765c.json:/app/gcp-credentials.json:ro
+  #   networks:
+  #     - sdui-network
+
+networks:
+  sdui-network:
+    driver: bridge

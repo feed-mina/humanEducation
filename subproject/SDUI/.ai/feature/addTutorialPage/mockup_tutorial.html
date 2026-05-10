@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDUI Tutorial Playground Mockup</title>
+    <style>
+        /* ── Reset & Base ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f3f4f6;
+            color: #1f2937;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* ── Layout Container ── */
+        .playground-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* ── Header ── */
+        .header {
+            height: 70px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-title h2 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .header-title p {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .btn-default {
+            background: #fff;
+            border-color: #d1d5db;
+            color: #374151;
+        }
+
+        .btn-default:hover {
+            background: #f3f4f6;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-history {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+
+        .btn-history:hover {
+            background: #fde68a;
+        }
+
+        .btn-demo {
+            background: #9333ea;
+            color: #fff;
+        }
+
+        .btn-demo:hover {
+            background: #7e22ce;
+        }
+
+        .btn-danger {
+            background: #fff;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #fef2f2;
+        }
+
+        /* ── Main Body (Split View) ── */
+        .main-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Left: Preview */
+        .preview-pane {
+            width: 50%;
+            background: #f9fafb;
+            border-right: 1px solid #e5e7eb;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .pane-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .preview-card {
+            background: #fff;
+            border: 1px solid #f3f4f6;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            min-height: 400px;
+        }
+
+        /* Simulated UI Elements */
+        .sim-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .sim-btn {
+            padding: 8px 16px;
+            background: #16a34a;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* Right: Editor & JSON */
+        .editor-pane {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+        }
+
+        /* Controls Area */
+        .controls-area {
+            padding: 24px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .control-group {
+            margin-bottom: 8px;
+        }
+
+        .control-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.875rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        .control-input:focus {
+            border-color: #2563eb;
+            ring: 2px solid #bfdbfe;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .font-mono {
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+
+        /* Layer List (Drag & Drop) */
+        .layer-list {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .layer-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .layer-item:last-child {
+            border-bottom: none;
+        }
+
+        .layer-item.active {
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 500;
+        }
+
+        .layer-item:hover:not(.active) {
+            background: #f9fafb;
+        }
+
+        .drag-handle {
+            color: #9ca3af;
+            margin-right: 8px;
+            cursor: move;
+        }
+
+        .layer-type {
+            font-size: 0.7rem;
+            background: #f3f4f6;
+            color: #6b7280;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* JSON View */
+        .json-area {
+            flex: 1;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .json-header {
+            padding: 8px 16px;
+            background: #252526;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #9ca3af;
+        }
+
+        .live-indicator {
+            color: #22c55e;
+        }
+
+        .json-content {
+            flex: 1;
+            padding: 16px;
+            overflow: auto;
+            color: #d4d4d4;
+            font-family: monospace;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="playground-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <h2>SDUI Playground</h2>
+                <p>좌측 UI를 수정하면 우측 JSON이 실시간으로 변경됩니다.</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-default">+ 버튼</button>
+                <button class="btn btn-default">+ 텍스트</button>
+                <button class="btn btn-default">+ 입력창</button>
+                <button class="btn btn-default">+ 이미지</button>
+                <button class="btn btn-primary">적용</button>
+                <button class="btn btn-history">히스토리</button>
+                <button class="btn btn-demo">데모 보기</button>
+                <button class="btn btn-danger">초기화</button>
+            </div>
+        </div>
+
+        <!-- Main Body -->
+        <div class="main-body">
+            <!-- Left: Preview -->
+            <div class="preview-pane">
+                <div class="pane-label">Real-time Preview</div>
+                <div class="preview-card">
+                    <!-- Simulated DynamicEngine Render -->
+                    <h1 class="sim-title">Hello, SDUI!</h1>
+                    <button class="sim-btn">클릭해보세요</button>
+                </div>
+            </div>
+
+            <!-- Right: Editor & JSON -->
+            <div class="editor-pane">
+                <div class="controls-area">
+                    <div class="pane-label">Component Properties</div>
+                    <div class="control-grid">
+                        <div>
+                            <label class="control-label">Layers (Drag to Reorder)</label>
+                            <ul class="layer-list">
+                                <li class="layer-item">
+                                    <div><span class="drag-handle">☰</span>demo_title</div>
+                                    <span class="layer-type">TEXT</span>
+                                </li>
+                                <li class="layer-item active">
+                                    <div><span class="drag-handle">☰</span>demo_button</div>
+                                    <span class="layer-type">BUTTON</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <label class="control-label">Label Text</label>
+                            <input type="text" class="control-input" value="클릭해보세요">
+                        </div>
+                        <div class="full-width">
+                            <label class="control-label">CSS Class (Tailwind)</label>
+                            <input type="text" class="control-input font-mono"
+                                value="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="json-area">
+                    <div class="json-header">
+                        <span>JSON Data (Server Response Simulation)</span>
+                        <span class="live-indicator">● Live</span>
+                    </div>
+                    <div class="json-content">
+                        [
+                        {
+                        "component_id": "demo_title",
+                        "component_type": "TEXT",
+                        "label_text": "Hello, SDUI!",
+                        "sort_order": 1,
+                        "css_class": "text-2xl font-bold text-gray-800 mb-4"
+                        },
+                        {
+                        "component_id": "demo_button",
+                        "component_type": "BUTTON",
+                        "label_text": "클릭해보세요",
+                        "action_type": "TOAST",
+                        "sort_order": 2,
+                        "css_class": "px-4 py-2 bg-green-600 text-white rounded-lg..."
+                        }
+                        ]</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

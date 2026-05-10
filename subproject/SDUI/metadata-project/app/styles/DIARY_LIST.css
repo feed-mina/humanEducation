@@ -1,0 +1,205 @@
+
+
+/* =================================================================
+  다이어리 리스트 (Diary List)
+   ================================================================= */
+
+.page-wrap.DIARY_LIST {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 가로 중앙 정렬 */
+    width: 100%;
+    padding: 20px;
+}
+
+/* 필터 토글 위치 */
+.filter-toggle-container {
+    width: 100%;
+    max-width: 600px; /* PC에서도 리스트 너비에 맞춤 */
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+}
+
+/* 1. 공통 설정 (PC, 모바일 모두 적용) */
+.diaryListSection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 600px; /* 리스트 폭 제한 */
+}
+
+/* 페이지네이션 중앙 정렬 */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+    width: 100%;
+}
+
+.group-TITLE_AUTHOR_GROUP{
+
+    background: beige;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+
+
+
+.diaryList {
+    margin-bottom: 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+
+.diary-post {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: 0.2s;
+    height: auto !important;
+    min-height: 100px;
+}
+
+.diary-post:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.diary-card-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+
+/* 일기 카드 전체 */
+.diary-post {
+    background: #ffffff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.diary-post:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    border-color: #a0c4ff;
+}
+
+/* 모바일에서 제목이 너무 길면 말줄임표(...) 대신 그냥 줄바꿈해서 보여주기 */
+/* 1. 제목: 불필요한 마진 제거 및 텍스트 줄임표 처리 */
+.diaryTitle {
+    color: #2c3e50;
+    font-size: 18px;
+    font-weight: 700;
+    margin-left: 0 !important; /* 기존 50px 제거 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1; /* 제목이 공간을 적당히 차지하게 함 */
+}
+
+/* 2. 작성자: 뱃지 스타일 유지, 마진 제거 */
+.diaryContent {
+    color: #555;
+    background-color: #f1f3f5;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-left: 10px !important; /* 제목과의 최소 간격 */
+    flex-shrink: 0; /* 이름이 찌그러지지 않게 방어 */
+}
+
+/* 3. 날짜: 부모가 flex-start여도 오른쪽 끝으로 밀어내기 */
+.diaryDate {
+    color: #999;
+    font-size: 12px;
+    margin-top: 0 !important; /* auto 제거 */
+    margin-left: auto !important; /* 이 코드가 핵심: 남는 공간을 다 차지해서 오른쪽으로 밀어냄 */
+    white-space: nowrap;
+}
+
+/* [추가 팁] 그리드 안에서 글자가 사라지는 문제 해결용 */
+/* 카드가 들어갈 공간의 최소 크기를 0으로 지정해야 글자가 튀어나오지 않음 */
+.diaryListSection > div {
+    min-width: 0;
+}
+
+/* 글쓰기 버튼 스타일  */
+.write-btn {
+    background-color: #4A90E2;
+    color: white;
+    font-weight: bold;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.write-btn:hover {
+    background-color: #357abd;
+}
+
+/* 리스트 상단 컨트롤 그룹 */
+.list-header-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+/* 필터 버튼 (캡슐형 디자인) */
+.filter-btn {
+    background: #fff;
+    border: 1px solid #4A90E2;
+    color: #4A90E2;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.filter-btn.active {
+    background: #4A90E2;
+    color: #fff;
+}
+
+
+/* 2. PC 화면 설정 (768px 이상) */
+@media (min-width: 768px) {
+    .diaryListSection {
+        /* 화면이 넓으면 카드를 여러 개 배치 (최소 300px, 남으면 늘어남) */
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+}
+
+/* 3. 모바일 화면 설정 (767px 이하) */
+@media (max-width: 767px) {
+    .diaryListSection {
+        /* 모바일에서는 무조건 한 줄에 하나 */
+        grid-template-columns: 1fr;
+    }
+}

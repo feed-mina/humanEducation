@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDUI MAIN_PAGE — Bento Grid 목업 v2</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --green-primary: #16a34a;
+      --green-bg: #f0fdf4;
+      --teal-dark: #134e4a;
+      --teal-mid: #0f766e;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --text-muted: #6b7280;
+      --radius-lg: 16px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, .08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f1f5f9;
+      padding: 32px;
+      color: #111;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-greeting {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    /* ── Bento Grid ── */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 16px;
+    }
+
+    /* Card Base */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Card: Appointment Widget ── */
+    .card-appointment {
+      background: var(--card-bg);
+      border: 1.5px solid #e5e7eb;
+    }
+
+    .card-appointment .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--green-primary);
+      background: #dcfce7;
+      border-radius: 999px;
+      padding: 4px 10px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .clock-header {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .clock-time {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #111;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .clock-remain {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--green-primary);
+      margin-bottom: 20px;
+    }
+
+    .clock-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-arrival {
+      padding: 10px 22px;
+      background: var(--green-primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-arrival:hover {
+      background: #15803d;
+    }
+
+    .btn-add-time,
+    .btn-more {
+      padding: 10px 14px;
+      background: #f1f5f9;
+      color: #374151;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .goal-list-mini {
+      margin-top: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      list-style: none;
+    }
+
+    .goal-list-mini li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.82rem;
+      color: #555;
+    }
+
+    .goal-list-mini li:last-child {
+      border-bottom: none;
+    }
+
+    .goal-list-mini .gl-date {
+      color: var(--text-muted);
+    }
+
+    .goal-list-mini .gl-time {
+      font-weight: 600;
+      color: #111;
+      margin-left: auto;
+    }
+
+    /* ── Card: No-Goal ── */
+    .card-no-goal {
+      background: linear-gradient(160deg, #f8fafc, #f0fdf4);
+      border: 1.5px solid #e2e8f0;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 14px;
+    }
+
+    .card-no-goal .no-goal-emoji {
+      font-size: 2.5rem;
+    }
+
+    .card-no-goal p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .btn-setup-time {
+      padding: 10px 20px;
+      background: var(--green-primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-setup-time:hover {
+      background: #15803d;
+    }
+
+    /* ── Card: Diary Write CTA (green gradient) ── */
+    .card-diary {
+      background: linear-gradient(135deg, #166534, #15803d);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .card-diary:hover {
+      background: linear-gradient(135deg, #14532d, #166534);
+    }
+
+    .card-diary .diary-icon {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+
+    .card-diary h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .card-diary p {
+      font-size: 0.82rem;
+      opacity: .75;
+      line-height: 1.5;
+    }
+
+    .card-diary .arrow {
+      align-self: flex-end;
+      font-size: 1.5rem;
+      margin-top: 20px;
+      opacity: .85;
+    }
+
+    /* ── Card: Diary View / Tutorial (dark slate) ── */
+    .card-tutorial {
+      background: #1e293b;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .card-tutorial h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .card-tutorial p {
+      font-size: 0.88rem;
+      opacity: .75;
+      line-height: 1.5;
+    }
+
+    .tag {
+      margin-top: 20px;
+      align-self: flex-start;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, .12);
+      border-radius: 999px;
+    }
+
+    /* ── Card: Login CTA (teal mid) ── */
+    .card-login {
+      background: var(--teal-mid);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .card-login:hover {
+      background: #0d9488;
+    }
+
+    .card-login h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .card-login p {
+      font-size: 0.88rem;
+      opacity: .75;
+      line-height: 1.5;
+    }
+
+    .card-login .arrow {
+      align-self: flex-end;
+      font-size: 1.5rem;
+      margin-top: 20px;
+      opacity: .85;
+    }
+
+    /* ── State Labels & Divider ── */
+    .state-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+
+    .state-on {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .state-off {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .state-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 40px 0 32px;
+    }
+
+    /* ── Device Frame Wrappers ── */
+    .device-section {
+      margin-bottom: 40px;
+    }
+
+    .device-label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 16px;
+    }
+
+    /* ── PC Frame ── */
+    .pc-frame {
+      display: flex;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      min-height: 520px;
+    }
+
+    .mock-sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 12px;
+    }
+
+    .mock-sidebar-logo {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--green-primary);
+      padding: 8px 8px 24px;
+      cursor: pointer;
+    }
+
+    .mock-sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .mock-nav-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    .mock-nav-item.active {
+      background: #f0fdf4;
+      color: var(--green-primary);
+      font-weight: 600;
+    }
+
+    .mock-sidebar-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .mock-sidebar-auth {
+      width: 100%;
+      padding: 9px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    .mock-sidebar-auth.login-btn {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .mock-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--green-bg);
+      overflow: hidden;
+    }
+
+    .mock-top-utility {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+
+    .mock-rtc-compact {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .rtc-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .rtc-time {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #111;
+      line-height: 1.2;
+    }
+
+    .rtc-remain {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--green-primary);
+      margin-top: 4px;
+    }
+
+    .rtc-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .mock-content {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    /* no-goal top bar */
+    .mock-rtc-no-goal {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .mock-rtc-no-goal p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Mobile Frame ── */
+    .mobile-frame {
+      width: 390px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .mock-mobile-header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mock-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .mock-header-logo {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--green-primary);
+    }
+
+    .mock-header-auth {
+      padding: 7px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .mock-header-bottom {
+      padding: 12px 20px 16px;
+      background: #f9fafb;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .mock-rtc-no-goal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mock-rtc-no-goal-header p {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
+
+    .mock-mobile-content {
+      padding: 20px;
+      background: var(--green-bg);
+    }
+
+    /* Two mobile frames side by side */
+    .mobile-frames-row {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .mobile-frame-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Mobile single-column bento */
+    .bento-mobile {
+      grid-template-columns: 1fr;
+    }
+
+    .bento-mobile .card {
+      grid-column: 1 !important;
+      grid-row: auto !important;
+    }
+
+    /* CSS-only list collapse (••• toggle) */
+    .list-collapse {
+      margin-top: 12px;
+    }
+
+    .list-collapse>summary {
+      list-style: none;
+      padding: 8px 14px;
+      background: #f1f5f9;
+      color: #374151;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-block;
+      outline: none;
+    }
+
+    .list-collapse>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .list-body-wrap {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.3s ease;
+    }
+
+    .list-collapse[open] .list-body-wrap {
+      grid-template-rows: 1fr;
+    }
+
+    .list-body-inner {
+      overflow: hidden;
+    }
+
+    /* Annotation */
+    .annotation {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-top: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main>
+    <p class="section-greeting">📋 MAIN_PAGE — Bento Grid 목업 v2 (검토용)</p>
+
+    <!-- ════ 💻 PC 화면: 로그인 + goalTime 있음 ════ -->
+    <div class="device-section">
+      <div class="device-label">💻 PC 화면 — 로그인 + 약속 시간 등록됨</div>
+      <div class="pc-frame">
+
+        <!-- Sidebar.tsx -->
+        <aside class="mock-sidebar">
+          <div class="mock-sidebar-logo">SDUI<br>Project</div>
+          <nav class="mock-sidebar-nav">
+            <div class="mock-nav-item active">홈</div>
+            <div class="mock-nav-item">약속 관리</div>
+          </nav>
+          <div class="mock-sidebar-footer">
+            <button class="mock-sidebar-auth">로그아웃</button>
+          </div>
+        </aside>
+
+        <div class="mock-main">
+          <!-- pc-top-utility: RecordTimeComponent (goalTime 있을 때, compact) -->
+          <div class="mock-top-utility">
+            <div class="mock-rtc-compact">
+              <div>
+                <div class="rtc-label">목표 시간 03월 05일 수요일</div>
+                <div class="rtc-time">오전 9시 00분</div>
+                <div class="rtc-remain">3시간 25분 남음</div>
+              </div>
+              <div class="rtc-actions">
+                <button class="btn-arrival" style="padding:7px 16px;font-size:0.82rem">완료하기</button>
+                <button class="btn-add-time" style="padding:7px 12px;font-size:0.82rem">+ 시간 추가</button>
+                <button class="btn-more" style="padding:7px 12px;font-size:0.82rem">•••</button>
+              </div>
+            </div>
+            <ul class="goal-list-mini" style="margin-top:12px">
+              <li>🗓️ <span class="gl-date">03월 05일 수요일</span><span class="gl-time">오전 9시 00분</span></li>
+              <li>🗓️ <span class="gl-date">03월 06일 목요일</span><span class="gl-time">오전 10시 00분</span></li>
+              <li>🗓️ <span class="gl-date">03월 07일 금요일</span><span class="gl-time">오후 2시 00분</span></li>
+            </ul>
+          </div>
+
+          <!-- page-view-container: MAIN_PAGE bento grid -->
+          <div class="mock-content">
+            <div class="bento-grid">
+
+              <!-- Card 1: 약속 위젯 (col 1-2) — 모바일과 동일 -->
+              <div class="card card-appointment" style="grid-column:1/3;grid-row:1/2">
+                <div class="badge">📅 오늘의 약속</div>
+                <div class="clock-header">목표 시간 03월 05일 수요일</div>
+                <div class="clock-time">오전 9시 00분</div>
+                <div class="clock-remain">3시간 25분 남음</div>
+                <div class="clock-row">
+                  <button class="btn-arrival">완료하기</button>
+                  <button class="btn-add-time">+ 시간 추가</button>
+                </div>
+                <details class="list-collapse">
+                  <summary>•••</summary>
+                  <div class="list-body-wrap">
+                    <div class="list-body-inner">
+                      <ul class="goal-list-mini" style="margin-top:8px">
+                        <li>🗓️ <span class="gl-date">03월 05일 수요일</span><span class="gl-time">오전 9시 00분</span></li>
+                        <li>🗓️ <span class="gl-date">03월 06일 목요일</span><span class="gl-time">오전 10시 00분</span></li>
+                        <li>🗓️ <span class="gl-date">03월 07일 금요일</span><span class="gl-time">오후 2시 00분</span></li>
+                      </ul>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- Card 2: 콘텐츠 쓰러가기 (col 3) -->
+              <div class="card card-diary" style="grid-column:3/4;grid-row:1/2">
+                <div>
+                  <div class="diary-icon">📔</div>
+                  <h3>콘텐츠 쓰러가기</h3>
+                  <p>오늘 하루를<br>기록해보세요.</p>
+                </div>
+                <div class="arrow">→</div>
+              </div>
+
+              <!-- Card 3: 콘텐츠 보기 (col 1-3, full width) -->
+              <div class="card card-tutorial" style="grid-column:1/4;grid-row:2/3">
+                <div>
+                  <h3>콘텐츠 보기</h3>
+                  <p>나의 지난 기록들을 확인해보세요.</p>
+                </div>
+                <div class="tag">📖 콘텐츠</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="state-divider"></div>
+
+    <!-- ════ 💻 PC 화면: 비로그인 ════ -->
+    <div class="device-section">
+      <div class="device-label">💻 PC 화면 — 비로그인 (goalTime 없음)</div>
+      <div class="pc-frame">
+
+        <!-- Sidebar.tsx -->
+        <aside class="mock-sidebar">
+          <div class="mock-sidebar-logo">SDUI<br>Project</div>
+          <nav class="mock-sidebar-nav">
+            <div class="mock-nav-item active">홈</div>
+            <div class="mock-nav-item">약속 관리</div>
+          </nav>
+          <div class="mock-sidebar-footer">
+            <button class="mock-sidebar-auth login-btn">로그인</button>
+          </div>
+        </aside>
+
+        <div class="mock-main">
+          <!-- pc-top-utility: RecordTimeComponent (no-goal) -->
+          <div class="mock-top-utility">
+            <div class="mock-rtc-no-goal">
+              <p>오늘의 약속 시간은 언제인가요?</p>
+              <button class="btn-setup-time">시간 설정하기</button>
+            </div>
+          </div>
+
+          <!-- page-view-container -->
+          <div class="mock-content">
+            <div class="bento-grid">
+
+              <!-- Card 1: 시간 설정하기 (col 1-2) -->
+              <div class="card card-no-goal" style="grid-column:1/3;grid-row:1/2">
+                <div class="no-goal-emoji">⏰</div>
+                <p>오늘의 약속 시간은<br>언제인가요?</p>
+                <button class="btn-setup-time">시간 설정하기</button>
+              </div>
+
+              <!-- Card 2: 로그인 하러가기 (col 3) -->
+              <div class="card card-login" style="grid-column:3/4;grid-row:1/2">
+                <div>
+                  <h3>로그인 하러가기</h3>
+                  <p>계정이 있으신가요?<br>지금 바로 시작하세요.</p>
+                </div>
+                <div class="arrow">→</div>
+              </div>
+
+              <!-- Card 3: 튜토리얼 보기 (col 1-3, full width) -->
+              <div class="card card-tutorial" style="grid-column:1/4;grid-row:2/3">
+                <div>
+                  <h3>튜토리얼 보기</h3>
+                  <p>SDUI 엔진 구조와 사용 방법을 알아보세요.</p>
+                </div>
+                <div class="tag">📖 SDUI 소개</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="state-divider"></div>
+
+    <!-- ════ 📱 모바일 화면 ════ -->
+    <div class="device-section">
+      <div class="device-label">📱 모바일 화면</div>
+      <div class="mobile-frames-row">
+
+        <!-- 비로그인 -->
+        <div class="mobile-frame-col">
+          <div class="state-label state-off">🔒 비로그인</div>
+          <div class="mobile-frame">
+            <div class="mock-mobile-header">
+              <div class="mock-header-top">
+                <div class="mock-header-logo">SDUI Project</div>
+                <button class="mock-header-auth">로그인</button>
+              </div>
+              <div class="mock-header-bottom">
+                <div class="mock-rtc-no-goal-header">
+                  <p>오늘의 약속 시간은 언제인가요?</p>
+                  <button class="btn-setup-time" style="padding:7px 12px;font-size:0.78rem;white-space:nowrap">시간
+                    설정하기</button>
+                </div>
+              </div>
+            </div>
+            <div class="mock-mobile-content">
+              <div class="bento-grid bento-mobile">
+                <div class="card card-no-goal" style="grid-column:1;grid-row:auto">
+                  <div class="no-goal-emoji">⏰</div>
+                  <p>오늘의 약속 시간은<br>언제인가요?</p>
+                  <button class="btn-setup-time">시간 설정하기</button>
+                </div>
+                <div class="card card-login" style="grid-column:1;grid-row:auto">
+                  <div>
+                    <h3>로그인 하러가기</h3>
+                    <p>계정이 있으신가요?<br>지금 바로 시작하세요.</p>
+                  </div>
+                  <div class="arrow">→</div>
+                </div>
+                <div class="card card-tutorial" style="grid-column:1;grid-row:auto">
+                  <div>
+                    <h3>튜토리얼 보기</h3>
+                    <p>SDUI 엔진 구조와<br>사용 방법을 알아보세요.</p>
+                  </div>
+                  <div class="tag">📖 SDUI 소개</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 로그인 + goalTime 있음 -->
+        <div class="mobile-frame-col">
+          <div class="state-label state-on">✅ 로그인 + goalTime 있음</div>
+          <div class="mobile-frame">
+            <div class="mock-mobile-header">
+              <div class="mock-header-top">
+                <div class="mock-header-logo">SDUI Project</div>
+                <button class="mock-header-auth">로그아웃</button>
+              </div>
+              <div class="mock-header-bottom">
+                <div style="font-size:0.7rem;color:#6b7280;margin-bottom:2px">목표: 03월 05일 수요일</div>
+                <div style="font-size:1rem;font-weight:800;color:#111">오전 9시 00분</div>
+                <div style="font-size:0.78rem;font-weight:600;color:#16a34a">3시간 25분 남음</div>
+              </div>
+            </div>
+            <div class="mock-mobile-content">
+              <div class="bento-grid bento-mobile">
+                <!-- Card 1: 약속 위젯 (••• = CSS-only list toggle) -->
+                <div class="card card-appointment" style="grid-column:1;grid-row:auto">
+                  <div class="badge">📅 오늘의 약속</div>
+                  <div class="clock-header">목표 시간 03월 05일 수요일</div>
+                  <div class="clock-time">오전 9시 00분</div>
+                  <div class="clock-remain">3시간 25분 남음</div>
+                  <div class="clock-row">
+                    <button class="btn-arrival">완료하기</button>
+                    <button class="btn-add-time">+ 시간 추가</button>
+                  </div>
+                  <details class="list-collapse">
+                    <summary>•••</summary>
+                    <div class="list-body-wrap">
+                      <div class="list-body-inner">
+                        <ul class="goal-list-mini" style="margin-top:8px">
+                          <li>🗓️ <span class="gl-date">03월 05일 수요일</span><span class="gl-time">오전 9시 00분</span></li>
+                          <li>🗓️ <span class="gl-date">03월 06일 목요일</span><span class="gl-time">오전 10시 00분</span></li>
+                          <li>🗓️ <span class="gl-date">03월 07일 금요일</span><span class="gl-time">오후 2시 00분</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <!-- Card 2: 콘텐츠 쓰러가기 -->
+                <div class="card card-diary" style="grid-column:1;grid-row:auto">
+                  <div>
+                    <div class="diary-icon">📔</div>
+                    <h3>콘텐츠 쓰러가기</h3>
+                    <p>오늘 하루를 기록해보세요.</p>
+                  </div>
+                  <div class="arrow">→</div>
+                </div>
+                <!-- Card 3: 콘텐츠 보기 -->
+                <div class="card card-tutorial" style="grid-column:1;grid-row:auto">
+                  <div>
+                    <h3>콘텐츠 보기</h3>
+                    <p>나의 지난 기록들을<br>확인해보세요.</p>
+                  </div>
+                  <div class="tag">📖 콘텐츠</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 검토 노트 -->
+    <div class="annotation" style="margin-top:32px">
+      🔍 <strong>검토 포인트 v2</strong><br>
+      PC 로그인: Sidebar + pc-top-utility(RecordTimeComponent) + bento 3카드 (약속위젯 col1-2 · 콘텐츠쓰러가기 col3 · 콘텐츠보기 full)<br>
+      PC 비로그인: Sidebar(로그인버튼) + pc-top-utility(no-goal) + bento 3카드 (시간설정하기 col1-2 · 로그인 col3 · 튜토리얼 full)<br>
+      모바일 비로그인: Header(no-goal) + 3 cards (시간설정하기 · 로그인 · 튜토리얼)<br>
+      모바일 로그인: Header(goalTime 컴팩트) + 3 cards (약속위젯 · 콘텐츠쓰러가기 · 콘텐츠보기) — ••• = CSS-only list toggle<br>
+      서버 미수정: goalTime, goalList, remainTimeText만 사용
+    </div>
+
+  </main>
+</body>
+
+</html>

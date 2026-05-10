@@ -1,0 +1,52 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # deploy.yml의 SPRING_DATASOURCE_* 환경변수가 자동으로 적용되므로 제거합니다.
+  data:
+    redis:
+      host: sdui-redis
+      port: 6379
+  mail:
+    password: ${MAIL_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    out-of-order: false
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+
+app:
+  url:
+    web: ${WEB_URL:https://sdui-delta.vercel.app}
+    mobile: ${MOBILE_URL:https://sdui-delta.vercel.app}
+
+kakao:
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+
+fastapi:
+  url: ${FASTAPI_URL:http://sdui-fastapi:8001}
+  internal-api-key: ${FASTAPI_INTERNAL_API_KEY:sdui-internal-dev-key}
+
+cloud:
+  aws:
+    s3:
+      bucket: ${AWS_S3_BUCKET:sdui-273354627025-ap-northeast-2-an}
+      region: ${AWS_REGION:ap-northeast-2}
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+  gcp:
+    document-ai:
+      project-id: ${GCP_PROJECT_ID:kdeliver}
+      location: us
+      processor-id: ${GCP_PROCESSOR_ID:6ed87cfefab39a91}
+      credentials-path: ${GCP_CREDENTIALS_PATH:/app/gcp-credentials.json}

@@ -1,0 +1,19 @@
+/* 공통 리셋 및 애니메이션 */
+*, *::before, *::after { box-sizing: border-box; }
+@keyframes pulse-animation { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+/* SDUI 엔진 기본형 */
+.engine-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 모바일 전용 (1024px 미만) */
+.is-mobile .engine-container {
+    max-width: 450px; /* 기존 common.css와 components.css 중복 통합 */
+}
+

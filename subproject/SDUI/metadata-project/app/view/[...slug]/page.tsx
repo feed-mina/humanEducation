@@ -1,0 +1,137 @@
+// app/view/[screenId]/page.tsx
+'use client'; // 상태 관리와 이벤트를 위해 클라이언트 컴포넌트로 설정합니다.
+
+import React, {use, useEffect, useMemo, useState} from "react";
+import DynamicEngine from "@/components/DynamicEngine";
+import Pagination from "@/components/fields/Pagination";
+import FilterToggle from "@/components/utils/FilterToggle";
+import {usePageMetadata} from "@/components/DynamicEngine/hook/usePageMetadata";
+// import {usePageActions} from "@/components/DynamicEngine/hook/usePageActions";
+import Skeleton from "@/components/utils/Skeleton";
+import { useAuth } from "@/context/AuthContext";
+import {useRouter, useSearchParams} from "next/navigation";
+import {componentMap} from "@/components/constants/componentMap";
+import {usePageHook} from "@/components/DynamicEngine/hook/usePageHook";
+import {useMetadata} from "@/components/providers/MetadataProvider";
+import axios from "@/services/axios";
+
+
+
+//  보호가 필요한 스크린 ID 목록 정의
+const PROTECTED_SCREENS = ["MY_PAGE", "CONTENT_LIST", "CONTENT_WRITE", "CONTENT_DETAIL", "CONTENT_MODIFY", "USER_LIST", "AI_ENGLISH_CHAT_PAGE", "AI_KOREAN_CHAT_PAGE"];
+
+
+// CommonPage 역할 : 전체 화면의 구성, 메타데이터와 데이터를 가져와 엔진에 전달
+export default function CommonPage({params: paramsPromise}: { params: Promise<{ slug: string[] }> }) {
+
+    // 이제 params를 직접 파싱하지 않고 컨텍스트에서 꺼내 쓴다
+    const { screenId, refId } = useMetadata();
+
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    // 인증 상태 가져오기
+    const { isLoggedIn, isLoading } = useAuth();
+    // * 상태 선언(useState)를 훅 호출보다 위로 올림
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isOnlyMine, setIsOnlyMine] = useState(false);
+    //   메타데이터 훅 호출 (가공된 metadata를 가져옴)
+    const {metadata, pageData, totalCount, loading: dataLoading} = usePageMetadata(
+        screenId, // MetadataProvider 에서 가져온 screenId
+        currentPage,
+        isOnlyMine,
+        refId
+    );
+    const {formData, setFormData, handleChange, handleAction, showPassword, pwType, activeModal, closeModal} = usePageHook(screenId, metadata, pageData);
+
+    // 구글 캘린더 OAuth 콜백 처리
+    useEffect(() => {
+        if (screenId !== "GOOGLE_CALLBACK") return;
+        const code = searchParams.get("code");
+        const state = searchParams.get("state");
+        if (!code || !state) {
+            router.replace("/view/SET_TIME_PAGE");
+            return;
+        }
+        axios.get(`/api/google/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`)
+            .then(() => {
+                alert("구글 캘린더가 연결되었습니다.");
+                router.replace("/view/SET_TIME_PAGE");
+            })
+            .catch(() => {
+                alert("구글 캘린더 연결에 실패했습니다. 다시 시도해주세요.");
+                router.replace("/view/SET_TIME_PAGE");
+            });
+    }, [screenId, searchParams, router]);
+
+    //   접근 권한 체크 로직 (로그인 여부 확인)
+    useEffect(() => {
+        // 로딩 중이 아닐 때만 판단
+        if (!isLoading) {
+            const isProtected = PROTECTED_SCREENS.includes(screenId);
+            if (isProtected && !isLoggedIn) {
+                // 권한이 없으면 로그인 페이지로 이동
+                router.replace("/view/LOGIN_PAGE");
+            }
+        }
+    }, [isLoading, isLoggedIn, screenId, router]);
+
+
+    // @@@@ 2026-02-07 추가 서버 데이터(pageData)와 사용자 입력 데이터(formData)를 합친다. 사용자 입력값이 있을 경우 formData를 우선하고 없으면 초기값을 쓴다
+
+    const combineData = useMemo(() => ({
+        ...pageData,
+        ...formData
+    }), [pageData, formData]);
+
+    const handleToggleMine = () => {
+        setIsOnlyMine(prev => !prev);
+        setCurrentPage(1);
+    };
+
+
+
+    // 구글 콜백 처리 중 로딩 표시
+    if (screenId === "GOOGLE_CALLBACK") {
+        return <Skeleton/>;
+    }
+
+    // @@@@ 2026-02-04 스켈레톤 UI로 바꿈
+    if (isLoading || (PROTECTED_SCREENS.includes(screenId) && !isLoggedIn) ) {
+        return <Skeleton/>
+    }
+
+    return (
+        <div className={`page-wrap ${screenId}`}>
+            {/* 리스트 페이지용 컴포넌트 */}
+            {screenId === "CONTENT_LIST" && (
+                <FilterToggle isOnlyMine={isOnlyMine} onToggle={handleToggleMine}/>
+            )}
+            <DynamicEngine
+                screenId={screenId}
+                metadata={metadata}
+                pageData={combineData}
+                formData={formData}
+                setFormData={setFormData}
+                onChange={handleChange}
+                onAction={handleAction}
+                pwType={pwType}
+                showPassword={showPassword}
+                activeModal={activeModal}
+                closeModal={closeModal}
+            />
+
+            {/* 리스트 페이지용 페이징 */}
+            {screenId === "CONTENT_LIST" && (
+                <Pagination
+                    totalCount={totalCount}
+                    pageSize={5}
+                    currentPage={currentPage}
+                    onPageChange={(page) => {
+                        setCurrentPage(page);
+                        // console.log(`[페이지 변경] 현재 페이지: ${currentPage}, 변경된 페이지: ${page}`);
+                    }}
+                />
+            )}
+        </div>
+    );
+}

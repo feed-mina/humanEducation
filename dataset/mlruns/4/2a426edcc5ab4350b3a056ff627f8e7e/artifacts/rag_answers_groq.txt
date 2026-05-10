@@ -1,0 +1,14 @@
+실험 일시: 2026-04-29 18:09:36
+LLM: openai/gpt-oss-120b (Groq API)  |  Embed: intfloat/multilingual-e5-small  |  top_k: 3
+============================================================
+
+[KO] Q: K-Pop 팬인데 서울에서 꼭 가야 할 곳 알려줘
+A: K‑Pop 팬이라면 먼저 **BTS 방탄소년단 벽화거리**를 방문해 보세요. 이태원에 위치한 거리에는 방탄소년단을 테마로 한 대형 벽화와 포토존이 가득해 팬이라면 놓치기 아쉽습니다. 다음으로 **홍대 클럽거리**에 들러 다양한 클럽에서 열리는 K‑Pop 댄스 파티나 라이브 공연을 즐겨보세요. 마지막으로 시간이 남는다면 **국립중앙박물관**을 잠깐 들러 한국 문화와 역사를 체험하는 것도 좋은 추억이 될 거예요. 즐거운 서울 여행 되세요!
+
+
+[EN] Q: I'm a BTS fan. Where should I visit in Seoul?
+A: If you love BTS, a must‑visit spot in Seoul is the **BTS “Bangtan Sonyeondan” Mural Street** in Itaewon, Yongsan‑gu. This colorful alley is filled with murals and art tributes dedicated to the group, offering great photo opportunities and a fun atmosphere for fans. While you’re in the area, you can also explore the lively Itaewon neighborhood for cafés and shops. Enjoy soaking up the BTS spirit!
+
+
+[JA] Q: 韓国の伝統文化を感じられる場所に行きたいです
+A: 韓国の伝統文化を体感したいなら、まずは「전주 한옥마을」（全州韓屋村）へ行くことをおすすめします。ここは伝統的な韓屋が立ち並び、韓国の古き良き暮らしや工芸品、食文化を間近で感じられるスポットです。さらに、ソウルにある「국립중앙박물관」でも、古代から近代までの貴重な文化財や展示を見ることで、韓国の歴史と伝統を深く学ぶことができます。ぜひ両方を訪れて、幅広い伝統体験を楽しんでください。

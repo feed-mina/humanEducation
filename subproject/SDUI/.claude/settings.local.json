@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export:*)",
+      "Bash(npx jest:*)",
+      "Bash(ls -la \"C:\\\\Users\\\\Samsung\\\\Documents\\\\Development\\\\Personal_Projects\\\\2026\\\\SDUI\\\\.ai\"\" | grep -E \"^d \")",
+      "Bash(dir \"C:\\\\Users\\\\Samsung\\\\Documents\\\\Development\\\\Personal_Projects\\\\2026\\\\SDUI\\\\.ai\" /B /AD)",
+      "Bash(cmd /c:*)",
+      "Bash(bash gradlew:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(python:*)",
+      "Bash(where:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(node:*)"
+    ]
+  },
+  "outputStyle": "default"
+}

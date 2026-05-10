@@ -1,0 +1,51 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret-key: dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tdGVzdGluZw==
+  issuer: test-issuer
+
+openai:
+  api-key: test-api-key
+  model: gpt-4o-mini
+  whisper-model: whisper-1
+
+app:
+  url:
+    web: http://localhost:3000
+    mobile: http://localhost:3000
+
+fastapi:
+  internal-api-key: test-internal-key
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    s3:
+      region: ap-northeast-2
+      bucket: test-bucket
+  gcp:
+    document-ai:
+      project-id: test-project-id
+      location: us
+      processor-id: test-processor-id
+      credentials-path: /tmp/test-credentials.json

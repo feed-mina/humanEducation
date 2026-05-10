@@ -1,0 +1,86 @@
+
+
+/*MAIN_PAGE 메인페이지 */
+.page-wrap.MAIN_PAGE {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.diaryImg {
+    border-radius: 3rem;
+    margin-bottom: 70px;
+}
+
+.diary-nav1, .diary-nav2 {
+    display: block;
+    width: 100%;
+    max-width: 300px; /* PC에서도 너무 퍼지지 않게 제한 */
+    margin: 12px auto; /* 버튼 간의 간격과 중앙 정렬 */
+    padding: 18px 32px; /* 넉넉한 클릭 영역 확보 */
+    font-size: 1.1rem;
+    font-weight: 700; /* 글자를 두껍게 해서 가독성 향상 */
+    color: #ffffff;
+    text-align: center;
+    border: none;
+    border-radius: 15px; /* 부드러운 곡선 적용 */
+    background: linear-gradient(145deg, #89e73e, #73c234); /* 기존 색상 유지하며 입체감 부여 */
+    box-shadow: 0 4px 15px rgba(115, 194, 52, 0.3); /* 그림자로 버튼을 띄움 */
+    cursor: pointer;
+    transition: all 0.3s ease; /* 애니메이션을 부드럽게 */
+}
+
+/* 마우스를 올렸을 때 (Hover) */
+.diary-nav1:hover {
+    transform: translateY(-3px); /* 위로 살짝 떠오르는 효과 */
+    box-shadow: 0 8px 25px rgba(115, 194, 52, 0.4); /* 그림자가 더 깊어짐 */
+    filter: brightness(1.05); /* 살짝 밝아짐 */
+}
+
+/* 클릭했을 때 (Active) */
+.diary-nav1:active {
+    transform: translateY(0); /* 원래 위치로 내려옴 */
+    box-shadow: 0 2px 10px rgba(115, 194, 52, 0.2); /* 그림자가 얕아짐 */
+}
+
+
+/* 가로 정렬을 위한 로우 스타일 */
+.active-display-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    border: 5px solid red; /* 약속이 생겨도 일관된 테두리 유지 가능 */
+}
+
+
+.diary-btn-primary {
+    width: 250px;
+    height: 50px;
+    background-color: #007B65;
+    color: white;
+    border-radius: 25px;
+    margin-bottom: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.MAIN_SECTION {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.diary-btn-secondary {
+    width: 250px;
+    height: 50px;
+    background-color: #FFFFFF;
+    color: #007B65;
+    border-radius: 25px;
+    margin-bottom: 10px;
+    border: 2px solid #007B65;
+    cursor: pointer;
+}

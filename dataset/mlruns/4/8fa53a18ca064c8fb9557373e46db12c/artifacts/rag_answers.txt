@@ -1,0 +1,14 @@
+실험 일시: 2026-04-29 17:28:19
+LLM: qwen2.5:3b  |  Embed: intfloat/multilingual-e5-small  |  top_k: 3
+============================================================
+
+[KO] Q: K-Pop 팬인데 서울에서 꼭 가야 할 곳 알려줘
+A: 서울에서 K-Pop 팬들이 꼭 가야 할 곳은 BTS 방탄소년단 벽화거리와 홍대 클럽거리입니다. 이 두 곳은 모두 K-문화의 중심지로 손색 없이 방문하는 것이 좋습니다. 국립중앙박물관도 문화를 즐기는 데 있어 훌륭한 선택입니다.
+
+
+[EN] Q: I'm a BTS fan. Where should I visit in Seoul?
+A: For a BTS fan visiting Seoul, you should definitely check out the BTS壁画거리 (BTS Wall Street) in downtown Seoul, specifically in the neighborhood of Yeouiwon (Yeouido). This is an art mural area featuring various designs inspired by popular culture icons and often frequented by fans. Additionally, you can visit the National Central Museum for a cultural experience nearby.
+
+
+[JA] Q: 韓国の伝統文化を感じられる場所に行きたいです
+A: 国立中央박물관（서울）은 한국의 오랜 문화와 역사에 대한 깊이 있는 이해를 돕는 뛰어난 장소입니다. 방문하면 다양한 전시물을 통해 한국의 유물과 문화유산을 체험하실 수 있습니다.

@@ -1,0 +1,53 @@
+
+/* 화면 전체를 덮고 중앙 정렬을 하기 위한 컨테이너 */
+.loading-container {
+    display: flex;
+    flex-direction: column; /* 세로 배치 (스피너 위, 텍스트 아래) */
+    justify-content: center; /* 세로 중앙 정렬 */
+    align-items: center; /* 가로 중앙 정렬 */
+    height: 100vh; /* 화면 전체 높이 사용 */
+    background-color: #f9f9f9; /* 너무 쨍한 흰색보다는 부드러운 배경 추천 */
+    z-index: 9999; /* 다른 요소보다 위에 뜨도록 설정 */
+}
+
+/* 빙글빙글 도는 원형 스피너 */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e0e0e0; /* 회색 테두리 (배경) */
+    border-top: 4px solid #3b82f6; /* 파란색 테두리 (포인트 컬러 - 프로젝트 테마색으로 변경 가능) */
+    border-radius: 50%; /* 원형 만들기 */
+    animation: spin 1s linear infinite; /* 1초마다 무한 회전 */
+    margin-bottom: 16px; /* 텍스트와 간격 벌리기 */
+}
+
+/* 텍스트 스타일링 */
+.loading-text {
+    font-size: 16px;
+    color: #555555; /* 너무 검은색(000)은 눈이 아픔 */
+    font-weight: 500;
+    animation: pulse 1.5s ease-in-out infinite; /* 부드럽게 깜빡이는 효과 */
+}
+
+/* 회전 애니메이션 정의 */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 깜빡임 애니메이션 정의 */
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.6;
+    }
+}

@@ -1,0 +1,23 @@
+/* SkeletonLoader.css */
+.skeleton-wrapper {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    grid-template-columns: repeat(1, 1fr); /* 모바일: 1열 */
+}
+
+@media (min-width: 768px) {
+    .skeleton-wrapper {
+        grid-template-columns: repeat(2, 1fr); /* 태블릿/데스크톱: 2열 */
+    }
+}
+
+.mobile-hidden {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .mobile-hidden {
+        display: block;
+    }
+}

@@ -1,0 +1,85 @@
+.user_email_domain {
+    width: 150px;
+    flex-shrink: 0;
+    height: 50px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+.PW_SUB_GROUP {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.pw_toggle_btn {
+    display: none;
+}
+
+.label_pw {
+    width: 100%;
+    font-weight: bold;
+    margin-bottom: 5px;
+    margin-top: 15px;
+    text-align: left;
+}
+
+.label_email {
+    width: 100%;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+
+/* 화면 너비가 480px 이하일 때만 아래 규칙을 적용한다 */
+@media (max-width: 480px) {
+    /* 1. 부모 헤더: 가로에서 세로 정렬로 변경 */
+    .group-DIARY_CARD_HEADER {
+        display: flex;
+        flex-direction: column; /* 아이템들을 위아래로 쌓음 */
+        align-items: flex-start; /* 왼쪽 정렬 */
+        gap: 5px; /* 요소 사이의 간격 조절 */
+    }
+
+    /* 2. 제목: 줄바꿈 허용 및 생략 제거 */
+    .diaryTitle {
+        white-space: normal; /* 한 줄 제한 해제 */
+        text-overflow: clip; /* '...' 제거 (필요하면 유지 가능) */
+        overflow: visible; /* 잘린 글자 보이기 */
+        word-break: break-all; /* 영문 등이 길어도 강제 줄바꿈 */
+        font-size: 16px; /* 모바일에 맞게 글자 크기 조정 */
+    }
+
+    /* 3. 작성자 및 날짜: 글자 크기를 살짝 줄여서 가독성 높이기 */
+    .diaryContent, .diaryDate {
+        font-size: 12px;
+        color: #7f8c8d;
+    }
+}
+
+
+#messageInput {
+    border: 2px solid #007B65;
+    border-radius: 5px;
+    flex: 1;
+    padding: 10px;
+}
+
+
+/* 메모 입력창 레이아웃 (부모 컴포넌트에서 정의하거나 추가) */
+.inputfield {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    padding: 0 15px;
+}
+
+.inputfield label {
+    margin-right: 15px; /* 글자와 인풋창 사이 간격 확보 */
+    white-space: nowrap;
+    font-weight: bold;
+}
+

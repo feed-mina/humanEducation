@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/SDUI_TD
+    username: postgres
+    password: "1234"
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+    openai:
+      api-key: ${OPENAI_API_KEY}
+
+fastapi:
+  url: http://localhost:8001
+  internal-api-key: sdui-internal-dev-key
+
+cloud:
+  aws:
+    s3:
+      bucket: sdui-273354627025-ap-northeast-2-an
+      region: ap-northeast-2
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:dummy-local}
+      secret-key: ${AWS_SECRET_KEY:dummy-local}
+  gcp:
+    document-ai:
+      project-id: kdeliver
+      location: us
+      processor-id: 6ed87cfefab39a91
+      credentials-path: ${GCP_CREDENTIALS_PATH:assets/kdeliver-358f601d765c.json}

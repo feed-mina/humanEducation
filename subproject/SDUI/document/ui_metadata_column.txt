@@ -1,0 +1,57 @@
+
+ubuntu@ip-172-31-13-22:~$ docker exec -it sdui-db psql -U mina -d postgres
+psql (15.16 (Debian 15.16-1.pgdg13+1))
+Type "help" for help.
+
+postgres=# \c SDUI_LAB
+You are now connected to database "SDUI_LAB" as user "mina".
+SDUI_LAB=# \dt
+                   List of relations
+ Schema |             Name             | Type  | Owner
+--------+------------------------------+-------+-------
+ public | content                      | table | mina
+ public | diary_backup                 | table | mina
+ public | flyway_schema_history        | table | mina
+ public | flyway_schema_history_backup | table | mina
+ public | goal_settings                | table | mina
+ public | query_master                 | table | mina
+ public | ui_metadata                  | table | mina
+ public | users                        | table | mina
+(8 rows)
+
+SDUI_LAB=# SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'ui_metadata';
+      column_name       |          data_type
+------------------------+-----------------------------
+ ui_id                  | bigint
+ screen_id              | character varying
+ component_id           | character varying
+ label_text             | character varying
+ component_type         | character varying
+ sort_order             | integer
+ is_required            | boolean
+ is_readonly            | boolean
+ default_value          | text
+ placeholder            | text
+ created_at             | timestamp without time zone
+ css_class              | character varying
+ inline_style           | text
+ action_type            | character varying
+ action_url             | character varying
+ data_sql_key           | character varying
+ data_api_url           | character varying
+ data_params            | character varying
+ ref_data_id            | character varying
+ group_id               | character varying
+ group_direction        | character varying
+ submit_group_id        | character varying
+ submit_group_order     | integer
+ submit_group_separator | character varying
+ parent_group_id        | character varying
+ is_visible             | character varying
+ component_props        | jsonb
+ allowed_roles          | character varying
+ label_text_overrides   | jsonb
+ css_class_overrides    | jsonb
+(30 rows)
+
+SDUI_LAB=#

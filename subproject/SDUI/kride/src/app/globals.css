@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #e5e5e5;
+  background: #141414;
+}
+
+body {
+  background: #141414;
+}
+
+/* DynamicEngine layout helpers */
+.engine-container {
+  width: 100%;
+}
+
+.flex-row-layout {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-col-layout {
+  display: flex;
+  flex-direction: column;
+}

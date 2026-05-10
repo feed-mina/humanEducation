@@ -1,0 +1,27 @@
+name: Java CI with Maven and Docker
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      # 현재 레포지토리의 코드를 로봇 컴퓨터로 가져온다.
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+      # 빌드에 필요한 자바 17 버전을 설치한다.
+
+    - name: Build Docker Image
+      run: |
+        docker build -t feed-mina/sdui-backend ./SDUI-server
+      # 작성한 Dockerfile을 바탕으로 도커 이미지를 생성한다.

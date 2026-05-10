@@ -1,0 +1,125 @@
+**내가 설정한 크론탭이 잘 들어갔는지 확인하는 방법**과  
+**자동 백업 + 압축 + S3 업로드까지** 쉽게 설명해줄게!
+
+---
+
+##  1. `crontab -e` 설정이 잘 들어갔는지 확인하는 방법
+
+터미널에서 아래 명령어 입력해봐:
+
+```bash
+crontab -l
+```
+
+📌 이 명령어는 **현재 사용자(admin 또는 ubuntu 등)의 크론탭 목록을 보여줘요!**
+
+예를 들어 이렇게 나오면 잘 된 거야:
+
+```bash
+0 2 * * * /home/ubuntu/mysql_backup.sh
+0 3 * * 0 sudo journalctl --vacuum-time=7d
+0 4 * * * top -b -n 1 > /home/ubuntu/server_status_$(date +\%Y\%m\%d).log
+```
+
+---
+
+##  2. 자동 백업 압축 + S3 업로드 스크립트 만들기
+
+이제는 진짜 멋진 기능!  
+백업 → `.sql` 만들기 → `.tar.gz`로 압축 → AWS S3에 업로드까지 자동으로! 😎
+
+---
+
+### 📦 1) 먼저 S3 CLI 설치 + 설정
+
+```bash
+sudo apt update
+sudo apt install awscli -y
+```
+
+설치 후 S3 계정 연결 (한 번만 설정하면 됨):
+
+```bash
+aws configure
+```
+
+질문 나올 때 이렇게 입력해:
+
+```
+AWS Access Key ID: [엑세스 키 입력]
+AWS Secret Access Key: [비밀 키 입력]
+Default region name: ap-northeast-2
+Default output format: json
+```
+
+💡 이 키는 [IAM 사용자 > 엑세스 키 만들기](https://console.aws.amazon.com/iam/home)에서 생성 가능해!
+
+---
+
+### 📝 2) 자동 백업 스크립트 (`mysql_backup_s3.sh`) 만들기
+
+```bash
+nano /home/ubuntu/mysql_backup_s3.sh
+```
+
+👇 아래 내용 복붙해줘:
+
+```bash
+#!/bin/bash
+
+# 1. 날짜 변수 만들기
+DATE=$(date +%F)
+DB_NAME="ai_diary_db"
+BACKUP_PATH="/home/ubuntu"
+SQL_FILE="$BACKUP_PATH/${DB_NAME}_$DATE.sql"
+TAR_FILE="$BACKUP_PATH/${DB_NAME}_$DATE.tar.gz"
+S3_BUCKET="s3://justsaying-db-backup"  # 햄의 S3 버킷 이름으로 바꿔줘!
+
+# 2. 백업하기
+mysqldump -u admin -p'[비밀번호]' $DB_NAME > $SQL_FILE
+
+# 3. 압축하기
+tar -czf $TAR_FILE $SQL_FILE
+
+# 4. S3 업로드
+aws s3 cp $TAR_FILE $S3_BUCKET/
+
+# 5. 로컬 SQL 파일 삭제 (압축만 남기기)
+rm $SQL_FILE
+```
+
+---
+
+### 🛠️ 3) 실행 권한 주기
+
+```bash
+chmod +x /home/ubuntu/mysql_backup_s3.sh
+```
+
+---
+
+### ⏰ 4) crontab에 등록하기
+
+```bash
+crontab -e
+```
+
+맨 아래에 추가:
+
+```
+0 2 * * * /home/ubuntu/mysql_backup_s3.sh
+```
+
+이제 매일 새벽 2시에 **백업 + 압축 + S3 업로드**까지 자동으로 되는 거야!
+
+---
+
+## 🧠 요약
+
+| 항목 | 설명 |
+|------|------|
+| `crontab -l` | 현재 예약 작업 목록 보기 |
+| `awscli` | S3 업로드용 명령어 툴 |
+| `mysql_backup_s3.sh` | 백업 → 압축 → S3 자동 업로드 |
+| `chmod +x` | 실행 권한 주기 |
+| `crontab -e` | 자동 실행 시간 등록 |

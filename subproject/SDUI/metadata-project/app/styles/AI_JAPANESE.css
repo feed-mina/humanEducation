@@ -1,0 +1,144 @@
+.ai-japanese-theme {
+    --v2-primary: #D1475D;     /* Dark Cherry / Japanese Red */
+    --v2-secondary: #9C1F35;   /* Deep Crimson */
+    --v2-bg-light: #FFF5F7;
+    --v2-border: #F8BBD0;
+    --v2-text-main: #3E2723;
+    --v2-text-sub: #880E4F;
+    --v2-white: #FFFFFF;
+
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+/* ── Cherry Blossom / Japanese Theme Overrides ── */
+
+/* Intro screen: sakura gradient */
+.ai-japanese-theme .ai-intro-container {
+    background: linear-gradient(160deg, #FFF0F3 0%, #FCE4EC 60%, #F8BBD0 100%);
+}
+
+.ai-japanese-theme .ai-intro-title {
+    color: var(--v2-primary);
+    letter-spacing: -0.01em;
+}
+
+/* Chat Header: cherry blossom pink accent */
+.ai-japanese-theme .ai-chat-header {
+    background: linear-gradient(135deg, #FCE4EC, #FFF5F7);
+    border-bottom: 2px solid var(--v2-border);
+}
+
+.ai-japanese-theme .ai-header-title {
+    color: var(--v2-primary);
+    font-weight: 700;
+}
+
+.ai-japanese-theme .ai-status-tag {
+    background: rgba(209, 71, 93, 0.08);
+    color: var(--v2-primary);
+}
+
+.ai-japanese-theme .ai-gauge-container {
+    background: #F8BBD0;
+}
+
+.ai-japanese-theme .ai-gauge-fill {
+    background: linear-gradient(90deg, #D1475D, #E91E63);
+}
+
+/* Recorder footer: soft pink tint */
+.ai-japanese-theme .ai-chat-footer-area {
+    background: #FFF0F3;
+    border-top: 1px solid var(--v2-border);
+}
+
+.ai-japanese-theme .ai-recorder-container {
+    background: transparent;
+}
+
+.ai-japanese-theme .ai-action-btn-finish {
+    background: var(--v2-white);
+    border-color: var(--v2-primary);
+    color: var(--v2-primary);
+}
+
+.ai-japanese-theme .ai-action-btn-finish:hover {
+    background: #FCE4EC;
+    transform: translateY(-2px);
+}
+
+.ai-japanese-theme .ai-session-end-btn {
+    border-color: var(--v2-border);
+    color: var(--v2-text-sub);
+}
+
+.ai-japanese-theme .ai-session-end-btn:hover {
+    background: #FFF0F3;
+    border-color: var(--v2-primary);
+    color: var(--v2-primary);
+}
+
+/* Mic button: cherry blossom gradient */
+.ai-japanese-theme .ai-mic-btn-circle {
+    background: linear-gradient(135deg, var(--v2-primary), #E91E63);
+    border: none;
+    box-shadow: 0 4px 15px rgba(209, 71, 93, 0.3);
+}
+
+.ai-japanese-theme .ai-mic-btn-circle:hover:not(:disabled) {
+    background: linear-gradient(135deg, #E91E63, var(--v2-primary));
+    box-shadow: 0 8px 25px rgba(209, 71, 93, 0.45);
+    border-color: transparent;
+}
+
+.ai-japanese-theme .ko-mic-circle {
+    background: #FFF;
+    border: 2px solid var(--v2-primary);
+    color: var(--v2-primary);
+}
+
+/* Message bubbles: cherry blossom styling */
+.ai-japanese-theme .assistant-bubble .ai-message-body {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--v2-border);
+    border-left: 4px solid var(--v2-primary);
+    border-radius: 2px 18px 18px 18px;
+}
+
+.ai-japanese-theme .user-bubble .ai-message-body {
+    background: linear-gradient(135deg, var(--v2-primary), #E91E63);
+    color: var(--v2-white);
+    border-radius: 18px 2px 18px 18px;
+}
+
+/* Start button: cherry red pill */
+.ai-japanese-theme .ai-start-btn {
+    background: linear-gradient(135deg, var(--v2-primary), #E91E63);
+    border-radius: 24px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(209, 71, 93, 0.3);
+}
+
+.ai-japanese-theme .ai-start-btn:hover {
+    background: linear-gradient(135deg, #E91E63, var(--v2-primary));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(209, 71, 93, 0.4);
+}
+
+/* Permission card: pink-tinted */
+.ai-japanese-theme .ai-permission-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: var(--v2-border);
+    box-shadow: 0 8px 32px rgba(209, 71, 93, 0.1);
+}
+
+/* Streaming dot: pink */
+.ai-japanese-theme .ai-dot-pulse {
+    background: var(--v2-primary);
+}
+
+/* Translation box: pink tint border */
+.ai-japanese-theme .ai-translation-box {
+    border-top-color: var(--v2-border);
+    color: var(--v2-text-sub);
+}

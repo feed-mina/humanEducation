@@ -1,0 +1,326 @@
+.ai-interview-theme {
+    --v2-primary: #1E293B;     /* Slate Navy */
+    --v2-secondary: #0F172A;   /* Deep Navy */
+    --v2-bg-light: #F1F5F9;
+    --v2-border: #CBD5E1;
+    --v2-text-main: #0F172A;
+    --v2-text-sub: #64748B;
+    --v2-white: #FFFFFF;
+
+    font-family: 'Outfit', -apple-system, sans-serif;
+}
+
+/* ── Professional Interview Overrides ── */
+
+/* Intro screen: clean corporate background */
+.ai-interview-theme .ai-intro-container {
+    background: #F1F5F9;
+}
+
+.ai-interview-theme .ai-intro-title {
+    color: var(--v2-primary);
+    letter-spacing: -0.02em;
+}
+
+/* Chat Header: dark navy stripe (signature corporate look) */
+.ai-interview-theme .ai-chat-header {
+    background: var(--v2-primary);
+    border-bottom: none;
+}
+
+.ai-interview-theme .ai-header-title {
+    color: #FFFFFF;
+    font-weight: 700;
+}
+
+.ai-interview-theme .ai-status-tag {
+    background: rgba(255, 255, 255, 0.15);
+    color: #CBD5E1;
+}
+
+.ai-interview-theme .ai-gauge-container {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.ai-interview-theme .ai-gauge-fill {
+    background: linear-gradient(90deg, #94A3B8, #CBD5E1);
+}
+
+/* Recorder footer: dark background for professional feel */
+.ai-interview-theme .ai-chat-footer-area {
+    background: var(--v2-secondary);
+    border-top: none;
+}
+
+.ai-interview-theme .ai-recorder-container {
+    background: transparent;
+}
+
+.ai-interview-theme .ai-recorder-instruction {
+    color: #94A3B8;
+}
+
+/* mode labels: dark footer(#0F172A)에서 var(--v2-primary)=#1E293B이 안 보이는 문제 수정 */
+.ai-interview-theme .ai-recorder-mode-label {
+    color: #94A3B8;
+}
+
+.ai-interview-theme .ai-action-btn-cancel {
+    background: transparent;
+    border-color: #475569;
+    color: #94A3B8;
+}
+
+.ai-interview-theme .ai-action-btn-cancel:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.ai-interview-theme .ai-action-btn-finish {
+    background: var(--v2-primary);
+    border-color: var(--v2-primary);
+    color: #FFFFFF;
+}
+
+.ai-interview-theme .ai-action-btn-finish:hover {
+    background: #334155;
+    border-color: #334155;
+}
+
+.ai-interview-theme .ai-session-end-btn {
+    background: transparent;
+    border-color: #475569;
+    color: #94A3B8;
+}
+
+.ai-interview-theme .ai-session-end-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* Mic button: rectangular for formal look */
+.ai-interview-theme .ai-mic-btn-circle {
+    background: var(--v2-primary);
+    border: 2px solid #334155;
+    box-shadow: 0 8px 25px rgba(30, 41, 59, 0.4);
+    border-radius: 16px;
+}
+
+.ai-interview-theme .ai-mic-btn-circle:hover:not(:disabled) {
+    background: #334155;
+    border-color: #475569;
+    box-shadow: 0 12px 30px rgba(30, 41, 59, 0.5);
+}
+
+/* Message bubbles: formal with left accent border */
+.ai-interview-theme .assistant-bubble .ai-message-body {
+    background: var(--v2-white);
+    border: 1px solid var(--v2-border);
+    border-left: 3px solid var(--v2-primary);
+    border-radius: 2px 16px 16px 16px;
+}
+
+.ai-interview-theme .user-bubble .ai-message-body {
+    background: var(--v2-primary);
+    color: var(--v2-white);
+    border-radius: 16px 2px 16px 16px;
+}
+
+/* Start button: navy with professional hover */
+.ai-interview-theme .ai-start-btn {
+    background: var(--v2-primary);
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.ai-interview-theme .ai-start-btn:hover {
+    background: var(--v2-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(30, 41, 59, 0.3);
+}
+
+/* Permission card: subtle border */
+.ai-interview-theme .ai-permission-card {
+    border-color: #CBD5E1;
+    box-shadow: 0 4px 20px rgba(30, 41, 59, 0.08);
+}
+
+/* Resume textarea */
+.ai-interview-theme .ai-resume-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--v2-text-main);
+    background: #F8FAFC;
+    resize: vertical;
+    margin: 12px 0;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.ai-interview-theme .ai-resume-textarea:focus {
+    outline: none;
+    border-color: var(--v2-primary);
+    background: #FFFFFF;
+}
+
+.ai-interview-theme .ai-resume-textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Streaming dot */
+.ai-interview-theme .ai-dot-pulse {
+    background: var(--v2-primary);
+}
+
+/* ── Resume Upload UI ── */
+
+/* 탭 버튼 그룹 */
+.ai-interview-theme .ai-resume-tab-group {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0 8px;
+}
+
+.ai-interview-theme .ai-resume-tab {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 8px;
+    background: #F8FAFC;
+    color: var(--v2-text-sub);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-interview-theme .ai-resume-tab:hover:not(:disabled) {
+    border-color: var(--v2-primary);
+    color: var(--v2-primary);
+}
+
+.ai-interview-theme .ai-resume-tab.active {
+    background: var(--v2-primary);
+    border-color: var(--v2-primary);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.ai-interview-theme .ai-resume-tab:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 업로드 영역 컨테이너 */
+.ai-interview-theme .ai-resume-upload-area {
+    margin: 12px 0;
+    width: 100%;
+}
+
+/* 파일 선택 버튼 */
+.ai-interview-theme .ai-resume-upload-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 24px 16px;
+    border: 2px dashed #CBD5E1;
+    border-radius: 10px;
+    background: #F8FAFC;
+    color: var(--v2-text-sub);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-interview-theme .ai-resume-upload-btn:hover:not(:disabled) {
+    border-color: var(--v2-primary);
+    background: #F1F5F9;
+    color: var(--v2-primary);
+}
+
+.ai-interview-theme .ai-resume-upload-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 업로드 아이콘 */
+.ai-interview-theme .ai-upload-icon {
+    font-size: 1.8rem;
+}
+
+/* 업로드 힌트 텍스트 */
+.ai-interview-theme .ai-upload-hint {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+/* 이미지 미리보기 래퍼 */
+.ai-interview-theme .ai-resume-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 이미지 미리보기 */
+.ai-interview-theme .ai-resume-preview-img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 8px;
+    border: 1.5px solid #CBD5E1;
+    object-fit: contain;
+}
+
+/* 파일 제거 버튼 */
+.ai-interview-theme .ai-resume-remove-btn {
+    padding: 6px 14px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--v2-text-sub);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-interview-theme .ai-resume-remove-btn:hover:not(:disabled) {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+/* PDF 선택 완료 표시 */
+.ai-interview-theme .ai-resume-pdf-selected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 10px;
+    background: #F8FAFC;
+}
+
+/* PDF 아이콘 */
+.ai-interview-theme .ai-pdf-icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+/* PDF 파일명 텍스트 */
+.ai-interview-theme .ai-pdf-name {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--v2-text-main);
+    font-weight: 500;
+}

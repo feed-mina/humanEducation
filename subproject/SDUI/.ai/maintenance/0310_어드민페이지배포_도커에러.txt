@@ -1,0 +1,179 @@
+
+Samsung@DESKTOP-KCBKJNQ MINGW64 ~/Documents/Development/Personal_Projects/2026/SDUI (lab/claude-dev)
+$ ssh -i SDUI.pem ubuntu@43.201.237.68
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.17.0-1007-aws x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Tue Mar 10 02:30:40 UTC 2026
+
+  System load:  0.08              Processes:             125
+  Usage of /:   90.7% of 6.71GB   Users logged in:       0
+  Memory usage: 27%               IPv4 address for enX0: 172.31.13.22
+  Swap usage:   5%
+
+  => / is using 90.7% of 6.71GB
+
+ * Ubuntu Pro delivers the most comprehensive open source security and
+   compliance features.
+
+   https://ubuntu.com/aws/pro
+
+Expanded Security Maintenance for Applications is not enabled.
+
+51 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+1 additional security update can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+Last login: Sat Mar  7 10:58:18 2026 from 122.34.65.149
+ubuntu@ip-172-31-13-22:~$ docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED       STATUS      PORTS                                         NAMES
+49f5a88659b9   redis:latest   "docker-entrypoint.s…"   12 days ago   Up 5 days   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp   sdui-redis
+1985643cff9b   postgres:15    "docker-entrypoint.s…"   12 days ago   Up 5 days   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp   sdui-db
+ubuntu@ip-172-31-13-22:~$ docker logs --tail 50 sdui-backend-lab
+        at org.springframework.beans.factory.support.ConstructorResolver.resolveConstructorArguments(ConstructorResolver.java:688)
+        at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:512)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1332)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1162)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:560)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:520)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:325)
+        at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:323)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:199)
+        at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365)
+        ... 90 common frames omitted
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Validate failed: Migrations have failed validation
+Migration checksum mismatch for migration version 8
+-> Applied to database : -1351586357
+-> Resolved locally    : 1343271497
+Either revert the changes to the migration, or run repair to update the schema history.
+Migration checksum mismatch for migration version 9
+-> Applied to database : 1236815683
+-> Resolved locally    : -1265464463
+Either revert the changes to the migration, or run repair to update the schema history.
+Need more flexibility with validation rules? Learn more: https://rd.gt/3AbJUZE
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1770)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:598)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:520)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:325)
+        at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:323)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:199)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:312)
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:199)
+        at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:365)
+        ... 102 common frames omitted
+Caused by: org.flywaydb.core.api.exception.FlywayValidateException: Validate failed: Migrations have failed validation
+Migration checksum mismatch for migration version 8
+-> Applied to database : -1351586357
+-> Resolved locally    : 1343271497
+Either revert the changes to the migration, or run repair to update the schema history.
+Migration checksum mismatch for migration version 9
+-> Applied to database : 1236815683
+-> Resolved locally    : -1265464463
+Either revert the changes to the migration, or run repair to update the schema history.
+Need more flexibility with validation rules? Learn more: https://rd.gt/3AbJUZE
+        at org.flywaydb.core.Flyway.lambda$migrate$0(Flyway.java:146)
+        at org.flywaydb.core.FlywayExecutor.execute(FlywayExecutor.java:196)
+        at org.flywaydb.core.Flyway.migrate(Flyway.java:140)
+        at org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer.afterPropertiesSet(FlywayMigrationInitializer.java:66)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1817)
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1766)
+        ... 111 common frames omitted
+ubuntu@ip-172-31-13-22:~$
+
+ubuntu@ip-172-31-13-22:~$ docker exec -it sdui-db psql -U mina -d SDUI_TD -c "
+UPDATE flyway_schema_history SET checksum = 1343271497 WHERE version = '8';
+UPDATE flyway_schema_history SET checksum = -1265464463 WHERE version = '9';
+"
+ERROR:  relation "flyway_schema_history" does not exist
+LINE 2: UPDATE flyway_schema_history SET checksum = 1343271497 WHERE...
+               ^
+ubuntu@ip-172-31-13-22:~$ docker exec -it sdui-db psql -U mina -d SDUI_TD -c "\dt"
+           List of relations
+ Schema |     Name      | Type  | Owner
+--------+---------------+-------+-------
+ public | diary         | table | mina
+ public | goal_settings | table | mina
+ public | query_master  | table | mina
+ public | ui_metadata   | table | mina
+ public | users         | table | mina
+(5 rows)
+
+ubuntu@ip-172-31-13-22:~$ ^C
+ubuntu@ip-172-31-13-22:~$ docker inspect sdui-backend-lab | grep -A 20 '"Env"'
+            "Env": [
+                "WEB_URL=https://sdui-delta.vercel.app",
+                "SPRING_PROFILES_ACTIVE=prod",
+                "SPRING_DATASOURCE_URL=jdbc:postgresql://sdui-db:5432/SDUI_LAB",
+                "SPRING_MAIL_PASSWORD=xbfkdgfxevqytije",
+                "JWT_SECRET_KEY=d6ac9ecc0a3aa3c395313fb236e0ec10d71ab78fb36f54ba626664eba0b842b1",
+                "KAKAO_REDIRECT_URI=https://sdui-delta.vercel.app/api/kakao/callback",
+                "SPRING_DATASOURCE_USERNAME=mina",
+                "SPRING_DATASOURCE_PASSWORD=password",
+                "SPRING_DATA_REDIS_HOST=sdui-redis",
+                "KAKAO_CLIENT_ID=2d22c7fa1d59eb77a5162a3948a0b6fe",
+                "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-17.0.18+8"
+            ],
+            "Cmd": null,
+            "Image": "yerinmin/sdui-app:lab-claude-dev",
+            "Volumes": null,
+ubuntu@ip-172-31-13-22:~$ docker exec -it sdui-db psql -U mina -c "\l"
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  database "mina" does not exist
+ubuntu@ip-172-31-13-22:~$
+
+
+
+=======================================================================================================================================================================================
+# 1. flyway_schema_history 체크섬 업데이트
+docker exec -it sdui-db psql -U mina -d SDUI_TD -c "
+UPDATE flyway_schema_history SET checksum = 1343271497 WHERE version = '8';
+UPDATE flyway_schema_history SET checksum = -1265464463 WHERE version = '9';
+"
+
+# 2. 백엔드 재시작
+docker restart sdui-backend-lab
+
+# 3. 로그 확인
+docker logs --tail 30 sdui-backend-lab
+
+
+# 1. 백엔드 컨테이너 환경변수 확인
+docker inspect sdui-backend-lab | grep -A 20 '"Env"'
+
+# 2. 모든 DB 목록 확인
+docker exec -it sdui-db psql -U mina -c "\l"
+
+
+# SDUI_LAB DB에서 체크섬 업데이트
+docker exec -it sdui-db psql -U mina -d SDUI_LAB -c "
+UPDATE flyway_schema_history SET checksum = 1343271497 WHERE version = '8';
+UPDATE flyway_schema_history SET checksum = -1265464463 WHERE version = '9';
+"
+
+
+docker restart sdui-backend-lab && docker logs -f sdui-backend-lab
+
+docker exec -it sdui-db psql -U mina -d postgres
+\l
+
+\c SDUI_LAB
+
+
+docker exec -it sdui-redis redis-cli KEYS "*LOGIN_PAGE*"
+docker exec -it sdui-redis redis-cli DEL "GUEST_LOGIN_PAGE" "USER_LOGIN_PAGE"
+docker exec -it sdui-redis redis-cli FLUSHALL
+
+
+

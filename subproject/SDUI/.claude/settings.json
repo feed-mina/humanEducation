@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://maven.google.com/com/google/cloud/google-cloud-documentai/group-index.xml\")",
+      "Bash(curl -s \"https://dl.google.com/dl/android/maven2/com/google/cloud/google-cloud-documentai/group-index.xml\")",
+      "Bash(curl -sv \"https://repo1.maven.org/maven2/com/google/cloud/google-cloud-documentai/2.7.5/google-cloud-documentai-2.7.5.pom\")",
+      "Bash(git -C \"c:/Users/Samsung/Documents/Development/Personal_Projects/2026/SDUI\" log --oneline --all)",
+      "Bash(grep -i \"GLOBAL_HEADER\" /c/Users/Samsung/Documents/Development/Personal_Projects/2026/SDUI/SDUI-server/src/main/resources/db/migration/*.sql)",
+      "Bash(grep \"''MAIN_PAGE'', ''main_bento_tutorial\" /c/Users/Samsung/Documents/Development/Personal_Projects/2026/SDUI/SDUI-server/src/main/resources/db/migration/V*.sql)",
+      "Bash(grep -B 2 -A 10 \"main_bento_tutorial_btn\" /c/Users/Samsung/Documents/Development/Personal_Projects/2026/SDUI/SDUI-server/src/main/resources/db/migration/V*.sql)",
+      "Read(//c/Users/Samsung/.claude/projects/c--Users-Samsung-Documents-Development-Personal-Projects-2026-SDUI/memory/**)",
+      "Bash(ls -la \"c:\\\\Users\\\\Samsung\\\\Documents\\\\Development\\\\Personal_Projects\\\\2026\\\\SDUI\\\\.github\\\\workflows\"\" 2>/dev/null || echo \"No .github/workflows found \")",
+      "Read(//c/Users/Samsung/**)",
+      "Bash(./gradlew test)",
+      "Bash(./gradlew test --no-build-cache)",
+      "Bash(./gradlew test --no-daemon)",
+      "Bash(./gradlew --stop)",
+      "Bash(./gradlew clean test)",
+      "Bash(tasklist)",
+      "Bash(taskkill //PID 28316 //F)",
+      "Bash(./gradlew test --tests \"com.domain.demo_backend.domain.user.service.AuthServiceTest\")",
+      "Bash(./gradlew test --tests \"com.domain.demo_backend.domain.user.service.AuthServiceTest\" -x integrationTest)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Samsung\\.claude\\projects\\c--Users-Samsung-Documents-Development-Personal-Projects-2026-SDUI\\memory"
+    ]
+  }
+}

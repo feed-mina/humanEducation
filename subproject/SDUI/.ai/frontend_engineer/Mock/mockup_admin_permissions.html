@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 - 회원 권한 관리</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f4f7f9; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eaecee; padding-bottom: 1rem; margin-bottom: 2rem; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .search-area { display: flex; gap: 0.5rem; }
+        .search-area input[type="text"] { padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; min-width: 300px; }
+        .search-area button { padding: 0.75rem 1.5rem; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        .search-area button:hover { background-color: #2980b9; }
+        .permission-control { display: flex; align-items: center; gap: 0.5rem; }
+        .permission-control select { padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        .permission-control button { padding: 0.75rem 1.5rem; background-color: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        .permission-control button:hover { background-color: #27ae60; }
+        .user-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .user-table th, .user-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #eaecee; }
+        .user-table th { background-color: #f8f9fa; font-weight: 600; }
+        .user-table tbody tr:hover { background-color: #f1f1f1; }
+        .user-table input[type="checkbox"] { width: 18px; height: 18px; }
+        .check-all { display: flex; align-items: center; justify-content: center; }
+        .empty-state { text-align: center; padding: 3rem; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>회원 권한 관리</h1>
+
+    <div class="toolbar">
+        <div class="search-area">
+            <input type="text" id="searchInput" placeholder="이름 또는 이메일로 검색...">
+            <button onclick="searchUsers()">검색</button>
+        </div>
+        <div class="permission-control">
+            <select id="permissionSelect">
+                <option value="USER">일반사용자 (USER)</option>
+                <option value="MANAGER">매니저 (MANAGER)</option>
+                <option value="ADMIN">관리자 (ADMIN)</option>
+            </select>
+            <button onclick="changePermissions()">선택된 회원 권한 변경</button>
+        </div>
+    </div>
+
+    <table class="user-table" id="userListTable">
+        <thead>
+            <tr>
+                <th style="width: 5%; text-align: center;"><input type="checkbox" id="checkAll" class="check-all" onclick="toggleAllCheckboxes(this.checked)"></th>
+                <th style="width: 15%;">회원 ID</th>
+                <th style="width: 25%;">이름</th>
+                <th style="width: 35%;">이메일</th>
+                <th style="width: 20%;">현재 권한</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 동적 데이터 예시 -->
+            <tr>
+                <td style="text-align: center;"><input type="checkbox" name="userCheckbox" value="user001"></td>
+                <td>user001</td>
+                <td>홍길동</td>
+                <td>gildong@example.com</td>
+                <td>USER</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;"><input type="checkbox" name="userCheckbox" value="user002"></td>
+                <td>user002</td>
+                <td>김철수</td>
+                <td>chulsu@example.com</td>
+                <td>USER</td>
+            </tr>
+            <tr>
+                <td style="text-align: center;"><input type="checkbox" name="userCheckbox" value="user003"></td>
+                <td>user003</td>
+                <td>박영희</td>
+                <td>younghee@example.com</td>
+                <td>MANAGER</td>
+            </tr>
+             <!-- 검색 결과가 없을 경우 -->
+             <!-- 
+                <tr>
+                    <td colspan="5" class="empty-state">검색 결과가 없습니다.</td>
+                </tr>
+              -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const MAX_SELECTION_LIMIT = 5;
+
+    // 페이지 로드 시 또는 데이터 변경 시 사용자 목록을 불러오는 함수 (시뮬레이션)
+    function loadUsers() {
+        console.log("데이터를 새로고침합니다. (실제 구현 시 API 호출)");
+        // 예: fetch('/api/admin/users').then(...).then(renderTable);
+        // 지금은 페이지를 리로드하여 간단히 구현합니다.
+        location.reload();
+    }
+
+    // 체크박스 클릭 이벤트 핸들러
+    function handleCheckboxClick(checkbox) {
+        const checkedCount = document.querySelectorAll('input[name="userCheckbox"]:checked').length;
+        if (checkedCount > MAX_SELECTION_LIMIT) {
+            alert(`최대 ${MAX_SELECTION_LIMIT}명까지만 선택할 수 있습니다.`);
+            checkbox.checked = false; // 6번째 선택 해제
+        }
+    }
+
+    // 전체 선택/해제 기능
+    function toggleAllCheckboxes(checked) {
+        const checkboxes = document.querySelectorAll('input[name="userCheckbox"]');
+        if (checked && checkboxes.length > MAX_SELECTION_LIMIT) {
+            alert(`한 번에 ${MAX_SELECTION_LIMIT}명 이상 선택할 수 없습니다.`);
+            document.getElementById('checkAll').checked = false;
+            return;
+        }
+        checkboxes.forEach(cb => cb.checked = checked);
+    }
+
+    // 검색 기능 (시뮬레이션)
+    function searchUsers() {
+        const searchTerm = document.getElementById('searchInput').value;
+        alert(`'${searchTerm}'(으)로 검색을 실행합니다. (실제 구현 시 API 호출 후 목록 새로고침)`);
+        // 실제 구현: API를 호출하여 테이블 내용을 다시 렌더링합니다.
+    }
+
+    // 권한 변경 기능
+    function changePermissions() {
+        const selectedUsers = [];
+        const userCheckboxes = document.querySelectorAll('input[name="userCheckbox"]:checked');
+        
+        if (userCheckboxes.length === 0) {
+            alert("권한을 변경할 회원을 선택해주세요.");
+            return;
+        }
+
+        if (userCheckboxes.length > MAX_SELECTION_LIMIT) {
+            // 이중 확인, 보통 handleCheckboxClick에서 걸러지지만 만약을 위해 방어 코드를 추가합니다.
+            alert(`권한 변경은 최대 ${MAX_SELECTION_LIMIT}명까지 가능합니다.`);
+            return;
+        }
+
+        userCheckboxes.forEach(cb => {
+            const row = cb.closest('tr');
+            const name = row.cells[2].innerText;
+            selectedUsers.push({ id: cb.value, name: name });
+        });
+
+        const permissionSelect = document.getElementById('permissionSelect');
+        const newPermission = permissionSelect.options[permissionSelect.selectedIndex].text;
+        const newPermissionValue = permissionSelect.value;
+        
+        const userNames = selectedUsers.map(u => u.name).join(', ');
+
+        const confirmationMessage = `총 ${selectedUsers.length}명의 회원의 권한을 '${newPermission}'(으)로 변경하시겠습니까?\n\n대상: ${userNames}`;
+
+        if (confirm(confirmationMessage)) {
+            // 실제 구현: 여기서 API를 호출하여 서버에 변경 사항을 전송합니다.
+            const userIds = selectedUsers.map(u => u.id);
+            console.log("API Call: ", {
+                userIds: userIds,
+                newRole: newPermissionValue
+            });
+
+            alert("권한이 성공적으로 변경되었습니다. 목록을 새로고칩니다.");
+            
+            // 성공 후: 목록을 다시 불러와 변경된 권한을 확인합니다.
+            loadUsers();
+        } else {
+            alert("권한 변경이 취소되었습니다.");
+        }
+    }
+
+    // 모든 체크박스에 이벤트 리스너 추가
+    // 각 체크박스 HTML에 onclick="handleCheckboxClick(this)"를 추가하는 대신 아래와 같이 동적으로 이벤트를 부여합니다.
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkboxes = document.querySelectorAll('input[name="userCheckbox"]');
+        checkboxes.forEach(cb => {
+            // 기존 onclick 핸들러와 충돌을 피하기 위해, HTML에서 onclick을 제거하고 여기서 이벤트를 추가하는 것이 좋습니다.
+            // 여기서는 간단히 두 방식 모두 동작하도록 두겠습니다.
+            cb.addEventListener('click', () => handleCheckboxClick(cb));
+        });
+    });
+</script>
+
+</body>
+</html>

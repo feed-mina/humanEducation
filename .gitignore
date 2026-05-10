@@ -1,13 +1,112 @@
-kride-project/.venv/*
-kride-project/node_modules/*
-kride-project/.vscode/*
-kride-project/.idea/*
-kride-project/__pycache__/*
-kride-project/*.pyc
-kride-project/*.pyo
-kride-project/*.pyd
-kride-project/venv/*
-kride-project/.env
-kride-project/.vscode
-kride-project/.ai/*
-kride-project/.ai
+.venv/*
+node_modules/*
+.vscode/*
+.idea/*
+__pycache__/*
+*.pyc
+*.pyo
+*.pyd
+venv/*
+.env
+.vscode
+venv
+.claude
+
+# SDUI-server
+# Gradle build output
+subproject/SDUI/SDUI-server/bin/
+subproject/SDUI/SDUI-server/build/
+subproject/SDUI/SDUI-server/src/main/resources/ application-local.yml 
+subproject/SDUI/SDUI-server/docs/authcontroller_example.java
+# Build results
+subproject/SDUI/SDUI-server/target/
+
+# pronounce-api
+pronounce-api/.env
+pronounce-api/venv311
+# 구글 서비스 계정 비밀키
+subproject/SDUI/pronounce-api/*.json
+subproject/SDUI/pronounce-api/static/* 
+subproject/SDUI/pronounce-api/app/__pycache__/*
+
+# Python/FastAPI
+**/__pycache__/
+*. рус
+** /venv/
+*/.venv/
+. env
+.pytest_cache/
+. coverage
+# Python/FastAPI
+**/__pycache__/
+__pycache__/**
+*.pyc
+venv/*
+**/venv/
+*/.venv/
+.env
+.pytest_cache/
+.coverage
+ 
+#meta-project
+
+
+# 환경 설정
+.env
+.env.*
+.env*
+*.env.*
+
+# 로그
+*.log
+log.txt
+
+# IDE
+.idea/
+*.iml
+dist/*
+
+# Playwright test results
+test-results/
+trace.zip
+video.webm
+*.png
+!metadata-project/public/icons/*.png
+!metadata-project/public/screenshots/*.png
+.last-run.json
+
+# Build artifacts
+target/
+subproject/SDUI/metadata-project/node_modules/
+dist/
+gradle/
+build/
+.gradle/
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# 기타
+*.pem
+*.tmp
+*.bak
+*.zip
+*.tar.gz
+*.exe
+*.dll
+*.so
+*.key
+*.keystore
+*.bak
+*.old
+*.vscode/
+*.idea/
+# fix_content_list_key_mismatch.sql
+# fix_sdui_issues.sql
+# diagnose_content_list.sql
+subproject/SDUI/metadata-project/node_modules/
+subproject/SDUI/metadata-project/.next/
+
+

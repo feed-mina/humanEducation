@@ -1,0 +1,342 @@
+<html><head><meta charset="utf-8"/><title>메타데이터 테스트 리포트</title><style type="text/css">:root {
+  --text-primary: #111;
+  --text-secondary: #4f4f4f;
+  --success: #006633;
+  --success-bright: #80ffbf;
+  --danger: #cc071e;
+  --danger-bright: #fbdfe0;
+  --warning: #995c00;
+  --warning-bright: #ffeea8;
+  --panel: #eee;
+  --border: #949494;
+  --disabled: #6b6b6b;
+}
+
+html,
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  margin: 0;
+  padding: 0;
+  color: var(--text-primary);
+}
+body {
+  padding: 2rem 1rem;
+}
+.jesthtml-content {
+  margin: 0 auto;
+  max-width: 70rem;
+}
+header {
+  display: flex;
+  align-items: center;
+}
+#title {
+  margin: 0;
+  flex-grow: 1;
+}
+#logo {
+  height: 4rem;
+}
+#timestamp {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+#metadata-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.additional-information-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+/** SUMMARY */
+#summary {
+  color: var(--text-primary);
+  display: flex;
+  font-family: monospace;
+  font-size: 1rem;
+}
+#summary > div {
+  margin-right: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  min-width: 15rem;
+}
+#summary > div:last-child {
+  margin-right: 0;
+}
+@media only screen and (max-width: 720px) {
+  #summary {
+    flex-direction: column;
+  }
+  #summary > div {
+    margin-right: 0;
+    margin-top: 1rem;
+  }
+  #summary > div:first-child {
+    margin-top: 0;
+  }
+}
+
+.summary-total {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.summary-passed {
+  color: var(--success);
+  border-left: 0.4rem solid var(--success);
+  padding-left: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.summary-failed,
+.summary-obsolete-snapshots {
+  color: var(--danger);
+  border-left: 0.4rem solid var(--danger);
+  padding-left: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.summary-pending {
+  color: var(--warning);
+  border-left: 0.4rem solid var(--warning);
+  padding-left: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.summary-empty {
+  color: var(--disabled);
+  border-left: 0.4rem solid var(--disabled);
+  margin-bottom: 0.15rem;
+}
+
+.test-result {
+  padding: 1rem;
+  margin-bottom: 0.25rem;
+}
+.test-result:last-child {
+  border: 0;
+}
+.test-result.passed {
+  background-color: var(--success-bright);
+  color: var(--success);
+}
+.test-result.failed {
+  background-color: var(--danger-bright);
+  color: var(--danger);
+}
+.test-result.pending {
+  background-color: var(--warning-bright);
+  color: var(--warning);
+}
+
+.test-info {
+  display: flex;
+  justify-content: space-between;
+}
+.test-suitename {
+  width: 20%;
+  text-align: left;
+  font-weight: bold;
+  word-break: break-word;
+}
+.test-title {
+  width: 40%;
+  text-align: left;
+  font-style: italic;
+}
+.test-status {
+  width: 20%;
+  text-align: right;
+}
+.test-duration {
+  width: 10%;
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.failureMessages {
+  padding: 0 1rem;
+  margin-top: 1rem;
+  border-top: 1px dashed var(--danger);
+}
+.failureMessages.suiteFailure {
+  border-top: none;
+}
+.failureMsg {
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+
+.suite-container {
+  margin-bottom: 1rem;
+}
+.suite-info {
+  padding: 1rem;
+  background-color: var(--panel);
+  color: var(--text-secondary);
+  border: 0.15rem solid;
+  border-color: var(--panel);
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+.suite-info:hover {
+  border-color: var(--border);
+  cursor: pointer;
+}
+.suite-info .suite-path {
+  word-break: break-all;
+  flex-grow: 1;
+  font-family: monospace;
+  font-size: 1rem;
+}
+.suite-info .suite-time {
+  margin-left: 1rem;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.85rem;
+}
+.suite-info .suite-time.warn {
+  background-color: var(--danger);
+  color: #fff;
+}
+.suite-info:before {
+  content: "\2303";
+  display: inline-block;
+  margin-right: 1rem;
+  transform: rotate(180deg) translateY(0.15rem);
+}
+.suite-container[open] .suite-info:before {
+  transform: rotate(0deg) translateY(0.15rem);
+}
+
+/* CONSOLE LOGS */
+.suite-consolelog {
+  margin-bottom: 0.25rem;
+  padding: 1rem;
+  background-color: var(--panel);
+}
+.suite-consolelog-header {
+  font-weight: bold;
+}
+.suite-consolelog-item {
+  padding: 0.5rem;
+}
+.suite-consolelog-item pre {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+.suite-consolelog-item-origin {
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+.suite-consolelog-item-message {
+  color: var(--text-primary);
+  font-size: 1rem;
+  padding: 0 0.5rem;
+}
+
+/* OBSOLETE SNAPSHOTS */
+.suite-obsolete-snapshots {
+  margin-bottom: 0.25rem;
+  padding: 1rem;
+  background-color: var(--danger-bright);
+  color: var(--danger);
+}
+.suite-obsolete-snapshots-header {
+  font-weight: bold;
+}
+.suite-obsolete-snapshots-item {
+  padding: 0.5rem;
+}
+.suite-obsolete-snapshots-item pre {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+.suite-obsolete-snapshots-item-message {
+  color: var(--text-primary);
+  font-size: 1rem;
+  padding: 0 0.5rem;
+}
+</style></head><body><main class="jesthtml-content"><header><h1 id="title">메타데이터 테스트 리포트</h1></header><section id="metadata-container"><div id="timestamp">Started: 2026-03-18 10:19:05</div><div id="summary"><div id="suite-summary"><div class="summary-total">Suites (10)</div><div class="summary-passed ">8 passed</div><div class="summary-failed ">2 failed</div><div class="summary-pending  summary-empty">0 pending</div></div><div id="test-summary"><div class="summary-total">Tests (66)</div><div class="summary-passed ">56 passed</div><div class="summary-failed ">10 failed</div><div class="summary-pending  summary-empty">0 pending</div></div></div></section><details id="suite-1" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\hooks\useAIChatLogic.test.ts</div><div class="suite-time warn">6.6s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic Hook</div><div class="test-title">should initialize with welcome message</div><div class="test-status">passed</div><div class="test-duration">0.153s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic Hook</div><div class="test-title">should calculate userMessageCount correctly</div><div class="test-status">passed</div><div class="test-duration">0.022s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic Hook</div><div class="test-title">should trigger onGoalAchieved on 10th user message</div><div class="test-status">passed</div><div class="test-duration">0.022s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic Hook</div><div class="test-title">should start recording with correct mode</div><div class="test-status">passed</div><div class="test-duration">0.018s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic — 표현 평가 (pronunciation)</div><div class="test-title">General Mic 모드에서 STT 후 checkPronunciation을 호출해야 함</div><div class="test-status">passed</div><div class="test-duration">0.034s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic — 표현 평가 (pronunciation)</div><div class="test-title">한국어 번역 모드에서는 checkPronunciation을 호출하지 않아야 함</div><div class="test-status">passed</div><div class="test-duration">0.076s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">useAIChatLogic — 표현 평가 (pronunciation)</div><div class="test-title">checkPronunciation 실패 시 메시지는 정상 추가되어야 함 (에러 무시)</div><div class="test-status">passed</div><div class="test-duration">0.311s</div></div></div></div></details><details id="suite-2" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\components\AIInterviewComponent.test.tsx</div><div class="suite-time warn">7.076s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIInterviewComponent</div><div class="test-title">renders the intro screen with title and resume textarea</div><div class="test-status">passed</div><div class="test-duration">0.693s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIInterviewComponent</div><div class="test-title">shows Korean defaults when no data provided</div><div class="test-status">passed</div><div class="test-duration">0.085s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIInterviewComponent</div><div class="test-title">passes system_prompt_template from meta to useInterviewLogic</div><div class="test-status">passed</div><div class="test-duration">0.038s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIInterviewComponent</div><div class="test-title">shows main interview panel after starting interview</div><div class="test-status">passed</div><div class="test-duration">0.182s</div></div></div></div></details><details id="suite-3" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\components\AIJapaneseChat.test.tsx</div><div class="suite-time warn">7.289s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">AI Japanese Chat (AIChatComponentV2 with JA meta)</div><div class="test-title">renders the intro screen with Japanese welcome expectation</div><div class="test-status">passed</div><div class="test-duration">0.82s</div></div></div></div></details><details id="suite-4" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\components\TimeSelect.test.tsx</div><div class="suite-time warn">7.619s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">시간(22시)을 클릭하면 id와 함께 선택된 배열 [22]가 onChange로 전달되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.524s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">22시가 선택된 상태에서 23시를 클릭하면 [22, 23]이 전달되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.252s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">이미 선택된 22시를 다시 클릭하면 배열에서 제거되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.119s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">meta.label_text가 화면에 제목으로 올바르게 렌더링되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.052s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">startHour(6)와 endHour(10) 설정에 따라 정확히 5개의 시간 버튼이 렌더링되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.549s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">data 프롭이 null로 넘어와도 에러 없이 빈 배열로 처리되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.043s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">TimeSelect 컴포넌트 테스트 &gt; TimeSelect 컴포넌트 테스트</div><div class="test-title">meta.component_props가 없을 때 기본값(0시~24시)이 적용되어야 한다</div><div class="test-status">passed</div><div class="test-duration">0.081s</div></div></div></div></details><details id="suite-5" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\services\aiService.test.ts</div><div class="suite-time">1.413s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">aiService.checkPronunciation</div><div class="test-title">spoken과 language를 body에 담아 pronunciation 엔드포인트를 호출해야 함</div><div class="test-status">passed</div><div class="test-duration">0.028s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">aiService.checkPronunciation</div><div class="test-title">일본어 language 코드로 호출할 수 있어야 함</div><div class="test-status">passed</div><div class="test-duration">0.005s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">aiService.checkPronunciation</div><div class="test-title">응답 data가 null이면 기본값 { score: 0, feedback: "" }을 반환해야 함</div><div class="test-status">passed</div><div class="test-duration">0.008s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">aiService.checkPronunciation</div><div class="test-title">PRONUNCIATION_ENDPOINT 상수가 /api/ai/pronunciation이어야 함</div><div class="test-status">passed</div><div class="test-duration">0.002s</div></div></div></div></details><details id="suite-6" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\components\ConversationPanelV2.test.tsx</div><div class="suite-time">2.834s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 메시지 렌더링</div><div class="test-title">system 메시지는 렌더링하지 않아야 함</div><div class="test-status">passed</div><div class="test-duration">0.062s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 메시지 렌더링</div><div class="test-title">user 메시지에 턴 번호와 단어 수를 표시해야 함</div><div class="test-status">passed</div><div class="test-duration">0.038s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 메시지 렌더링</div><div class="test-title">isStreaming이 true일 때 로딩 인디케이터를 표시해야 함</div><div class="test-status">passed</div><div class="test-duration">0.015s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 메시지 렌더링</div><div class="test-title">isStreaming이 false일 때 로딩 인디케이터를 표시하지 않아야 함</div><div class="test-status">passed</div><div class="test-duration">0.014s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 표현 평가 배지 (pronunciationScore)</div><div class="test-title">pronunciationScore가 있으면 평가 배지를 렌더링해야 함</div><div class="test-status">passed</div><div class="test-duration">0.088s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 표현 평가 배지 (pronunciationScore)</div><div class="test-title">pronunciationScore가 없으면 배지를 렌더링하지 않아야 함</div><div class="test-status">passed</div><div class="test-duration">0.048s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 표현 평가 배지 (pronunciationScore)</div><div class="test-title">pronunciationIdeal이 없으면 "추천 표현" 항목을 렌더링하지 않아야 함</div><div class="test-status">passed</div><div class="test-duration">0.031s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 표현 평가 배지 (pronunciationScore)</div><div class="test-title">assistant 메시지에는 평가 배지를 렌더링하지 않아야 함</div><div class="test-status">passed</div><div class="test-duration">0.091s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 90 → score-excellent CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.09s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 85 → score-excellent CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.119s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 75 → score-good CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.033s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 65 → score-good CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.029s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 55 → score-fair CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.057s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 45 → score-fair CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.034s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 30 → score-poor CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.046s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">ConversationPanelV2 &gt; 점수 레벨 CSS 클래스</div><div class="test-title">score 0 → score-poor CSS 클래스 적용</div><div class="test-status">passed</div><div class="test-duration">0.033s</div></div></div></div></details><details id="suite-7" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\components\AIChatComponentV2.test.tsx</div><div class="suite-time">3.267s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIChatComponentV2 Component</div><div class="test-title">should render Intro screen initially</div><div class="test-status">passed</div><div class="test-duration">0.417s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIChatComponentV2 Component</div><div class="test-title">should switch to chat main screen when start button is clicked</div><div class="test-status">passed</div><div class="test-duration">0.168s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">AIChatComponentV2 Component</div><div class="test-title">should call handleEndChat when session end button is clicked</div><div class="test-status">passed</div><div class="test-duration">0.172s</div></div></div></div></details><details id="suite-8" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\api_duplicated.test.tsx</div><div class="suite-time warn">12.142s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">MAIN_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">1.138s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">LOGIN_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.331s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">SET_TIME_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.616s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">TUTORIAL_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.141s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">CONTENT_LIST 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.122s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">CONTENT_WRITE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.118s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">CONTENT_DETAIL 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.102s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">CONTENT_MODIFY 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.241s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">AI_ENGLISH_CHAT_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.326s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">AI_JAPANESE_CHAT_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.105s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">AI_KOREAN_CHAT_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.096s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename"> </div><div class="test-title">MEMBERSHIP_SHOP_PAGE 화면의 메타데이터 중복 호출 검증</div><div class="test-status">passed</div><div class="test-duration">0.113s</div></div></div></div></details><details id="suite-9" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx</div><div class="suite-time warn">15.262s</div></summary><div class="suite-tests"><div class="test-result failed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S002: 401 응답 시 refresh 후 원래 요청 재시도</div><div class="test-status">failed</div><div class="test-duration">0.625s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toEqual(expected) // deep equality
+
+Expected: {"data": []}
+Received: ""
+    at Object.toEqual (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx:38:27)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S003: refresh 실패 시 에러 처리</div><div class="test-status">failed</div><div class="test-duration">5.02s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: thrown: "Exceeded timeout of 5000 ms for a test.
+Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+    at test (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx:42:3)
+    at _dispatchDescribe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-circus\build\index.js:91:26)
+    at describe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-circus\build\index.js:55:5)
+    at Object.describe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx:8:1)
+    at Runtime._execModule (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-runtime\build\index.js:1439:24)
+    at Runtime._loadModule (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-runtime\build\index.js:1022:12)
+    at Runtime.requireModule (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-runtime\build\index.js:882:12)
+    at jestAdapter (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:77:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at runTestInternal (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-runner\build\runTest.js:444:34)
+    at Object.worker (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\node_modules\jest-runner\build\testWorker.js:106:12)</pre></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S004: localStorage에 accessToken이 저장되지 않음</div><div class="test-status">passed</div><div class="test-duration">0.01s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S005: axios 인스턴스에 withCredentials=true 설정됨</div><div class="test-status">passed</div><div class="test-duration">0.004s</div></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S006: /api/auth/me 호출 시 사용자 정보 반환</div><div class="test-status">failed</div><div class="test-duration">3.138s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toEqual(expected) // deep equality
+
+Expected: {"email": "test@example.com", "isLoggedIn": true, "role": "ROLE_USER", "userId": "testuser", "userSqno": 1}
+Received: ""
+    at Object.toEqual (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx:89:27)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S007: 로그인 성공 시 쿠키로 토큰 수신</div><div class="test-status">failed</div><div class="test-duration">0.006s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toHaveProperty(path)
+
+Matcher error: received value must not be null nor undefined
+
+Received has value: undefined
+    at Object.toHaveProperty (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx:111:32)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">인증 보안 — API 보호 엔드포인트</div><div class="test-title">TC-S008: 로그아웃 API 호출 성공</div><div class="test-status">failed</div><div class="test-duration">0.122s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: "Logged out successfully"
+Received: undefined
+    at Object.toBe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\integration\auth_security.test.tsx:122:35)</pre></div></div></div></details><details id="suite-10" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\rendering_optimization.test.tsx</div><div class="suite-time warn">15.142s</div></summary><div class="suite-tests"><div class="test-result failed"><div class="test-info"><div class="test-suitename">SDUI 모든 화면 유동적 최적화 검증</div><div class="test-title">MAIN_PAGE 화면 렌더링 및 정렬 상태 확인</div><div class="test-status">failed</div><div class="test-duration">0.536s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 2
+Received: 3
+    at toBe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\rendering_optimization.test.tsx:84:35)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at listOnTimeout (node:internal/timers:555:9)
+    at processTimers (node:internal/timers:529:7)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">SDUI 모든 화면 유동적 최적화 검증</div><div class="test-title">LOGIN_PAGE 화면 렌더링 및 정렬 상태 확인</div><div class="test-status">failed</div><div class="test-duration">0.416s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 2
+Received: 3
+    at toBe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\rendering_optimization.test.tsx:84:35)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at listOnTimeout (node:internal/timers:555:9)
+    at processTimers (node:internal/timers:529:7)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">SDUI 모든 화면 유동적 최적화 검증</div><div class="test-title">CONTENT_LIST 화면 렌더링 및 정렬 상태 확인</div><div class="test-status">failed</div><div class="test-duration">0.067s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 2
+Received: 3
+    at toBe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\rendering_optimization.test.tsx:84:35)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at listOnTimeout (node:internal/timers:555:9)
+    at processTimers (node:internal/timers:529:7)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">SDUI 모든 화면 유동적 최적화 검증</div><div class="test-title">SET_TIME_PAGE 화면 렌더링 및 정렬 상태 확인</div><div class="test-status">failed</div><div class="test-duration">0.526s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 2
+Received: 3
+    at toBe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\rendering_optimization.test.tsx:84:35)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at listOnTimeout (node:internal/timers:555:9)
+    at processTimers (node:internal/timers:529:7)</pre></div></div><div class="test-result failed"><div class="test-info"><div class="test-suitename">SDUI 모든 화면 유동적 최적화 검증</div><div class="test-title">CONTENT_WRITE 화면 렌더링 및 정렬 상태 확인</div><div class="test-status">failed</div><div class="test-duration">0.302s</div></div><div class="failureMessages"> <pre class="failureMsg">Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 2
+Received: 3
+    at toBe (C:\Users\Samsung\Documents\Development\Personal_Projects\2026\SDUI\metadata-project\tests\rendering_optimization.test.tsx:84:35)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at listOnTimeout (node:internal/timers:555:9)
+    at processTimers (node:internal/timers:529:7)</pre></div></div></div></details></main></body></html>

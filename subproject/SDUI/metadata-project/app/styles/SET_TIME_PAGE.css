@@ -1,0 +1,46 @@
+
+/* =================================================================
+  시간 기록 훅
+   ================================================================= */
+
+/* 취소 버튼 스타일 */
+.cancel-button {
+    color: #6c757d;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* 시간 설정 페이지 컨테이너 */
+.page-wrap.SET_TIME_PAGE,
+.group.SET_TIME_SECTION,
+.group-SET_TIME_SECTION {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /*padding: 40px 20px;*/
+    gap: 20px;
+}
+
+/* 안내 문구 스타일
+.set-time-guide-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+}
+*/
+/* 시간 입력 필드 스타일
+.time-input-field {
+    width: 100%;
+    max-width: 300px;
+    padding: 12px;
+    font-size: 18px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    text-align: center;
+}
+
+*/

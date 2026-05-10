@@ -1,0 +1,238 @@
+
+/* [+ 시간 추가] 텍스트 버튼 스타일 */
+.add-time-btn {
+    background: none;
+    border: 2px solid #007bff;
+    cursor: pointer;
+    font-size: 15px;
+    color: #007bff; /* 파란색 텍스트 */
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+.add-time-btn:hover {
+    background-color: #f0f8ff; /* 마우스 올리면 살짝 배경색 */
+}
+
+/* [•••] 더보기 버튼 스타일 */
+.more-list-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #ccc;
+    line-height: 1;
+    padding: 0 5px;
+}
+
+/* 팝업 박스 */
+.goal-list-popup {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 5px;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 220px;
+    border: 1px solid #eee;
+    text-align: left;
+}
+
+.goal-list-popup-ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* 리스트 아이템 (li) */
+.goal-list-popup-li {
+    padding: 10px 5px;
+    font-size: 14px;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f5f5f5; /* 기본적으로 밑줄 추가 */
+}
+
+/* 마지막 아이템은 밑줄 제거 (JS 로직 대체) */
+.goal-list-popup-li:last-child {
+    border-bottom: none;
+}
+
+/* 리스트 내부 텍스트 컨테이너 */
+.goal-list-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 리스트 날짜 텍스트 */
+.goal-list-popup-date {
+    font-size: 12px;
+    color: #888;
+}
+
+/* 리스트 시간 텍스트 */
+.goal-list-popup-time {
+    font-weight: bold;
+    color: #333;
+}
+
+/* --- 더보기 리스트 영역 --- */
+
+/* 더보기 섹션 (하단 구분선 포함) */
+.more-list-section {
+    border-top: 1px solid #f0f0f0; /* 구분선 (중요!) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-top: 15px;
+}
+
+/* 하단 버튼들을 감싸는 박스 (시간추가 + 점세개) */
+.bottom-btn-group {
+    display: flex;
+    justify-content: center; /* 가운데 정렬 */
+    align-items: center;
+    gap: 20px; /* 두 버튼 사이의 간격 */
+    width: 100%;
+    position: relative;
+}
+
+/* 컨테이너: 상단에 가로로 배치되는 바 형태 */
+/* 시간 표시부: 수직 정렬 */
+.time-display-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* 목표 시간 안내 텍스트 */
+.target-time-label {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* 남은 시간 카운트다운 숫지 */
+.countdown-timer {
+    font-size: 20px;
+    font-weight: bold;
+    color: #212529;
+}
+
+/* 카운트다운 강조 (지각 위험 시 사용) */
+.countdown-timer.danger {
+    color: #dc3545;
+}
+
+/* 액션 버튼 그룹: 버튼들을 세로로 정렬 */
+.action-button-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+/* 도착 완료 버튼 */
+
+
+/* 상단 시계 영역 컨테이너 (Flex) */
+.clock-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+/* 시간 텍스트 박스 */
+.clock-display-box {
+    text-align: left;
+}
+
+/* 목표 시간 라벨 */
+.target-time-label {
+    display: block; /* span이지만 줄바꿈 되도록 */
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+/* 포맷팅된 시간 (오전/오후 HH:MM) */
+.formatted-time {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+/* 남은 시간 카운트다운 */
+.remain-time {
+    font-size: 26px;
+    color: #ff5722;
+    font-weight: bold;
+}
+
+/* 도착 버튼 컨테이너 (우측 배치용) */
+.arrival-button-container {
+    /* 필요 시 추가 스타일 */
+}
+
+/* 도착 완료 버튼 */
+.arrival-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+/* 전체 컨테이너 */
+.time-record-container {
+    position: sticky; /* 또는 fixed */
+    display: flex;
+    top: 0;
+    z-index: 100; /* 다른 요소들보다 위에 보이게 */
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    background-color: #f8f9fa;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* 리스트 펼치기 버튼 (...) */
+.more-button {
+    background: none;
+    border: none;
+    color: #adb5bd;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* 약속 설정 전 안내 문구 스타일 */
+.no-goal-message {
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    padding: 20px;
+    text-align: center;
+    border: 2px solid #ff0000; /* 이미지의 빨간 테두리 강조 반영 */
+    border-radius: 8px;
+    cursor: pointer; /* 클릭 시 시간 설정 페이지로 이동하는 느낌 */
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "title": "남파랑길",
+    "image_url": "https://durunubi.kr/images/android_qr.png",
+    "route_idx": "T_ROUTE_MNG0000000001",
+    "local_image": "e:\\krider\\kride-project\\data\\durunubi\\images\\남파랑길.png"
+  },
+  {
+    "title": "남파랑길",
+    "image_url": "https://durunubi.kr/images/ios_qr.png",
+    "route_idx": "T_ROUTE_MNG0000000001",
+    "local_image": "e:\\krider\\kride-project\\data\\durunubi\\images\\남파랑길_1.png"
+  },
+  {
+    "title": "남파랑길",
+    "image_url": "https://durunubi.kr/images/bg_img.png",
+    "route_idx": "T_ROUTE_MNG0000000001",
+    "local_image": "e:\\krider\\kride-project\\data\\durunubi\\images\\남파랑길_2.png"
+  },
+  {
+    "title": "남파랑길",
+    "image_url": "https://durunubi.kr/durunubi_2022/images/onepass_logo.png",
+    "route_idx": "T_ROUTE_MNG0000000001",
+    "local_image": "e:\\krider\\kride-project\\data\\durunubi\\images\\남파랑길_3.png"
+  },
+  {
+    "title": "서해랑길",
+    "image_url": "https://durunubi.kr/images/android_qr.png",
+    "route_idx": "T_ROUTE_MNG0000000043"
+  },
+  {
+    "title": "서해랑길",
+    "image_url": "https://durunubi.kr/images/ios_qr.png",
+    "route_idx": "T_ROUTE_MNG0000000043"
+  },
+  {
+    "title": "서해랑길",
+    "image_url": "https://durunubi.kr/images/bg_img.png",
+    "route_idx": "T_ROUTE_MNG0000000043"
+  },
+  {
+    "title": "서해랑길",
+    "image_url": "https://durunubi.kr/durunubi_2022/images/onepass_logo.png",
+    "route_idx": "T_ROUTE_MNG0000000043"
+  },
+  {
+    "title": "해파랑길",
+    "image_url": "https://durunubi.kr/images/android_qr.png",
+    "route_idx": "T_THEME_MNG0000011235"
+  },
+  {
+    "title": "해파랑길",
+    "image_url": "https://durunubi.kr/images/ios_qr.png",
+    "route_idx": "T_THEME_MNG0000011235"
+  },
+  {
+    "title": "해파랑길",
+    "image_url": "https://durunubi.kr/images/bg_img.png",
+    "route_idx": "T_THEME_MNG0000011235"
+  },
+  {
+    "title": "해파랑길",
+    "image_url": "https://durunubi.kr/durunubi_2022/images/onepass_logo.png",
+    "route_idx": "T_THEME_MNG0000011235"
+  }
+]

@@ -1,0 +1,140 @@
+
+/* [DIARY_WRITE 다이어리 쓰기 페이지] */
+.page-wrap.DIARY_WRITE {
+    background-color: #fdfdfd;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 라벨 스타일: 제목, 내용 등 */
+.diary-label {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #4a4a4a;
+    margin-bottom: 12px;
+    align-self: flex-start;
+}
+
+.diaryInput, .diaryTextarea {
+    width: 100%;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 1rem;
+    background-color: #fff;
+    transition: all 0.3s ease;
+    margin-bottom: 25px;
+}
+
+/* 포커스 시 부드러운 효과 */
+.diaryInput:focus, .diaryTextarea:focus {
+    outline: none;
+    border-color: #FDBFBC;
+    box-shadow: 0 4px 15px rgba(253, 191, 188, 0.2);
+}
+
+
+/* 저장하기 버튼 */
+.save-button {
+    width: 100%;
+    max-width: 300px;
+    height: 52px;
+    background-color: #FDBFBC;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.save-button:hover {
+    transform: translateY(-2px);
+    background-color: #fbada9;
+}
+
+/* 1. 이모지 선택 영역 컨테이너 */
+#diaryEmotion {
+    display: flex;
+    flex-wrap: wrap; /* 자리가 부족하면 다음 줄로 */
+    gap: 12px;
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* 2. 개별 이모지 카드 버튼 */
+.emotion-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background-color: #ffffff;
+    border: 2px solid #eee;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* 3. 이모지 크기 키우기 */
+.emotion-icon {
+    font-size: 2rem;
+    margin-bottom: 4px;
+}
+
+/* 4. 감정 텍스트 숨기거나 작게 처리 */
+.emotion-label {
+    font-size: 11px;
+    color: #888;
+}
+
+/* 5. 마우스를 올렸을 때 */
+.emotion-item:hover {
+    transform: translateY(-5px);
+    border-color: #FDBFBC;
+    background-color: #fff9f9;
+}
+
+/* 6. 선택된 상태 */
+.emotion-item.active {
+    border-color: #FDBFBC;
+    background-color: #FDBFBC;
+    box-shadow: 0 4px 12px rgba(253, 191, 188, 0.4);
+}
+
+.emotion-item.active .emotion-label {
+    color: #ffffff;
+}
+
+/* 나만 보기 체크박스 */
+.checkbox-field-container {
+    padding: 0.5rem 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #374151;
+}
+
+.checkbox-input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: #FDBFBC;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checkbox-text {
+    user-select: none;
+}

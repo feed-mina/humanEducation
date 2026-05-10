@@ -1,0 +1,33 @@
+{
+  "collected_at": "20260429_000033",
+  "api_routes": 3,
+  "api_courses": 228,
+  "web_images": 12,
+  "files": [
+    {
+      "path": "e:\\krider\\kride-project\\data\\durunubi\\routes_20260429_000033.json",
+      "count": 3,
+      "type": "길 목록"
+    },
+    {
+      "path": "e:\\krider\\kride-project\\data\\durunubi\\routes_20260429_000033.csv",
+      "count": 3,
+      "type": "길 목록 CSV"
+    },
+    {
+      "path": "e:\\krider\\kride-project\\data\\durunubi\\courses_20260429_000033.json",
+      "count": 228,
+      "type": "코스 목록"
+    },
+    {
+      "path": "e:\\krider\\kride-project\\data\\durunubi\\courses_20260429_000033.csv",
+      "count": 228,
+      "type": "코스 목록 CSV"
+    },
+    {
+      "path": "e:\\krider\\kride-project\\data\\durunubi\\web_trails_20260429_000033.json",
+      "count": 12,
+      "type": "웹 크롤링"
+    }
+  ]
+}

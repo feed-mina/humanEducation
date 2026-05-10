@@ -1,0 +1,293 @@
+/* ==========================================
+   1. Global & Variables
+   ========================================== */
+:root {
+    --primary-color: #73c234;
+    --secondary-color: #007B65;
+    --kakao-yellow: #FEE500;
+    --error-red: #FDBFBC;
+    --border-color: #eaeaea;
+    --bg-gray: #f8f9fa;
+    --text-dark: #191919;
+    --text-muted: #adb5bd;
+}
+
+/* 기본 리셋 */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.app-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+@keyframes pulse-animation {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ==========================================
+   2. 모바일 레이아웃 (기본 / Mobile First)
+   ========================================== */
+.mobile-header {
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+}
+
+/* 모바일 엔진 컨테이너 */
+.is-mobile .engine-container {
+    max-width: 450px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px;
+}
+
+/* ==========================================
+   3. PC 레이아웃 (1024px 이상)
+   ========================================== */
+@media (min-width: 1024px) {
+    .app-wrapper.is-pc {
+        flex-direction: row;
+        background-color: #f7f9fb;
+    }
+
+    /* 사이드바 */
+    .pc-sidebar {
+        width: 280px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        background: #ffffff;
+        border-right: 1px solid var(--border-color);
+        padding: 40px 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        z-index: 100;
+    }
+
+    /* 메인 영역 */
+    .main-contents-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .pc-top-utility {
+        padding: 20px 40px;
+        background: white;
+        display: flex;
+        justify-content: flex-end;
+        border-bottom: 1px solid #eee;
+    }
+
+    /* PC 엔진 컨테이너 */
+    .is-pc .engine-container {
+        max-width: 1100px !important;
+        padding: 50px;
+        margin: 0 auto;
+    }
+
+    /* 사이드바 내부 요소 */
+    .sidebar-logo { font-size: 24px; font-weight: 900; color: var(--primary-color); margin-bottom: 40px; cursor: pointer; }
+    .nav-item { padding: 12px 16px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; color: #555; transition: 0.2s; }
+    .nav-item.active { background: #f0f9eb; color: var(--primary-color); font-weight: bold; }
+}
+
+/* ==========================================
+   4. 헤더 세부 레이아웃 (Global Header)
+   ========================================== */
+.header-contents {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 80px; /* 기존 150px에서 축소 권장, 필요시 조정 */
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logo { flex: 2; display: flex; align-items: center; }
+
+.time-record-container {
+    flex: 8;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* ==========================================
+   5. 공통 UI 컴포넌트
+   ========================================== */
+
+/* 안내 박스 및 버튼 */
+.no-goal-container {
+    background-color: var(--bg-gray);
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.no-goal-container:hover { background-color: #f1f3f5; }
+.no-goal-msg { color: #495057; font-size: 1rem; font-weight: 500; }
+.setup-link { color: #228be6; font-size: 0.9rem; text-decoration: underline; }
+
+.setup-button {
+    color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.setup-button:hover { background-color: var(--secondary-color); color: white; }
+
+/* 로딩 애니메이션 */
+.header-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 60px;
+    background-color: var(--bg-gray);
+    color: var(--text-muted);
+    font-size: 14px;
+    animation: pulse-animation 1.5s infinite ease-in-out;
+}
+
+/* 인증 버튼 공통 */
+.auth-actions { display: flex; justify-content: center; align-items: center; width: 100%; }
+
+.logout_button, .kakao_logout_button, .sidebar-auth-btn {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.logout_button { background-color: var(--error-red); color: white; }
+.logout_button:hover { background-color: #fbada9; }
+
+.kakao_logout_button { background-color: var(--kakao-yellow); color: var(--text-dark); margin-top: 12px; }
+.kakao_logout_button:hover { opacity: 0.9; }
+
+/* ==========================================
+   AI 채팅 버튼 — 사이드바 (PC)
+   ========================================== */
+.sidebar-ai-section {
+    margin-top: 16px;
+    padding: 14px;
+    background: linear-gradient(135deg, #f8fdf4 0%, #f0fdf9 100%);
+    border-radius: 14px;
+    border: 1px solid #d1fae5;
+}
+
+.sidebar-ai-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #9ca3af;
+    margin-bottom: 10px;
+}
+
+.sidebar-ai-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    background: #ffffff;
+    color: #374151;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    transition: all 0.18s ease;
+    text-align: left;
+}
+.sidebar-ai-btn:last-child { margin-bottom: 0; }
+.sidebar-ai-btn:hover { transform: translateX(3px); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1); }
+
+.sidebar-ai-btn.ja { border-left: 3px solid #7c3aed; }
+.sidebar-ai-btn.ja:hover, .sidebar-ai-btn.ja.active { background: #faf5ff; color: #7c3aed; }
+
+.sidebar-ai-btn.en { border-left: 3px solid var(--secondary-color); }
+.sidebar-ai-btn.en:hover, .sidebar-ai-btn.en.active { background: #f0fdf4; color: var(--secondary-color); }
+
+.sidebar-ai-btn .ai-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+}
+.sidebar-ai-btn.ja .ai-badge { background: #ede9fe; color: #7c3aed; }
+.sidebar-ai-btn.en .ai-badge { background: #d1fae5; color: #065f46; }
+
+/* ==========================================
+   AI 채팅 버튼 — 헤더 (Mobile)
+   ========================================== */
+.header-ai-shortcuts {
+    display: flex;
+    gap: 8px;
+    padding: 8px 20px 10px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.header-ai-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.18s ease;
+    background: transparent;
+}
+
+.header-ai-btn .ai-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.header-ai-btn.ja { background: #ede9fe; color: #7c3aed; }
+.header-ai-btn.ja:hover, .header-ai-btn.ja.active { background: #ddd6fe; }
+.header-ai-btn.ja .ai-badge { background: #7c3aed; color: white; }
+
+.header-ai-btn.en { background: #d1fae5; color: #065f46; }
+.header-ai-btn.en:hover, .header-ai-btn.en.active { background: #a7f3d0; }
+.header-ai-btn.en .ai-badge { background: #065f46; color: white; }
