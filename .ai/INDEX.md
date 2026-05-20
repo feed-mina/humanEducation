@@ -1,6 +1,6 @@
 # K-Ride .ai 문서 마스터 인덱스
 
-> 최종 수정: 2026-05-17
+> 최종 수정: 2026-05-20
 > kride-project 루트 `.ai` 폴더의 모든 문서 위치와 역할을 안내합니다.
 > 기존 파일은 편집 없이 유지됩니다. 역할 기반 구조는 신규 생성된 하위 폴더를 참조하세요.
 
@@ -68,6 +68,11 @@
 | [kride2.md](kride2.md) | KRIDE 온보딩 화면 UI 구현 현황 (초기 기록) | 378 |
 | [sdui_kride.md](sdui_kride.md) | K-Ride PWA 프론트엔드 구현 계획 (SDUI MSA 통합) | 442 |
 | [ai-foamy-sparkle.md](ai-foamy-sparkle.md) | K-Ride PWA 구현 계획 (SDUI 통합) | 347 |
+
+### 테스트 결과
+| 파일 | 내용 | 줄수 |
+|------|------|------|
+| [test_results_community_chatbot.md](test_results_community_chatbot.md) | 커뮤니티 + 챗봇 통합 테스트 결과 (Spring Boot 19 + Jest 9 + pytest 9 = 37 ALL PASSED) | 272 |
 
 ### 환경/설정 문서
 | 파일 | 내용 | 줄수 |

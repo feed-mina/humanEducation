@@ -924,3 +924,122 @@ MAP@5 = 높음 (정답이 1,3,5위 → 비교적 빠름)
 
 유저는 첫 3~5개만 봄 → 상위에 좋은 추천이 있어야 함.
 LightGBM vs XGBoost 중 "상위 K개 품질"이 더 좋은 모델을 선택하는 기준.
+
+---
+
+## 커뮤니티 + 챗봇 SDUI-server 통합 — 2026-05-20 [완료]
+
+> team 프로젝트의 커뮤니티(게시글 CRUD + 좋아요/신고/팔로우 + 이미지 업로드)와 챗봇(여행 추천 + PDF Q&A) 기능을 SDUI-server에 통합.
+
+### 변경 원칙
+
+- **기존 코드 삭제 금지**: 기존 도메인(content, ai, user 등) 파일 수정/삭제 없음
+- **수정(UPDATE)**: SecurityConfig, application.yml 등 공통 설정 파일만 필요한 부분 추가
+- **추가(ADD)**: 새 도메인 패키지, 새 Entity/Controller/Service만 생성
+
+### 생성된 파일 (30개)
+
+#### 커뮤니티 도메인 (`domain/community/`)
+
+| 구분 | 파일 |
+|------|------|
+| Entity | `CommunityPost`, `PostImage`, `PostLike`, `PostReport`, `UserFollow` |
+| Repository | `CommunityPostRepository`, `PostImageRepository`, `PostLikeRepository`, `PostReportRepository`, `UserFollowRepository` |
+| DTO | `PostCreateRequest`, `PostUpdateRequest`, `PostResponse`, `PostListResponse`, `PostImageDto`, `LikeStatusResponse`, `ReportRequest` |
+| Service | `SupabaseStorageService`, `CommunityPostService`, `PostLikeService`, `PostReportService`, `UserFollowService` |
+| Controller | `CommunityPostController`, `PostLikeController`, `PostReportController`, `UserFollowController` |
+
+#### 챗봇 도메인 (`domain/kridechat/`)
+
+| 구분 | 파일 |
+|------|------|
+| DTO | `ChatQueryRequest`, `ChatQueryResponse` |
+| Service | `FastApiChatClient` (WebClient → FastAPI 프록시), `KrideChatService` (의도 분류 + 오케스트레이션) |
+| Controller | `KrideChatController` (일반 + SSE 스트리밍) |
+
+#### Flyway
+
+| 파일 | 내용 |
+|------|------|
+| `V40__create_community_tables.sql` | community_post, post_image, post_like, post_report, user_follow 테이블 + 인덱스 |
+
+### 수정된 파일 (2개)
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `SecurityConfig.java` | 커뮤니티 GET permitAll, POST/PATCH/DELETE authenticated, 챗봇 permitAll, Swagger UI permitAll 추가 |
+| `application.yml` | `kride.supabase.*`, `kride.fastapi.*` 설정 블록 추가 |
+
+### API 엔드포인트
+
+| HTTP | 경로 | 설명 |
+|------|------|------|
+| POST | `/api/v1/community/posts` | 게시글 작성 (multipart) |
+| GET | `/api/v1/community/posts` | 전체 목록 (페이징) |
+| GET | `/api/v1/community/posts/{postId}` | 상세 조회 |
+| PATCH | `/api/v1/community/posts/{postId}` | 수정 |
+| DELETE | `/api/v1/community/posts/{postId}` | 삭제 (soft delete) |
+| POST | `/api/v1/community/posts/{postId}/likes` | 좋아요 토글 |
+| GET | `/api/v1/community/posts/{postId}/likes/status` | 좋아요 상태 |
+| POST | `/api/v1/community/posts/{postId}/reports` | 신고 |
+| POST | `/api/v1/community/users/{userSqno}/follow` | 팔로우 토글 |
+| GET | `/api/v1/community/users/{userSqno}/follow/status` | 팔로우 상태 |
+| POST | `/api/v1/kride/chat` | 통합 챗봇 (여행 추천 + Q&A) |
+| POST | `/api/v1/kride/chat/stream` | SSE 스트리밍 응답 |
+
+### 이미지 업로드 (Supabase Storage)
+
+```
+MultipartFile → UUID 파일명 생성 → Supabase Storage REST API 호출 → public URL 반환
+버킷: kride-community
+경로: community/{postId}/{uuid}.{ext}
+```
+
+### 챗봇 연동 구조
+
+```
+사용자 → SDUI-server(/api/v1/kride/chat)
+       → FastAPI(:8000/api/recommend/ai)       — POI 추천
+       → FastAPI(:8000/api/recommend/itinerary) — 일정 생성
+       → 응답 통합 → 사용자
+```
+
+의도 분류: 메시지 키워드 기반 (`추천`→recommend, `일정/코스`→itinerary, 기타→qa)
+
+### 테스트 파일 (6개)
+
+| 레이어 | 파일 | 테스트 수 |
+|--------|------|-----------|
+| 백엔드 | `CommunityPostServiceTest.java` | 7 |
+| 백엔드 | `PostLikeServiceTest.java` | 3 |
+| 백엔드 | `UserFollowServiceTest.java` | 4 |
+| 백엔드 | `KrideChatServiceTest.java` | 5 |
+| 프론트 | `communityService.test.ts` | 9 |
+| FastAPI | `test_community_chatbot_integration.py` | 8 |
+
+### 프론트엔드 서비스
+
+`metadata-project/services/communityService.ts` 생성 — 커뮤니티 API 전체 래핑 (타입 정의 포함)
+
+### 버그 수정
+
+| 문제 | 원인 | 해결 |
+|------|------|------|
+| Swagger UI 403 | `/swagger-ui/**` 경로가 `denyAll()`에 걸림 | SecurityConfig에 permitAll 추가 |
+| `kride_region_list` 500 | VALUES alias에 3개 컬럼 지정 (실제 2개) | `AS t(id, name)` 으로 수정 (DB 직접) |
+
+### 검증 명령어
+
+```bash
+# 백엔드
+cd subproject/SDUI/SDUI-server && ./gradlew test --tests "com.domain.demo_backend.domain.community.*" --tests "com.domain.demo_backend.domain.kridechat.*"
+
+# 프론트엔드
+cd subproject/SDUI/metadata-project && npx jest tests/services/communityService.test.ts
+
+# FastAPI
+pytest tests/test_community_chatbot_integration.py -v
+
+# Swagger UI 확인
+http://localhost:8080/swagger-ui/index.html
+```

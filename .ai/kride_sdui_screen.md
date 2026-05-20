@@ -230,3 +230,42 @@ ChromaDB (목적 벡터검색)    ┘    ↑
 | 🔴 즉시 | 프론트엔드 재시작 | DynamicEngine/PurposeCard 코드 변경 반영 |
 | 🟡 다음 | FOCUS FastAPI 연동 | `GOTO_FOCUS` 액션에서 FastAPI 호출 + 결과 주입 |
 | 🟢 나중 | 재온보딩 다이얼로그 | 로그인 사용자 재온보딩 시 "교체/추가" 확인 |
+
+---
+
+## Phase 5 — 커뮤니티 + 챗봇 통합 (2026-05-20) [완료]
+
+team 프로젝트의 커뮤니티(게시글 CRUD + 좋아요/신고/팔로우 + Supabase 이미지)와 챗봇(여행 추천 프록시)을 SDUI-server에 통합.
+
+### 신규 도메인 패키지
+
+| 패키지 | 역할 | 파일 수 |
+|--------|------|---------|
+| `domain/community/` | 게시글 CRUD, 좋아요, 신고, 팔로우, Supabase 이미지 | 25개 |
+| `domain/kridechat/` | 챗봇 프록시 (FastAPI 연동, SSE 스트리밍) | 5개 |
+
+### SecurityConfig 추가
+
+```
+GET  /api/v1/community/** → permitAll
+POST/PATCH/DELETE /api/v1/community/** → authenticated
+/api/v1/kride/chat/** → permitAll
+/swagger-ui/**, /v3/api-docs/** → permitAll
+```
+
+### 프론트엔드
+
+`services/communityService.ts` 생성 — 커뮤니티 API 타입 정의 + 래핑 함수
+
+### 테스트
+
+| 레이어 | 테스트 수 | 파일 |
+|--------|-----------|------|
+| Spring Boot | 19 | `CommunityPostServiceTest`, `PostLikeServiceTest`, `UserFollowServiceTest`, `KrideChatServiceTest` |
+| Next.js | 9 | `communityService.test.ts` |
+| FastAPI | 8 | `test_community_chatbot_integration.py` |
+
+### 버그 수정
+
+- Swagger UI 403 → SecurityConfig permitAll 추가
+- `kride_region_list` 500 → VALUES alias 컬럼 수 불일치 수정 (DB 직접)
