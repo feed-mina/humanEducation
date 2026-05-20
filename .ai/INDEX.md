@@ -69,6 +69,19 @@
 | [sdui_kride.md](sdui_kride.md) | K-Ride PWA 프론트엔드 구현 계획 (SDUI MSA 통합) | 442 |
 | [ai-foamy-sparkle.md](ai-foamy-sparkle.md) | K-Ride PWA 구현 계획 (SDUI 통합) | 347 |
 
+### 인프라/아키텍처 문서
+| 파일 | 내용 | 줄수 |
+|------|------|------|
+| [architecture_expand_0520.md](architecture_expand_0520.md) | TorchServe + Celery 아키텍처 설명 (비동기 큐, GPU 서빙, GCP 배포 전략) | 115 |
+
+### Kaggle 배포
+| 파일 | 내용 |
+|------|------|
+| `kaggle/kaggle_server.py` | 노트북 A — Slim FastAPI (추천/챗봇, 모델 직접 로딩, ChromaDB PersistentClient) |
+| `kaggle/kride_kaggle.ipynb` | 노트북 A — 의존성 설치, zrok 터널, 서버 실행, API 테스트 |
+| `kaggle/media_server.py` | 노트북 B — Media FastAPI (TTS XTTS-v2, MusicGen, 3D Photo Inpainting, LivePortrait, FFmpeg 합성) |
+| `kaggle/kride_media_kaggle.ipynb` | 노트북 B — GPU 전용, zrok 터널, 미디어 파이프라인 테스트 |
+
 ### 테스트 결과
 | 파일 | 내용 | 줄수 |
 |------|------|------|

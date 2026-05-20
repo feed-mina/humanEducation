@@ -64,19 +64,22 @@ try:
 except ImportError:
     HAS_WEATHER = False
 
-# 이벤트 분류 모듈
+# 이벤트 분류 — TorchServe 경유
+from src.api.torchserve_client import classify_event_sync as _ts_classify_event
+from src.api.torchserve_client import predict_weather_sync as _ts_predict_weather
+
+# geocode_venue / EVENT_IMPACT 는 데이터 유틸이므로 인라인 유지
 try:
-    from build_event_ner import classify_event, geocode_venue, EVENT_IMPACT
+    from build_event_ner import geocode_venue, EVENT_IMPACT
     HAS_EVENT = True
 except ImportError:
     HAS_EVENT = False
+    EVENT_IMPACT = {}
+    def geocode_venue(venue: str):
+        return None
 
-# WeatherLSTM 추론 모듈
-try:
-    from build_weather_lstm import predict_weather as lstm_predict_weather
-    HAS_LSTM_WEATHER = True
-except ImportError:
-    HAS_LSTM_WEATHER = False
+# WeatherLSTM — TorchServe 경유 (HAS_LSTM_WEATHER는 항상 True, TorchServe 장애 시 fallback)
+HAS_LSTM_WEATHER = True
 
 # ── 경로 설정 ──────────────────────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
@@ -94,7 +97,7 @@ POI_PATH      = os.path.join(RAW_DIR,    "tour_poi.csv")
 # ══════════════════════════════════════════════════════════════════════════════
 app = FastAPI(
     title="K-Ride API",
-    description="자전거 안전 경로 추천 백엔드",
+    description="K팝 MZ를 위한 새로운 여행 활성 경로 추천 백엔드",
     version="1.0.0",
 )
 
@@ -626,15 +629,12 @@ def detect_events(items: list[EventItem]):
 
     이벤트 분류 모듈(build_event_ner.py)이 없으면 503 반환.
     """
-    if not HAS_EVENT:
-        raise HTTPException(
-            status_code=503,
-            detail="이벤트 분류 모듈 없음. build_event_ner.py --mode zero_shot 을 먼저 실행하세요.",
-        )
-
     results = []
     for item in items:
-        classified = classify_event(item.text)
+        try:
+            classified = _ts_classify_event(item.text)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"TorchServe event_ner 호출 실패: {e}")
         lat, lon = None, None
         if item.venue:
             coord = geocode_venue(item.venue)
@@ -717,9 +717,18 @@ def weather_forecast(
             60.0,  # 습도
             float(sgg_idx),
         ])
-    seq = __import__("numpy").array(seq_rows, dtype="float32")
+    seq = [[float(v) for v in row] for row in seq_rows]
 
-    result = lstm_predict_weather(seq)
+    try:
+        result = _ts_predict_weather(seq)
+    except Exception as e:
+        return {
+            "travel_date":    travel_date,
+            "weather_label":  "맑음",
+            "weather_class":  0,
+            "safety_penalty": 0.0,
+            "note": f"TorchServe weather_lstm 호출 실패: {e}",
+        }
     return {
         "travel_date":    travel_date,
         "weather_label":  result["label"],
@@ -783,6 +792,13 @@ FALLBACK_ARTISTS = [
     {"id": "kangdaniel",       "name": "Kang Daniel",      "name_ko": "강다니엘",    "imageUrl": "/artists/Kang Daniel.jpg"},
     {"id": "straykids",        "name": "Stray Kids",       "name_ko": "스트레이키즈", "imageUrl": "/artists/Stray Kids.jpg"},
 ]
+
+# 영문 → 한글 아티스트 이름 매핑 (Neo4j에 한글명으로 저장됨)
+ARTIST_NAME_MAP = {}
+for _a in FALLBACK_ARTISTS:
+    ARTIST_NAME_MAP[_a["name"]] = _a.get("name_ko") or _a["name"]
+    ARTIST_NAME_MAP[_a["name"].upper()] = _a.get("name_ko") or _a["name"]
+    ARTIST_NAME_MAP[_a["name"].lower()] = _a.get("name_ko") or _a["name"]
 
 FALLBACK_REGIONS = [
     {"id": str(i), "name": name, "imageUrl": None, "safety_score": None}
@@ -848,11 +864,14 @@ def recommend_ai(req: RecommendAIRequest):
     if not HAS_AI:
         raise HTTPException(status_code=503, detail="AI 모듈 미설치")
 
-    # 1. Neo4j — 아티스트 촬영지 POI
+    # 1. Neo4j — 아��스트 촬영지 POI
     neo4j_pois = []
     if req.artists:
+        search_names = list(set(
+            req.artists + [ARTIST_NAME_MAP.get(a, a) for a in req.artists]
+        ))
         try:
-            neo4j_pois = get_artist_pois(req.artists, limit=15)
+            neo4j_pois = get_artist_pois(search_names, limit=15)
         except Exception:
             pass
 
@@ -911,12 +930,22 @@ async def recommend_itinerary(req: ItineraryRequest):
     if not HAS_AI:
         raise HTTPException(status_code=503, detail="AI 모듈 미설치")
 
+    # 0. 아티스트 이름 변환 (영문 → 한글, Neo4j는 한글명으로 저장)
+    resolved_artists = []
+    for a in req.artists:
+        resolved = ARTIST_NAME_MAP.get(a, a)
+        resolved_artists.append(resolved)
+    # 영문 + 한글 모두 포함하여 검색 범위 확대
+    search_artists = list(set(req.artists + resolved_artists))
+    if resolved_artists != req.artists:
+        print(f"[K-Ride] 아티스트 이름 변환: {req.artists} → {resolved_artists}")
+
     # 1. Neo4j — 아티스트 촬영지
     artist_pois = []
-    if req.artists:
+    if search_artists:
         try:
-            artist_pois = get_artist_pois(req.artists, limit=10)
-            print(f"[K-Ride] artist_pois: {len(artist_pois)}건 (artists={req.artists})")
+            artist_pois = get_artist_pois(search_artists, limit=10)
+            print(f"[K-Ride] artist_pois: {len(artist_pois)}건 (artists={search_artists})")
         except Exception as e:
             print(f"[K-Ride] ❌ Neo4j artist_pois 실패: {e}")
 
@@ -969,6 +998,56 @@ async def recommend_itinerary(req: ItineraryRequest):
                 merged[key] = p
         all_pois = list(merged.values())
         print(f"[K-Ride] 총 POI: {len(all_pois)}건 (artist={len(artist_pois)} + region={len(region_pois)} + chroma={len(chroma_pois)})")
+
+    # 4-1. Supabase fallback — Neo4j/ChromaDB 모두 실패 시 Supabase에서 POI 조회
+    if not all_pois:
+        print("[K-Ride] ⚠️ all_pois=0 → Supabase fallback 시도")
+        try:
+            from src.api.supabase_client import get_client as get_supabase
+            sb = get_supabase()
+            # 아티스트 기반 edges → POI 조회
+            fallback_poi_ids = []
+            if req.artists:
+                edge_resp = sb.table("edges").select("source, target").eq("relation_type", "FILMING_AT").execute()
+                # artist name → artist id 매핑
+                artist_resp = sb.table("nodes").select("id, metadata").like("id", "artist_%").execute()
+                name_to_id = {}
+                for row in (artist_resp.data or []):
+                    meta = row.get("metadata") or {}
+                    name_to_id[meta.get("name", "")] = row["id"]
+                    name_to_id[meta.get("name_en", "")] = row["id"]
+                target_artist_ids = {name_to_id.get(a) for a in req.artists if name_to_id.get(a)}
+                for edge in (edge_resp.data or []):
+                    if edge["target"] in target_artist_ids:
+                        fallback_poi_ids.append(edge["source"])
+
+            # 지역 기반 POI 조회
+            if req.regions and not fallback_poi_ids:
+                poi_resp = sb.table("nodes").select("id, metadata").like("id", "poi_%").limit(200).execute()
+                for row in (poi_resp.data or []):
+                    meta = row.get("metadata") or {}
+                    addr = meta.get("address", "")
+                    if any(r in addr for r in req.regions):
+                        fallback_poi_ids.append(row["id"])
+
+            # POI 상세 조회
+            if fallback_poi_ids:
+                poi_resp = sb.table("nodes").select("id, metadata").in_("id", fallback_poi_ids[:20]).execute()
+                for row in (poi_resp.data or []):
+                    meta = row.get("metadata") or {}
+                    if meta.get("name"):
+                        all_pois.append({
+                            "poi_id": row["id"],
+                            "name": meta.get("name", ""),
+                            "lat": meta.get("lat"),
+                            "lon": meta.get("lon"),
+                            "address": meta.get("address", ""),
+                            "category": meta.get("category", ""),
+                            "sido": meta.get("sido", ""),
+                        })
+                print(f"[K-Ride] Supabase fallback: {len(all_pois)}건 POI 로드")
+        except Exception as e:
+            print(f"[K-Ride] ❌ Supabase fallback 실패: {e}")
 
     # 5. Groq — 일정 생성
     try:

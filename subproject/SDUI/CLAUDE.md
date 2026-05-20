@@ -109,6 +109,8 @@ URL /view/[screenId]
 | `domain/ui` | `UiController` → `UiService` builds flat DB records into a nested tree; served at `GET /api/ui/{screenId}` |
 | `domain/query` | `QueryMasterService` — fetch SQL from `query_master` table, cache in Redis |
 | `domain/user` | Auth: `AuthController` (login/register/email verify), `KakaoController` (OAuth) |
+| `domain/community` | 커뮤니티 게시글 CRUD + 좋아요/신고/팔로우 + Supabase 이미지 업로드 (`/api/v1/community/**`) |
+| `domain/kridechat` | KRIDE 챗봇 프록시 — FastAPI 연동, SSE 스트리밍 (`/api/v1/kride/chat/**`) |
 | `global/security` | Spring Security config, `JwtAuthenticationFilter`, `JwtUtil` |
 | `global/config` | `RedisConfig`, `WebConfig` (CORS), `WebSocketConfig` |
 

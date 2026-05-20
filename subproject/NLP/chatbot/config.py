@@ -7,7 +7,14 @@ from pathlib import Path
 _THIS_DIR = Path(__file__).resolve().parent                    # subproject/NLP/chatbot
 PROJECT_ROOT = _THIS_DIR.parent.parent.parent                  # kride-project/
 
-CHROMA_PATH = str(PROJECT_ROOT / "chroma_db")                  # 기존 chroma_db 재사용
+CHROMA_PATH = str(PROJECT_ROOT / "chroma_db")                  # 로컬 fallback용 (사용 안 함)
+
+# ── ChromaDB 서버 모드 ────────────────────────────────────────────────────────
+CHROMA_HOST = os.environ.get("CHROMA_HOST", "localhost")
+CHROMA_PORT = int(os.environ.get("CHROMA_PORT", "8100"))
+
+# ── TorchServe ────────────────────────────────────────────────────────────────
+TORCHSERVE_URL = os.environ.get("TORCHSERVE_URL", "http://localhost:8085")
 PDF_DIR = str(PROJECT_ROOT / "dataset" / "pdf")
 MODELS_DIR = str(PROJECT_ROOT / "models")
 

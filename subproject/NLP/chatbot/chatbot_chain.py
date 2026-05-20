@@ -1,3 +1,4 @@
+
 """
 chatbot_chain.py — 핵심 RAG 파이프라인 오케스트레이션
 ====================================================
@@ -15,44 +16,58 @@ from collections import defaultdict
 
 import chromadb
 from groq import Groq
-from sentence_transformers import SentenceTransformer
 
 from chatbot.config import (
-    CHROMA_PATH,
+    CHROMA_HOST,
+    CHROMA_PORT,
     PDF_COLLECTION,
     POI_COLLECTIONS,
-    EMBED_MODEL,
     GROQ_MODEL,
     GROQ_API_KEY,
     RETRIEVE_TOP_K_PDF,
     RETRIEVE_TOP_K_POI,
     RERANK_TOP_K,
     MAX_HISTORY_TURNS,
+    TORCHSERVE_URL,
 )
 from chatbot.multi_query import generate_query_variants
-from chatbot.reranker import Reranker
+
+import httpx
 
 # ── 싱글턴 ────────────────────────────────────────────────────────────────────
-_embedder: SentenceTransformer | None = None
 _chroma: chromadb.ClientAPI | None = None
 _groq: Groq | None = None
-_reranker: Reranker | None = None
 
 # 세션별 대화 이력 (인메모리)
 _sessions: dict[str, list[dict]] = defaultdict(list)
 
 
-def _get_embedder() -> SentenceTransformer:
-    global _embedder
-    if _embedder is None:
-        _embedder = SentenceTransformer(EMBED_MODEL)
-    return _embedder
+def _embed_texts(texts: list[str]) -> list[list[float]]:
+    """TorchServe 경유 SentenceTransformer 임베딩 (동기)"""
+    resp = httpx.post(
+        f"{TORCHSERVE_URL}/predictions/embedder",
+        json={"text": texts},
+        timeout=10.0,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _rerank_via_torchserve(query: str, documents: list[str]) -> list[float]:
+    """TorchServe 경유 Cross-encoder 리랭킹 (동기)"""
+    resp = httpx.post(
+        f"{TORCHSERVE_URL}/predictions/reranker",
+        json={"query": query, "documents": documents},
+        timeout=10.0,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 
 def _get_chroma() -> chromadb.ClientAPI:
     global _chroma
     if _chroma is None:
-        _chroma = chromadb.PersistentClient(path=CHROMA_PATH)
+        _chroma = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     return _chroma
 
 
@@ -61,13 +76,6 @@ def _get_groq() -> Groq:
     if _groq is None:
         _groq = Groq(api_key=GROQ_API_KEY)
     return _groq
-
-
-def _get_reranker() -> Reranker:
-    global _reranker
-    if _reranker is None:
-        _reranker = Reranker()
-    return _reranker
 
 
 # ── 검색 ──────────────────────────────────────────────────────────────────────
@@ -105,12 +113,13 @@ def _search_collection(
 
 def _multi_source_retrieve(queries: list[str]) -> list[dict]:
     """멀티쿼리 × 멀티소스 검색 → 통합"""
-    embedder = _get_embedder()
     all_passages: list[dict] = []
     seen_keys: set[str] = set()
 
-    for query in queries:
-        vec = embedder.encode(query, normalize_embeddings=True).tolist()
+    # 배치 임베딩 (TorchServe)
+    all_vecs = _embed_texts(queries)
+
+    for query, vec in zip(queries, all_vecs):
 
         # PDF 컬렉션
         for p in _search_collection(PDF_COLLECTION, vec, RETRIEVE_TOP_K_PDF, "pdf"):
@@ -180,10 +189,13 @@ def chat(message: str, session_id: str, context: dict | None = None) -> dict:
     # 2. Multi-Source Retrieval
     passages = _multi_source_retrieve(queries)
 
-    # 3. Rerank
+    # 3. Rerank (TorchServe 경유)
     if passages:
-        reranker = _get_reranker()
-        passages = reranker.rerank(message, passages, text_key="text", top_k=RERANK_TOP_K)
+        docs = [p.get("text", "") for p in passages]
+        scores = _rerank_via_torchserve(message, docs)
+        for passage, score in zip(passages, scores):
+            passage["rerank_score"] = float(score)
+        passages = sorted(passages, key=lambda x: x["rerank_score"], reverse=True)[:RERANK_TOP_K]
 
     # 4. Context 조립
     context_str, sources, pois = _build_context(passages)

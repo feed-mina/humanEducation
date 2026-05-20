@@ -1,32 +1,26 @@
-"""rag_client.py — ChromaDB 벡터 검색 + Groq LLM"""
+"""rag_client.py — ChromaDB 벡터 검색 + Groq LLM (TorchServe 경유)"""
 from __future__ import annotations
 import os
-from functools import lru_cache
 import chromadb
-from sentence_transformers import SentenceTransformer
 from groq import Groq
 
-EMBED_MODEL = "intfloat/multilingual-e5-small"
+from src.api.torchserve_client import embed_texts_sync
+
 GROQ_MODEL  = "openai/gpt-oss-120b"
-CHROMA_PATH = "./chroma_db"
+
+# ChromaDB — HttpClient 모드 (서버 분리)
+CHROMA_HOST = os.environ.get("CHROMA_HOST", "localhost")
+CHROMA_PORT = int(os.environ.get("CHROMA_PORT", "8100"))
 
 # ── 싱글턴 초기화 ──────────────────────────────────────────────────────────
-_embedder: SentenceTransformer | None = None
 _chroma: chromadb.ClientAPI | None = None
 _groq: Groq | None = None
-
-
-def get_embedder() -> SentenceTransformer:
-    global _embedder
-    if _embedder is None:
-        _embedder = SentenceTransformer(EMBED_MODEL)
-    return _embedder
 
 
 def get_chroma() -> chromadb.ClientAPI:
     global _chroma
     if _chroma is None:
-        _chroma = chromadb.PersistentClient(path=CHROMA_PATH)
+        _chroma = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     return _chroma
 
 
@@ -55,9 +49,8 @@ def search_pois_by_purpose(
     top_k: int = 5,
 ) -> list[dict]:
     """purposes 기반 ChromaDB 벡터 검색"""
-    embedder = get_embedder()
     chroma   = get_chroma()
-    query_vec = embedder.encode(query_text, normalize_embeddings=True).tolist()
+    query_vec = embed_texts_sync([query_text])[0]
 
     results: list[dict] = []
     seen_ids: set[str] = set()

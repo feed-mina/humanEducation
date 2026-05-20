@@ -15,10 +15,18 @@ Thumbs.db
 .env
 .env.*
 *.env
+Neo4j-a1880d39-Created-2026-05-19.txt 
 application-local.yml
 subproject/SDUI/SDUI-server/src/main/resources/application-local.yml
 assets/*.json
 subproject/SDUI/pronounce-api/*.json
+
+# ── 대용량 데이터 / ML ──
+dataset/models/
+dataset/chroma_db/
+dataset/data/
+*.npy
+*.crdownload
 
 # ── Python / FastAPI ──
 __pycache__/
@@ -86,3 +94,4 @@ gradle/
 
 # ── Claude Code ──
 .claude
+team

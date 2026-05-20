@@ -788,6 +788,120 @@ pytest tests/ -v
 
 ---
 
+## Phase 2: TorchServe + Celery 아키텍처 구축 — 2026-05-20 [구현완료]
+
+> ML 모델을 FastAPI 프로세스에서 분리하여 TorchServe로 서빙, Celery + Redis 비동기 작업 큐 도입.
+
+### 배경
+
+기존 FastAPI가 SentenceTransformer, CrossEncoder, WeatherLSTM, EventNER 등 모든 ML 모델을 인라인 로딩.
+향후 사진→TTS→영상 파이프라인 추가 시 모델별 Python/CUDA 환경 격리 필수.
+
+### TorchServe 분리 대상 (4개 모델)
+
+| 모델 | MAR | Handler | 이유 |
+|------|-----|---------|------|
+| SentenceTransformer (e5-small) | embedder.mar | text → 384-dim vector | FastAPI/Chatbot 중복 제거, GPU 활용 |
+| CrossEncoder (ms-marco-MiniLM) | reranker.mar | (query, doc) → scores | GPU 가속 |
+| WeatherLSTM | weather_lstm.mar | 14-day seq → 3-class | PyTorch 모델 |
+| Event NER (mDeBERTa) | event_ner.mar | text → classification | transformers, VRAM 필요 |
+
+### 인라인 유지 (TorchServe 불필요)
+
+| 모델 | 이유 |
+|------|------|
+| Ensemble Ranker (LightGBM) | CPU 전용, <1ms 추론 |
+| NetworkX Graph | 데이터 구조 |
+| CSV DataFrames | 데이터 로딩 |
+| Groq LLM | 외부 API |
+
+### 신규 파일 (13개)
+
+| 파일 | 내용 |
+|------|------|
+| `torchserve/handlers/embedder_handler.py` | SentenceTransformer TorchServe handler |
+| `torchserve/handlers/reranker_handler.py` | CrossEncoder TorchServe handler |
+| `torchserve/handlers/weather_lstm_handler.py` | WeatherLSTM TorchServe handler |
+| `torchserve/handlers/event_ner_handler.py` | mDeBERTa zero-shot handler |
+| `torchserve/config.properties` | TorchServe 설정 (8085/8086/7070) |
+| `torchserve/Dockerfile` | TorchServe GPU Docker 이미지 |
+| `torchserve/package_models.sh` | .mar 패키징 스크립트 |
+| `torchserve/requirements.txt` | 핸들러 의존성 |
+| `src/api/torchserve_client.py` | 동기 + 비동기 HTTP 클라이언트 |
+| `src/api/celery_app.py` | Celery 설정 (Redis 브로커, 큐 라우팅) |
+| `src/api/tasks.py` | 비동기 태스크 (embed/rerank/weather/event + Phase 3 stub) |
+| `docker-compose.gpu.yml` | TorchServe + ChromaDB + Redis + Celery Worker |
+| `Dockerfile.worker` | Celery 워커 Docker 이미지 |
+
+### 수정 파일 (5개)
+
+| 파일 | 변경 |
+|------|------|
+| `src/api/rag_client.py` | SentenceTransformer → `torchserve_client.embed_texts_sync()`, `PersistentClient` → `HttpClient` |
+| `subproject/NLP/chatbot/chatbot_chain.py` | embedder/reranker → TorchServe HTTP, `PersistentClient` → `HttpClient` |
+| `subproject/NLP/chatbot/config.py` | `CHROMA_HOST`, `CHROMA_PORT`, `TORCHSERVE_URL` 환경변수 추가 |
+| `src/api/fastapi_server.py` | `build_weather_lstm`/`build_event_ner` 직접 import → TorchServe 클라이언트 호출 |
+| `.env` | `TORCHSERVE_URL`, `CHROMA_HOST`, `CHROMA_PORT`, `CELERY_BROKER_URL` 추가 |
+
+### ChromaDB 서버 모드 전환
+
+```python
+# Before:
+_chroma = chromadb.PersistentClient(path="./chroma_db")
+# After:
+_chroma = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+```
+
+rag_client.py + chatbot_chain.py 양쪽 모두 HttpClient로 전환.
+
+### Docker Compose 구조 (GPU VM)
+
+```
+docker-compose.gpu.yml
+├── torchserve    :8085 (inference) :8086 (management) — GPU
+├── chromadb      :8100 — 볼륨 마운트 ./chroma_db
+├── redis         :6379 — Celery 브로커/백엔드
+└── celery-worker — 2 concurrency, ml+media 큐
+```
+
+### Celery 큐 라우팅
+
+| 태스크 | 큐 |
+|--------|-----|
+| `task_embed_texts` | ml |
+| `task_predict_weather` | ml |
+| `task_generate_tts` (Phase 3) | media |
+| `task_generate_video` (Phase 3) | media |
+
+### 검증 명령어
+
+```bash
+# 1. 인프라 기동
+docker-compose -f docker-compose.gpu.yml up torchserve chromadb redis
+
+# 2. TorchServe 테스트
+curl -X POST http://localhost:8085/predictions/embedder -d '{"text": ["서울 여행"]}'
+curl -X POST http://localhost:8085/predictions/reranker -d '{"query":"서울","documents":["서울 맛집","부산 해변"]}'
+
+# 3. FastAPI 연동
+TORCHSERVE_URL=http://localhost:8085 CHROMA_HOST=localhost CHROMA_PORT=8100 \
+  uvicorn src.api.fastapi_server:app --port 8000
+
+# 4. Celery Worker
+celery -A src.api.celery_app worker -l info -Q ml,media
+```
+
+### .env 추가 환경변수
+
+```
+TORCHSERVE_URL=http://localhost:8085
+CHROMA_HOST=localhost
+CHROMA_PORT=8100
+CELERY_BROKER_URL=redis://localhost:6379/1
+```
+
+---
+
 ## 테스트 개념 Q&A — 2026-05-20
 
 ### Q1. TestClient는 ASGI 앱을 직접 호출한다?
@@ -1042,4 +1156,135 @@ pytest tests/test_community_chatbot_integration.py -v
 
 # Swagger UI 확인
 http://localhost:8080/swagger-ui/index.html
+```
+
+---
+
+## [P4] Kaggle + zrok 무료 배포 — Slim FastAPI 검증 환경 [진행중]
+
+> 추가일: 2026-05-20
+> 목적: GCP 유료 배포 전 Kaggle GPU 무료 환경에서 전체 파이프라인 검증
+
+### 배경
+
+- Kaggle GPU: T4 16GB, **주 30시간 무료** / CPU 노트북: 사실상 무제한
+- 외부 DB (Neo4j AuraDB, Supabase, Groq API)는 클라우드이므로 Kaggle에서 바로 접근 가능
+- TorchServe + Celery 오버헤드를 제거하고, 모델을 직접 로딩하여 단일 프로세스로 운영
+- zrok으로 퍼블릭 URL 노출 → 프론트엔드(Vercel/로컬) 연동 테스트
+
+### 아키텍처
+
+```
+[Kaggle 노트북]
+├─ kaggle_server.py (Slim FastAPI)
+│   ├─ /api/health              ✅
+│   ├─ /api/artists             ✅ Supabase
+│   ├─ /api/regions             ✅ Neo4j
+│   ├─ /api/recommend/ai        ✅ Neo4j + ChromaDB + Groq
+│   ├─ /api/recommend/itinerary ✅ Neo4j + ChromaDB + Groq
+│   ├─ /api/chatbot             ✅ RAG pipeline
+│   └─ /api/chatbot/reset       ✅
+│
+├─ ML 모델 (직접 로딩, TorchServe 없이)
+│   ├─ SentenceTransformer (e5-small)  ~100MB
+│   ├─ CrossEncoder (ms-marco-MiniLM)  ~80MB
+│   └─ Ensemble Ranker (pickle)        ~1MB
+│
+├─ ChromaDB (PersistentClient, 로컬)
+│   └─ 컬렉션 5개 (PDF + POI 4개)
+│
+└─ zrok tunnel → https://xxx.share.zrok.io
+```
+
+**제외 (현재 Slim FastAPI에 미포함):**
+- TorchServe / Celery / Redis
+- WeatherLSTM / EventNER (GPU 절약)
+- 경로 그래프 (route_graph.pkl, CSV 파일들)
+
+**Phase 3 — TTS / Animation (Kaggle에서 별도 개발 중):**
+- GPT-SoVITS TTS, CogVideoX/AnimatedDrawings 등 → 사용자가 Kaggle 노트북에서 직접 구축 중
+- 완성 후 `kaggle_server.py`에 `/api/tts`, `/api/video` 엔드포인트 추가하여 연동 예정
+- GCP 이전 시 TorchServe MAR로 패키징 + Celery media 큐로 비동기 처리
+
+### 파일 구조
+
+| 파일 | 내용 |
+|------|------|
+| `kaggle/kaggle_server.py` | Slim FastAPI — 모델 직접 로딩, ChromaDB PersistentClient |
+| `kaggle/kride_kaggle.ipynb` | Kaggle 노트북 — 의존성 설치, zrok 터널, 서버 실행 |
+
+### Kaggle Dataset 준비 (사용자 수동)
+
+Kaggle에 **Private Dataset** 으로 업로드할 파일:
+1. `chroma_db/` — ChromaDB 전체 디렉토리
+2. `models/ensemble_ranker.pkl` — 앙상블 모델
+3. `models/poi_cooccurrence_v2.pkl` — co-occurrence 사전
+4. `.env` — API 키 (Private Dataset으로 보호)
+
+### 환경변수 (Kaggle Secrets 또는 .env)
+
+```
+GROQ_API_KEY=gsk_...
+NEO4J_URI=neo4j+s://...
+NEO4J_USERNAME=...
+NEO4J_PASSWORD=...
+SUPABASE_URL=https://...
+SUPABASE_KEY=sb_secret_...
+```
+
+### 파일 구조 (미디어 서버 추가)
+
+| 파일 | 내용 |
+|------|------|
+| `kaggle/kaggle_server.py` | 노트북 A — Slim FastAPI (추천/챗봇, CPU/가벼운 GPU) |
+| `kaggle/kride_kaggle.ipynb` | 노트북 A — zrok URL-A |
+| `kaggle/media_server.py` | 노트북 B — Media FastAPI (TTS/MusicGen/3D Photo/LivePortrait/FFmpeg) |
+| `kaggle/kride_media_kaggle.ipynb` | 노트북 B — zrok URL-B (GPU T4 전용) |
+
+### 노트북 B: Media Server 엔드포인트
+
+| 엔드포인트 | 기능 | VRAM | 시간 |
+|-----------|------|------|------|
+| `POST /api/media/tts` | 한국어 TTS (XTTS-v2) | ~2-3GB | ~5초 |
+| `POST /api/media/musicgen` | BGM 생성 (MusicGen) | ~2-6GB | ~15초 |
+| `POST /api/media/inpaint3d` | 풍경 → 카메라 무빙 (Depth Anything + Ken Burns) | ~2-4GB | ~30초 |
+| `POST /api/media/animate` | 인물 → 모션 영상 (LivePortrait) | ~6GB | 3~10분 |
+| `POST /api/media/render` | FFmpeg 합성 (영상 + TTS + BGM) | CPU | ~10초 |
+| `GET /api/media/status/{id}` | 작업 상태 폴링 | — | — |
+| `GET /api/media/download/{id}` | 결과 파일 다운로드 | — | — |
+| `POST /api/media/unload/{name}` | GPU 메모리 해제 (tts/musicgen) | — | — |
+
+### 비동기 폴링 패턴 (미디어 생성은 시간이 오래 걸림)
+
+```
+1. POST /api/media/tts → {"job_id": "abc123"}
+2. GET /api/media/status/abc123 → {"status": "running", "progress": "음성 생성 중"}
+3. GET /api/media/status/abc123 → {"status": "completed", "result_path": "..."}
+4. GET /api/media/download/abc123 → 파일 다운로드
+```
+
+### 전체 미디어 파이프라인 흐름
+
+```
+1. POST /api/media/tts      → job_tts (한국어 대본 음성)
+2. POST /api/media/musicgen  → job_bgm (배경음악)
+3. POST /api/media/animate   → job_video (인물 모션) 또는
+   POST /api/media/inpaint3d → job_video (풍경 카메라 무빙)
+4. POST /api/media/render    → job_final (합성)
+   {video_job_id: job_video, tts_job_id: job_tts, bgm_job_id: job_bgm}
+5. GET /api/media/download/{job_final} → 최종 mp4
+```
+
+### 검증 방법
+
+```bash
+# 노트북 A: 추천/챗봇 테스트
+curl https://xxx.share.zrok.io/api/health
+curl https://xxx.share.zrok.io/api/artists
+curl -X POST https://xxx.share.zrok.io/api/recommend/ai \
+  -H "Content-Type: application/json" \
+  -d '{"artists":["BTS"], "regions":["서울"], "purposes":["kculture"]}'
+curl -X POST https://xxx.share.zrok.io/api/chatbot \
+  -H "Content-Type: application/json" \
+  -d '{"message":"서울 맛집 추천해줘", "session_id":"test1"}'
 ```

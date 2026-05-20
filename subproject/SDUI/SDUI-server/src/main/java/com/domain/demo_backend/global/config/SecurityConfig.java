@@ -72,6 +72,9 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.FORWARD, DispatcherType.ERROR)
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Swagger UI
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                                "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                         // PUBLIC — 인증 불필요
                         .requestMatchers(
                                 "/api/auth/login", "/api/auth/register",
@@ -106,6 +109,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/memberships").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/memberships/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/memberships/**").hasRole("ADMIN")
+                        // ── [추가] 커뮤니티 ──
+                        .requestMatchers(HttpMethod.GET, "/api/v1/community/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/community/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/community/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/community/**").authenticated()
+                        // ── [추가] KRIDE 챗봇 ──
+                        .requestMatchers("/api/v1/kride/chat/**").permitAll()
                         // DEFAULT — 명시되지 않은 모든 요청 차단
                         .anyRequest().denyAll())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(new Http403ForbiddenEntryPoint()))

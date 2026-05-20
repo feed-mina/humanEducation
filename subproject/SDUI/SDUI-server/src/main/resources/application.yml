@@ -108,6 +108,16 @@ cloud:
       processor-id: ${GCP_PROCESSOR_ID:6ed87cfefab39a91}
       credentials-path: ${GCP_CREDENTIALS_PATH:assets/kdeliver-358f601d765c.json}
 
+# ── [추가] KRIDE 설정 ──
+kride:
+  supabase:
+    url: ${SUPABASE_URL:}
+    key: ${SUPABASE_KEY:}
+    bucket: kride-community
+  fastapi:
+    url: ${KRIDE_FASTAPI_URL:http://localhost:8000}
+    chatbot-url: ${KRIDE_CHATBOT_URL:http://localhost:8001}
+
 logging:
   file:
     name: log.txt

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # ── TorchServe (GPU) ─────────────────────────────────────────────────────
+  torchserve:
+    build: ./torchserve
+    ports:
+      - "8085:8085"   # inference
+      - "8086:8086"   # management
+      - "7070:7070"   # metrics
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - ./models:/home/model-store/models
+    environment:
+      - TS_CONFIG_FILE=/home/model-store/config.properties
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── ChromaDB (서버 모드) ─────────────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8100:8000"
+    volumes:
+      - ./chroma_db:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Redis (Celery 브로커/백엔드) ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ── Celery Worker ────────────────────────────────────────────────────────
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: celery -A src.api.celery_app worker -l info -c 2 -Q ml,media
+    depends_on:
+      redis:
+        condition: service_healthy
+      torchserve:
+        condition: service_healthy
+    environment:
+      - TORCHSERVE_URL=http://torchserve:8085
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    restart: unless-stopped
+
+volumes:
+  redis_data:
