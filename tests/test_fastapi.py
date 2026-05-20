@@ -72,11 +72,14 @@ MOCK_ARTISTS = [
 ]
 
 class TestArtists:
-    def test_artists_503_when_no_ai(self):
-        """HAS_AI=False → 503"""
+    def test_artists_fallback_when_no_ai(self):
+        """HAS_AI=False → FALLBACK_ARTISTS 반환 (200)"""
         with patch("src.api.fastapi_server.HAS_AI", False):
             resp = client.get("/api/artists")
-        assert resp.status_code == 503
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "artists" in body
+        assert len(body["artists"]) > 0
 
     def test_artists_returns_list(self):
         """HAS_AI=True, Supabase mock → artists 배열 반환"""
@@ -98,12 +101,15 @@ class TestArtists:
             assert "name" in a
             assert "imageUrl" in a
 
-    def test_artists_502_on_exception(self):
-        """get_all_artists가 예외를 던지면 502"""
+    def test_artists_fallback_on_exception(self):
+        """get_all_artists 예외 → FALLBACK_ARTISTS 반환 (200)"""
         with patch("src.api.fastapi_server.HAS_AI", True), \
              patch("src.api.fastapi_server.get_all_artists", side_effect=Exception("DB 오류")):
             resp = client.get("/api/artists")
-        assert resp.status_code == 502
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "artists" in body
+        assert len(body["artists"]) > 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -115,10 +121,14 @@ MOCK_REGIONS = [
 ]
 
 class TestRegions:
-    def test_regions_503_when_no_ai(self):
+    def test_regions_fallback_when_no_ai(self):
+        """HAS_AI=False → FALLBACK_REGIONS 반환 (200)"""
         with patch("src.api.fastapi_server.HAS_AI", False):
             resp = client.get("/api/regions")
-        assert resp.status_code == 503
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "regions" in body
+        assert len(body["regions"]) > 0
 
     def test_regions_from_neo4j(self):
         """Neo4j에 Region 노드 있으면 그대로 반환"""
@@ -187,6 +197,7 @@ class TestRecommendAI:
              patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
              patch("src.api.fastapi_server.generate_recommendation_text", return_value=""):
             body = client.post("/api/recommend/ai", json={
+                "artists": ["BTS"],
                 "budget": {"min": 0, "max": 100},
             }).json()
         # avg_cost 없는 POI는 통과해야 함
@@ -209,7 +220,9 @@ class TestRecommendAI:
              patch("src.api.fastapi_server.get_artist_pois", return_value=dup), \
              patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
              patch("src.api.fastapi_server.generate_recommendation_text", return_value=""):
-            body = client.post("/api/recommend/ai", json={}).json()
+            body = client.post("/api/recommend/ai", json={
+                "artists": ["BTS"],
+            }).json()
         assert body["count"] == len(MOCK_POIS)   # 중복 제거 후 2개
 
 
@@ -280,15 +293,87 @@ class TestItinerary:
         marker_names = [m["name"] for m in markers]
         assert "좌표없음" not in marker_names
 
-    def test_itinerary_502_on_groq_failure(self):
-        """Groq 호출 실패 → 502"""
+    def test_itinerary_fallback_on_groq_failure(self):
+        """Groq 호출 실패 → fallback 빈 일정 반환 (200)"""
         with patch("src.api.fastapi_server.HAS_AI", True), \
              patch("src.api.fastapi_server.get_artist_pois", return_value=[]), \
              patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
              patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
              patch("src.api.fastapi_server.generate_itinerary", side_effect=Exception("Groq 오류")):
             resp = client.post("/api/recommend/itinerary", json={})
-        assert resp.status_code == 502
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "itinerary" in body
+        assert "mapData" in body
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 5b. POST /api/recommend/itinerary — 앙상블 통합 경로
+# ══════════════════════════════════════════════════════════════════════════════
+class TestItineraryEnsemble:
+    def test_ensemble_ranking_applied(self):
+        """HAS_ENSEMBLE=True → ensemble_rank_pois 호출"""
+        mock_ranked = [
+            {"poi_id": "p1", "name": "경복궁", "lat": 37.58, "lon": 126.97, "ensemble_score": 0.9},
+            {"poi_id": "p2", "name": "광장시장", "lat": 37.57, "lon": 126.99, "ensemble_score": 0.5},
+        ]
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.HAS_ENSEMBLE", True), \
+             patch("src.api.fastapi_server.ensemble_rank_pois", return_value=mock_ranked), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=MOCK_POIS), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=MOCK_ITINERARY):
+            resp = client.post("/api/recommend/itinerary", json={
+                "artists": ["BTS"],
+                "regions": ["서울"],
+                "purposes": ["kculture"],
+            })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "itinerary" in body
+        assert "mapData" in body
+
+    def test_ensemble_fallback_on_exception(self):
+        """앙상블 예외 시 기존 union 방식 fallback"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.HAS_ENSEMBLE", True), \
+             patch("src.api.fastapi_server.ensemble_rank_pois", side_effect=Exception("모델 오류")), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=MOCK_POIS), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=MOCK_ITINERARY):
+            resp = client.post("/api/recommend/itinerary", json={})
+        assert resp.status_code == 200
+
+    def test_no_ensemble_uses_union(self):
+        """HAS_ENSEMBLE=False → 기존 union 방식"""
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.HAS_ENSEMBLE", False), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=MOCK_POIS), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=MOCK_ITINERARY):
+            resp = client.post("/api/recommend/itinerary", json={})
+        assert resp.status_code == 200
+
+    def test_ensemble_markers_have_coords(self):
+        """앙상블 결과에서 좌표 있는 POI만 markers에 포함"""
+        mock_ranked = [
+            {"poi_id": "p1", "name": "좌표있음", "lat": 37.5, "lon": 127.0, "ensemble_score": 0.9},
+            {"poi_id": "p2", "name": "좌표없음", "ensemble_score": 0.8},
+        ]
+        with patch("src.api.fastapi_server.HAS_AI", True), \
+             patch("src.api.fastapi_server.HAS_ENSEMBLE", True), \
+             patch("src.api.fastapi_server.ensemble_rank_pois", return_value=mock_ranked), \
+             patch("src.api.fastapi_server.get_artist_pois", return_value=[]), \
+             patch("src.api.fastapi_server.get_region_pois", return_value=[]), \
+             patch("src.api.fastapi_server.search_pois_by_purpose", return_value=[]), \
+             patch("src.api.fastapi_server.generate_itinerary", return_value=MOCK_ITINERARY):
+            markers = client.post("/api/recommend/itinerary", json={}).json()["mapData"]["markers"]
+        marker_names = [m["name"] for m in markers]
+        assert "좌표있음" in marker_names
+        assert "좌표없음" not in marker_names
 
 
 # ══════════════════════════════════════════════════════════════════════════════
